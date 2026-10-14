@@ -7,6 +7,7 @@ seeded, so two runs with the same workload send identical prompts.
 
 from __future__ import annotations
 
+import json
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,6 +32,9 @@ class Workload:
     style: str = "chat"  # key of corpus.INSTRUCTIONS
     # ids: send exact token ids (needs /tokenize); text: send text, size approximate.
     prompt_mode: str = "auto"
+    # Path of a JSONL file ({"prompt": "..."} per line) or a plain text file (one prompt per line). When set,
+    # these prompts are used as they are (cycled if more requests are made) and input_tokens is informational.
+    prompts_file: str | None = None
     # None = a fresh random seed per invocation. A fixed default would make a second run of the same command
     # send the same prompts, which the server's prefix cache answers almost for free (see benchmark/README.md).
     seed: int | None = None
@@ -45,6 +49,7 @@ class Workload:
             "shared_prefix_tokens": self.shared_prefix_tokens,
             "style": self.style,
             "prompt_mode": self.prompt_mode,
+            "prompts_file": self.prompts_file,
             "seed": self.seed,
         }
 
@@ -116,13 +121,29 @@ def _compose_text(rng: random.Random, target_tokens: int, header: str) -> str:
     return " ".join(parts)
 
 
+def load_prompts_file(path: str | Path, count: int) -> list[Prompt]:
+    """Prompts from a file, cycled to `count`. Text only: the server tokenises them."""
+    lines = [ln for ln in Path(path).read_text().splitlines() if ln.strip()]
+    if not lines:
+        raise ValueError(f"{path} contains no prompts")
+    texts = []
+    for ln in lines:
+        try:
+            obj = json.loads(ln)
+            texts.append(obj["prompt"] if isinstance(obj, dict) else str(obj))
+        except (json.JSONDecodeError, KeyError):
+            texts.append(ln)
+    return [Prompt(index=i, text=texts[i % len(texts)], approx_tokens=0) for i in range(count)]
+
+
 def build_prompts(
     workload: Workload,
     count: int,
     tokenizer: Tokenizer | None,
 ) -> list[Prompt]:
-    """Build `count` prompts. Every prompt differs from the first token on, except for the
-    shared prefix, so accidental prefix-cache hits cannot flatter the results."""
+    """Build `count` prompts. Apart from the shared prefix (if the workload asks for one), prompts
+    share at most a few leading tokens, fewer than one cache block, so accidental prefix-cache
+    hits cannot flatter the results."""
     mode = workload.prompt_mode
     if mode == "auto":
         mode = "ids" if tokenizer is not None else "text"
@@ -149,9 +170,11 @@ def build_prompts(
     prompts: list[Prompt] = []
     for i in range(count):
         rng = random.Random(f"{seed}-{i}")
-        # A random leading line makes every request unique from its first token.
+        # A random leading line makes every request unique from its first tokens. It must come BEFORE
+        # the instruction: a fixed line in front would be a shared prefix, and the server caches whole
+        # 16-token blocks of it.
         nonce = f"Request {rng.getrandbits(48):012x}."
-        header = nonce if shared_text else f"{instruction}\n\n{nonce}"
+        header = nonce if shared_text else f"{nonce}\n\n{instruction}"
         body = _compose_text(rng, unique_target, header)
         if mode == "text":
             text = f"{shared_text}\n\n{body}" if shared_text else body

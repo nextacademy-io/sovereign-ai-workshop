@@ -20,7 +20,7 @@ from .provenance import REPO_ROOT, collect_configuration
 from .report import build_result, markdown_summary, parse_slo
 from .runner import RunOutcome, run_closed_loop, run_open_loop
 from .sampler import GpuSampler, MetricsSampler
-from .workload import Tokenizer, Workload, build_prompts, load_workload
+from .workload import Tokenizer, Workload, build_prompts, load_prompts_file, load_workload
 
 
 def _parse_levels(text: str) -> list[int]:
@@ -70,6 +70,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     g.add_argument(
         "--seed", type=int, help="prompt seed (default: random per run, stored in the result)"
+    )
+    g.add_argument(
+        "--prompts-file",
+        help="JSONL or text file with one prompt per line, used as given (text mode, cycled)",
     )
     g.add_argument("--temperature", type=float, default=0.0)
     g.add_argument(
@@ -171,6 +175,7 @@ def _workload_from_args(a: argparse.Namespace) -> Workload:
             "shared_prefix_tokens": a.shared_prefix_tokens,
             "prompt_mode": a.prompt_mode,
             "seed": a.seed,
+            "prompts_file": a.prompts_file,
         }.items()
         if v is not None
     }
@@ -196,7 +201,10 @@ async def _one_run(
         except httpx.HTTPError as exc:
             print(f"warning: could not reset the prefix cache: {exc}", file=sys.stderr)
 
-    prompts = build_prompts(wl, n_requests + warmup, tokenizer)
+    if wl.prompts_file:
+        prompts = load_prompts_file(wl.prompts_file, n_requests + warmup)
+    else:
+        prompts = build_prompts(wl, n_requests + warmup, tokenizer)
     warm, measured = prompts[:warmup], prompts[warmup:]
     if warm:
         await run_closed_loop(base_url, headers, cfg, warm, min(level, len(warm)), quiet=True)

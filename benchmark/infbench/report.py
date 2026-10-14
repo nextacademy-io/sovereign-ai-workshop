@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
 
 from .client import RequestResult
 from .runner import RunOutcome
@@ -152,7 +153,11 @@ def markdown_summary(results: list[dict]) -> str:
         f"- **Hardware:** {hw.get('gpu_count')}× {hw.get('gpu')} ({hw.get('vram_gb')} GB), driver {hw.get('driver_version')}",
         f"- **Model:** `{cfg['model']}` @ `{(cfg.get('model_revision') or 'unknown')[:12]}`",
         f"- **Engine:** {cfg['engine']} {cfg.get('engine_version')} · CUDA {cfg.get('cuda_version')}",
-        f"- **Workload:** {wl['input_tokens']} input tokens, {wl['output_tokens']} output tokens"
+        (
+            f"- **Workload:** prompts from `{Path(wl['prompts_file']).name}`, up to {wl['output_tokens']} output tokens"
+            if wl.get("prompts_file")
+            else f"- **Workload:** {wl['input_tokens']} input tokens, {wl['output_tokens']} output tokens"
+        )
         + (
             f", {wl['shared_prefix_tokens']} shared prefix tokens"
             if wl.get("shared_prefix_tokens")

@@ -17,6 +17,8 @@ ignores:
   - "**/.venv/**"
   - "**/node_modules/**"
   - "slides/dist/**"
+  - "slides/dist-*/**"
+  - "slides/preview-*.md" # private authoring previews, never committed
   - "slides/sections/**" # Slidev sources contain frontmatter separators, validated by the build
   - "slides/slides.md"
   - "LICENSE"

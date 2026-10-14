@@ -53,3 +53,34 @@ def test_kv_capacity_in_the_log_can_be_checked_against_the_formula():
     # Within a few percent: block rounding and the max_model_len rounding in vLLM's report.
     assert abs(predicted_tokens - reported) / reported < 0.05
     assert json.dumps(bytes_per_token)
+
+
+def test_parse_log_reads_the_memory_accounting_line():
+    line = (
+        "INFO 10-14 13:51:24 [gpu_worker.py:955] Free memory on device (94.43/94.97 GiB) on startup. "
+        "Desired GPU memory utilization is (0.8, 75.98 GiB). Actual usage is 16.14 GiB for consumed memory "
+        "(weights + non-torch), 1.7 GiB for peak activation, and 0.21 GiB for CUDAGraph memory. Replace ..."
+    )
+    got = server_info.parse_log(line)["memory_accounting_gib"]
+    assert (
+        got["device_total"] == 94.97
+        and got["budget"] == 75.98
+        and got["gpu_memory_utilization"] == 0.8
+    )
+    assert (
+        got["weights_and_non_torch"] == 16.14
+        and got["peak_activation"] == 1.7
+        and got["cuda_graphs"] == 0.21
+    )
+    assert "memory_accounting_gib" not in server_info.parse_log(LOG)
+
+
+def test_timeline_counts_seconds_from_the_first_stamp_and_survives_midnight():
+    log = (
+        "(APIServer) INFO 10-14 23:59:50 [api_utils.py:1] starting\n"
+        "(EngineCore) INFO 10-15 00:00:00 [core.py:129] Initializing a V1 LLM engine (v0.31.0)\n"
+        "(EngineCore) INFO 10-15 00:00:05 [model_runner.py:1] Model loading took 15.27 GiB memory and 3.0 seconds\n"
+        "(EngineCore) INFO 10-15 00:01:10 [core.py:373] init engine (profile, create kv cache, warmup model) took 60.0 s\n"
+    )
+    got = server_info.parse_log(log)["timeline_seconds"]
+    assert got == {"engine_core_started": 10.0, "weights_loaded": 15.0, "engine_ready": 80.0}

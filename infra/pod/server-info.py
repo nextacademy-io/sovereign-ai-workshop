@@ -41,7 +41,41 @@ PATTERNS = {
 KV_LINE = re.compile(
     r"KV cache size: ([\d,]+) tokens, Maximum concurrency for ([\d,]+) tokens per request: ([\d.]+)x"
 )
+# vLLM's own memory accounting at the end of engine start-up (gpu_worker.py): what the budget was and who used it.
+MEMORY_LINE = re.compile(
+    r"Free memory on device \(([\d.]+)/([\d.]+) GiB\) on startup\. "
+    r"Desired GPU memory utilization is \(([\d.]+), ([\d.]+) GiB\)\. "
+    r"Actual usage is ([\d.]+) GiB for consumed memory \(weights \+ non-torch\), "
+    r"([\d.]+) GiB for peak activation, and ([\d.]+) GiB for CUDAGraph memory"
+)
 ANSI = re.compile(r"\x1b\[[0-9;]*m")
+STAMP = re.compile(r"INFO (\d\d)-(\d\d) (\d\d):(\d\d):(\d\d) ")
+# (name, text that marks the END of the phase). Offsets are seconds since the first timestamped log line.
+MARKERS = [
+    ("engine_core_started", "Initializing a V1 LLM engine"),
+    ("weights_loaded", "Model loading took"),
+    ("kv_cache_sized", "Available KV cache memory"),
+    ("engine_ready", "init engine (profile, create kv cache, warmup model)"),
+]
+
+
+def timeline(text: str) -> dict[str, float]:
+    """Seconds since the first timestamped line at which each start-up phase ended (log resolution: 1 s)."""
+    first = None
+    seen: dict[str, float] = {}
+    for line in text.splitlines():
+        stamp = STAMP.search(line)
+        if not stamp:
+            continue
+        _, _, hh, mm, ss = (int(x) for x in stamp.groups())
+        t = hh * 3600 + mm * 60 + ss
+        if first is None:
+            first = t
+        t = (t - first) % 86400  # a start can cross midnight
+        for name, marker in MARKERS:
+            if name not in seen and marker in line:
+                seen[name] = float(t)
+    return seen
 
 
 def parse_log(text: str) -> dict:
@@ -60,21 +94,43 @@ def parse_log(text: str) -> dict:
         out["kv_cache_tokens"] = int(tokens.replace(",", ""))
         out["kv_cache_max_model_len"] = int(max_len.replace(",", ""))
         out["kv_cache_max_concurrency"] = float(concurrency)
+    phases = timeline(text)
+    if phases:
+        out["timeline_seconds"] = phases
+    mem = MEMORY_LINE.findall(text)
+    if mem:
+        free, total, util, budget, consumed, activation, graphs = (float(x) for x in mem[-1])
+        out["memory_accounting_gib"] = {
+            "device_total": total,
+            "device_free_at_start": free,
+            "gpu_memory_utilization": util,
+            "budget": budget,
+            "weights_and_non_torch": consumed,
+            "peak_activation": activation,
+            "cuda_graphs": graphs,
+        }
     return out
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--log", type=Path, required=True)
-    ap.add_argument("--summary", required=True, help="JSON from render-profile.py")
-    ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--started-epoch", type=float, required=True)
-    ap.add_argument("--ready-epoch", type=float, required=True)
+    ap.add_argument("--parse-log", type=Path, help="print the facts found in this log and exit")
+    ap.add_argument("--log", type=Path)
+    ap.add_argument("--summary", help="JSON from render-profile.py")
+    ap.add_argument("--out", type=Path)
+    ap.add_argument("--started-epoch", type=float)
+    ap.add_argument("--ready-epoch", type=float)
     ap.add_argument("--engine-version", default=None)
     ap.add_argument("--runtime-cuda", default=None)
     ap.add_argument("--gpu", default=None)
     ap.add_argument("--actor", default="root")
     a = ap.parse_args()
+    if a.parse_log:
+        print(json.dumps(parse_log(a.parse_log.read_text(errors="replace")), indent=2))
+        return 0
+    for name in ("log", "summary", "out", "started_epoch", "ready_epoch"):
+        if getattr(a, name) is None:
+            ap.error(f"--{name.replace('_', '-')} is required")
 
     summary = json.loads(a.summary)
     iso = lambda t: datetime.fromtimestamp(t, UTC).isoformat(timespec="seconds")  # noqa: E731

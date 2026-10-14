@@ -23,7 +23,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["benchmark/tests", "apps", "infra/tests", "monitoring", "scripts"]
+testpaths = ["benchmark/tests", "apps", "infra/tests", "monitoring", "scripts", "experiments"]
 addopts = "-q"
 
 [tool.ruff]

@@ -1,0 +1,83 @@
+/* Design tokens. One place for colour, type and spacing; components use var(--ki-*) only. */
+:root {
+  /* surfaces */
+  --ki-bg: #0b0e14;
+  --ki-bg-sunken: #0d1118;
+  --ki-bg-raised: #121722;
+  --ki-bg-raised-2: #181f2d;
+  --ki-border: #1f2735;
+  --ki-border-strong: #2c3748;
+
+  /* text */
+  --ki-fg: #e6edf3;
+  --ki-fg-muted: #8b98a9;
+  --ki-fg-dim: #5f6b7c;
+
+  /* the three layers; every slide belongs to one of them */
+  --ki-runtime: #2dd4bf;
+  --ki-runtime-bg: rgb(45 212 191 / 0.1);
+  --ki-infrastructure: #a78bfa;
+  --ki-infrastructure-bg: rgb(167 139 250 / 0.1);
+  --ki-application: #f5b14c;
+  --ki-application-bg: rgb(245 177 76 / 0.1);
+  --ki-all: #8b98a9;
+  --ki-all-bg: rgb(139 152 169 / 0.1);
+
+  /* semantic */
+  --ki-good: #4ade80;
+  --ki-bad: #f87171;
+  --ki-info: #60a5fa;
+  --ki-warn: #fbbf24;
+
+  /* type */
+  --ki-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ki-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ki-text-xs: 16px;
+  --ki-text-sm: 18px;
+  --ki-text-base: 22px;
+  --ki-text-lg: 26px;
+  --ki-text-xl: 32px;
+  --ki-text-2xl: 42px;
+  --ki-text-3xl: 56px;
+  --ki-text-4xl: 76px;
+
+  /* the slide canvas (headmatter: canvasWidth 1280, aspectRatio 16/9) */
+  --ki-canvas-w: 1280px;
+  --ki-canvas-h: 720px;
+
+  /* space and shape */
+  --ki-pad-x: 72px;
+  --ki-pad-top: 52px;
+  --ki-rail-h: 52px;
+  --ki-radius: 10px;
+  --ki-radius-sm: 6px;
+
+  /* Slidev hooks */
+  --slidev-theme-primary: var(--ki-runtime);
+  --slidev-code-font-family: var(--ki-font-mono);
+  --slidev-code-font-size: 19px;
+  --slidev-code-line-height: 1.55;
+  --slidev-code-background: var(--ki-bg-sunken);
+  --slidev-code-foreground: var(--ki-fg);
+  --slidev-code-padding: 18px 22px;
+  --slidev-code-margin: 0;
+  --slidev-code-radius: var(--ki-radius);
+}
+
+/* A slide's layer colour. Layouts set data-layer on their root. */
+[data-layer='runtime'] {
+  --ki-layer: var(--ki-runtime);
+  --ki-layer-bg: var(--ki-runtime-bg);
+}
+[data-layer='infrastructure'] {
+  --ki-layer: var(--ki-infrastructure);
+  --ki-layer-bg: var(--ki-infrastructure-bg);
+}
+[data-layer='application'] {
+  --ki-layer: var(--ki-application);
+  --ki-layer-bg: var(--ki-application-bg);
+}
+[data-layer='all'] {
+  --ki-layer: var(--ki-all);
+  --ki-layer-bg: var(--ki-all-bg);
+}

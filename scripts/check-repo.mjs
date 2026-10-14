@@ -37,7 +37,7 @@ const TASK_SECTIONS = [
 ];
 const NOTES_EXEMPT_LAYOUTS = new Set(["cover", "section", "end", "intro"]);
 // Components that render numbers and therefore must say where the numbers come from.
-const SOURCED_COMPONENTS = ["MetricCard", "ResultChart", "ResultTable", "Benchmark"];
+const SOURCED_COMPONENTS = ["MetricCard", "ResultChart", "ResultTable", "Benchmark", "MemoryBar"];
 const REQUIRED_AT_RELEASE = [
   "README.md",
   "FACILITATOR.md",
@@ -300,11 +300,39 @@ if (sectionFiles.length) {
           if (!new RegExp(`\\*\\*${label}[:.]`, "i").test(note)) guard(where, `speaker notes lack a '**${label}:**' part`);
       }
     }
+    if (/<MetricCard\b[^>]*source="measured:/.test(s.content ?? "") && !/<Provenance\b/.test(s.content ?? ""))
+      guard(where, "shows measured MetricCards without a <Provenance source=...> line saying where they were measured");
     if (layout === "lab") {
       const id = fm.task;
       if (!id || !taskIds.has(String(id))) err(where, `lab slide references unknown task '${id}'`);
       else if (Number(fm.timebox) !== taskIds.get(String(id)))
         err(where, `lab slide timebox ${fm.timebox} differs from task '${id}' (${taskIds.get(String(id))} min)`);
+    }
+  }
+}
+
+// slides.md is a pure manifest of the agenda: every block, in agenda order, and each section opens with a
+// divider that carries the block's layer, start time and length (the rail and the section layout read them).
+if (workshop?.days && existsSync(abs("slides/slides.md"))) {
+  const manifest = [...read(abs("slides/slides.md")).matchAll(/^src:\s*\.\/sections\/([\w-]+)\.md\s*$/gm)].map((m) => m[1]);
+  const blocks = workshop.days.flatMap((d) => (d.blocks ?? []).filter((b) => b.kind !== "break").map((b) => ({ ...b, day: d.day, first: d.blocks.find((x) => x.kind !== "break") === b })));
+  if (manifest.join() !== blocks.map((b) => b.id).join())
+    guard("slides/slides.md", `section manifest differs from the agenda in config/workshop.yaml (expected ${blocks.length} sections in agenda order, found ${manifest.length})`);
+  if (sectionFiles.length) {
+    const { load } = await import("@slidev/parser/fs");
+    const data = await load({ roots: [slidesDir], userRoot: slidesDir }, abs("slides/slides.md"));
+    for (const b of blocks) {
+      const file = abs("slides/sections", `${b.id}.md`);
+      const open = data.slides.filter((x) => x.source.filepath === file).sort((a, c) => a.source.index - c.source.index)[0];
+      if (!open) continue;
+      const fm = open.frontmatter ?? {};
+      const where = `slides/sections/${b.id}.md slide 1`;
+      if (fm.layout !== "section") guard(where, `must open with layout: section (found '${fm.layout}')`);
+      if (fm.layer !== b.layer) guard(where, `layer '${fm.layer}' differs from workshop.yaml ('${b.layer}')`);
+      if (String(fm.time) !== String(b.start)) guard(where, `time '${fm.time}' differs from workshop.yaml start '${b.start}'`);
+      if (Number(fm.minutes) !== b.minutes) guard(where, `minutes ${fm.minutes} differ from workshop.yaml (${b.minutes})`);
+      if (!fm.heading) guard(where, "needs a heading");
+      if (b.first && Number(fm.day) !== b.day) guard(where, `the first block of day ${b.day} must declare day: ${b.day}`);
     }
   }
 }

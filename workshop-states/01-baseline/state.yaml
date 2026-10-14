@@ -1,0 +1,11 @@
+id: 01-baseline
+lab: lab-01
+title: Start of Day 1, model selection
+server:
+  profile: baseline
+restore:
+  - workshop-artifacts/model-selection.md
+  - workshop-artifacts/inference-report.md
+note: |
+  Starter files for Lab 1 are in workshop-artifacts/. Your own edits were kept; use --hard to replace
+  them with the clean templates (your versions are saved in ~/.workshop-backups/ first).

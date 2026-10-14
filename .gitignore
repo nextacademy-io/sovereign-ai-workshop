@@ -13,6 +13,8 @@ infra/keys/
 # Node / Slidev
 node_modules/
 slides/dist/
+slides/dist-*/
+slides/preview-*.md
 slides/.slidev/
 *.log
 
@@ -26,6 +28,8 @@ __pycache__/
 
 # Benchmark scratch (curated results under benchmark/results/ ARE committed)
 benchmark/results/_scratch/
+benchmark/results/mine/*
+!benchmark/results/mine/README.md
 benchmark/.cache/
 
 # Participant work

@@ -143,6 +143,20 @@ def test_prompts_are_unique_exact_length_and_deterministic():
     assert len({tuple(p.token_ids) for p in a}) == 5
 
 
+def test_unrelated_prompts_share_less_than_one_cache_block():
+    """vLLM caches whole 16-token blocks; a longer common start would count as a prefix-cache hit."""
+    with FakeLLMServer() as srv:
+        tok = Tokenizer(srv.url, "fake-model", {})
+        prompts = build_prompts(Workload(input_tokens=300, output_tokens=10, seed=11), 8, tok)
+        tok.close()
+    common = 0
+    for column in zip(*(p.token_ids for p in prompts), strict=True):
+        if len(set(column)) > 1:
+            break
+        common += 1
+    assert common < 16
+
+
 def test_shared_prefix_is_identical_and_suffix_differs():
     with FakeLLMServer() as srv:
         tok = Tokenizer(srv.url, "fake-model", {})
@@ -387,3 +401,40 @@ def test_cache_flattery_is_warned_about(tmp_path, capsys):
             ]
         )
     assert "prefix cache answered" in capsys.readouterr().err
+
+
+def test_prompts_file_is_used_verbatim_and_cycled(tmp_path):
+    f = tmp_path / "p.jsonl"
+    f.write_text('{"prompt": "alpha"}\nplain line\n')
+    from infbench.workload import load_prompts_file
+
+    prompts = load_prompts_file(f, 5)
+    assert [p.text for p in prompts] == ["alpha", "plain line", "alpha", "plain line", "alpha"]
+
+
+def test_cli_runs_with_a_prompts_file(tmp_path):
+    f = tmp_path / "p.txt"
+    f.write_text("first prompt\nsecond prompt\n")
+    with FakeLLMServer(ttft_s=0.001, itl_s=0.001) as srv:
+        code = main(
+            [
+                "--endpoint",
+                srv.url,
+                "--model",
+                "fake-model",
+                "--requests",
+                "4",
+                "--warmup",
+                "0",
+                "--prompts-file",
+                str(f),
+                "--output-tokens",
+                "3",
+                "--no-gpu",
+                "--quiet",
+                "--out",
+                str(tmp_path / "o"),
+            ]
+        )
+        assert code == 0 and srv.prompts_seen[-1] in ("first prompt", "second prompt")
+    assert "prompts from `p.txt`" in (tmp_path / "o" / "summary.md").read_text()
