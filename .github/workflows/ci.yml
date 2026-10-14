@@ -82,6 +82,14 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
       - run: bash scripts/lint-shell.sh
 
+  pod-tooling:
+    name: Pod tooling in a clean container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: wsctl, accounts, rollback, stray servers (fake vllm, no GPU)
+        run: infra/tests/wsctl-integration.sh
+
   secrets:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest

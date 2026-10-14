@@ -20,7 +20,8 @@ def main() -> int:
     if len(sys.argv) < 4 or sys.argv[1] != "serve" or sys.argv[2] != "--config":
         print("fake vllm: usage: vllm serve --config FILE", file=sys.stderr)
         return 2
-    cfg = yaml.safe_load(open(sys.argv[3]))
+    with open(sys.argv[3]) as fh:
+        cfg = yaml.safe_load(fh)
     port, name = cfg["port"], cfg.get("served-model-name", cfg["model"])
     if (
         cfg.get("max-num-seqs") == 666
