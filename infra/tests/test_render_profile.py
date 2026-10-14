@@ -123,3 +123,14 @@ def test_every_shipped_profile_renders_or_is_pending_a_pin():
             rp.render(name, PROFILES)
         except rp.ProfileError as exc:
             assert "40-character" in str(exc) and re.search(r"TBD", str(exc)), f"{name}: {exc}"
+
+
+def test_container_mode_binds_inside_the_container_namespace_only_when_asked():
+    host_cfg, _ = rp.render("baseline", PROFILES)
+    box_cfg, summary = rp.render("baseline", PROFILES, container=True)
+    assert host_cfg["host"] == "127.0.0.1" and box_cfg["host"] == "0.0.0.0"  # noqa: S104
+    assert "--host 0.0.0.0" in summary["args"]
+    # Everything else is identical: the same profile drives the pod and the container.
+    assert {k: v for k, v in box_cfg.items() if k != "host"} == {
+        k: v for k, v in host_cfg.items() if k != "host"
+    }

@@ -150,10 +150,17 @@ def to_args(config: dict) -> str:
     return " ".join(parts)
 
 
-def render(name: str, directory: Path, sets: list[str] | None = None) -> tuple[dict, dict]:
+def render(
+    name: str, directory: Path, sets: list[str] | None = None, container: bool = False
+) -> tuple[dict, dict]:
     merged = apply_overrides(load_profile(name, directory), sets or [])
     validate(merged, name)
     config = {k: v for k, v in merged.items() if k not in META_KEYS}
+    if container:
+        # Inside a container "127.0.0.1" is unreachable from outside the container's network
+        # namespace, so the server must listen on all of ITS interfaces. The security boundary
+        # moves to how the port is published: `docker run -p 127.0.0.1:8000:8000`.
+        config["host"] = "0.0.0.0"  # noqa: S104
     summary = {
         "profile": name,
         "description": merged.get("description", ""),
@@ -177,6 +184,11 @@ def main() -> int:
     ap.add_argument("--set", dest="sets", action="append", default=[], metavar="KEY=VALUE")
     ap.add_argument("--list", action="store_true", help="list startable profiles and exit")
     ap.add_argument(
+        "--container",
+        action="store_true",
+        help="bind 0.0.0.0 for use inside a container (publish the port on 127.0.0.1 only)",
+    )
+    ap.add_argument(
         "--allowed-sets", action="store_true", help="print the keys --set accepts and exit"
     )
     a = ap.parse_args()
@@ -192,7 +204,7 @@ def main() -> int:
                 if not p.get("abstract"):
                     print(f"{path.stem}\t{p.get('role', 'generation')}\t{p.get('description', '')}")
             return 0
-        config, summary = render(a.profile, a.dir, a.sets)
+        config, summary = render(a.profile, a.dir, a.sets, container=a.container)
     except ProfileError as exc:
         print(f"render-profile: {exc}", file=sys.stderr)
         return 2

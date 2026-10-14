@@ -1,0 +1,1052 @@
+{
+  "uid": "workshop-inference",
+  "title": "KI ohne Cloud: inference",
+  "tags": [
+    "workshop",
+    "vllm",
+    "inference"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "editable": false,
+  "graphTooltip": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "peak_tflops",
+        "label": "Peak dense BF16 TFLOPS",
+        "type": "textbox",
+        "query": "504",
+        "current": {
+          "text": "504",
+          "value": "504"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "504",
+            "value": "504"
+          }
+        ],
+        "hide": 0
+      },
+      {
+        "name": "peak_bw_gbs",
+        "label": "Peak memory bandwidth GB/s",
+        "type": "textbox",
+        "query": "1597",
+        "current": {
+          "text": "1597",
+          "value": "1597"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "1597",
+            "value": "1597"
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "What the user feels",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Request rate",
+      "description": "Completed requests per second. Compare with the load you generate: if the line is flat while load rises, the server is saturated.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(rate(vllm:request_success_total[$__rate_interval]))",
+          "legendFormat": "requests/s",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "TTFT (time to first token)",
+      "description": "Queueing + prefill. Grows with prompt length and with waiting requests.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Inter-token latency",
+      "description": "Gap between streamed tokens. 1 / ITL is the tokens per second one user sees.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:inter_token_latency_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(vllm:inter_token_latency_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "End-to-end latency",
+      "description": "Request arrival to last token, including queueing.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:e2e_request_latency_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(vllm:e2e_request_latency_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "What the server is doing",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Running requests",
+      "description": "Requests in the current batch. Bounded by --max-num-seqs and by KV cache capacity.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 4,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(vllm:num_requests_running)",
+          "legendFormat": "running",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Waiting requests",
+      "description": "Queue depth. Anything above zero for a sustained time means arrivals exceed capacity.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 9,
+        "w": 4,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(vllm:num_requests_waiting)",
+          "legendFormat": "waiting",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Tokens per second",
+      "description": "Aggregate throughput. Decode tokens are what users read; prefill tokens are the work done on prompts.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 9,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(rate(vllm:generation_tokens_total[$__rate_interval]))",
+          "legendFormat": "generated (decode)",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(rate(vllm:prompt_tokens_total[$__rate_interval]))",
+          "legendFormat": "prompt (prefill)",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "KV cache usage",
+      "description": "Share of KV cache blocks in use. Near 100 % the scheduler must queue or preempt requests.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 9,
+        "w": 5,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "max(vllm:kv_cache_usage_perc) * 100",
+          "legendFormat": "KV cache used",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Prefix cache hit rate",
+      "description": "Cached prompt tokens / queried prompt tokens. High with shared system prompts or documents.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 9,
+        "w": 5,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(rate(vllm:prefix_cache_hits_total[$__rate_interval])) / sum(rate(vllm:prefix_cache_queries_total[$__rate_interval]))",
+          "legendFormat": "hit rate",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Preemptions",
+      "description": "Requests evicted from the KV cache and recomputed later. Non-zero means memory pressure.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(rate(vllm:num_preemptions_total[$__rate_interval]))",
+          "legendFormat": "preemptions/s",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Queue time",
+      "description": "Time spent waiting before the first scheduling. The bucket floor is 0.3 s, so small values read as ~0.3.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 16,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:request_queue_time_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p50",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(vllm:request_queue_time_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p95",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Prefill vs decode time",
+      "description": "Where a request spends its time once it runs.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:request_prefill_time_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "prefill p50",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:request_decode_time_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "decode p50",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Finished requests by reason",
+      "description": "stop = model ended, length = hit max_tokens, abort = client left.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 16,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum by (finished_reason) (rate(vllm:request_success_total[$__rate_interval]))",
+          "legendFormat": "{{finished_reason}}",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "What the hardware is doing",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "GPU utilization",
+      "description": "Share of time any kernel ran. NOT efficiency: a GPU can read 100 % while moving little data.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "avg(DCGM_FI_DEV_GPU_UTIL)",
+          "legendFormat": "GPU-Util",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "VRAM used",
+      "description": "vLLM reserves its memory budget at startup, so this is flat; the KV cache panel shows the real use.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 24,
+        "w": 6,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(DCGM_FI_DEV_FB_USED) / 1024",
+          "legendFormat": "used (GiB)",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE) / 1024",
+          "legendFormat": "total (GiB)",
+          "refId": "B",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Power",
+      "description": "Power draw rises with real compute, which is a better hint of work than GPU-Util.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 4,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(DCGM_FI_DEV_POWER_USAGE)",
+          "legendFormat": "watts",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Estimated compute use (MFU)",
+      "description": "vLLM's own FLOP estimate divided by the peak you set in the variable. Needs --enable-mfu-metrics. An estimate, not a hardware counter.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 24,
+        "w": 4,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "sum(rate(vllm:estimated_flops_per_gpu_total[$__rate_interval])) / ($peak_tflops * 1e12)",
+          "legendFormat": "estimated MFU",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Estimated memory traffic (MBU)",
+      "description": "Estimated bytes moved per second divided by peak bandwidth. Decode is usually limited here, prefill by compute.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "workshop-prometheus"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 24,
+        "w": 4,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "workshop-prometheus"
+          },
+          "expr": "(sum(rate(vllm:estimated_read_bytes_per_gpu_total[$__rate_interval])) + sum(rate(vllm:estimated_write_bytes_per_gpu_total[$__rate_interval]))) / ($peak_bw_gbs * 1e9)",
+          "legendFormat": "estimated MBU",
+          "refId": "A",
+          "range": true
+        }
+      ]
+    }
+  ]
+}

@@ -203,6 +203,20 @@ if (workshop?.days) {
     if (!coveredOutcomes.has(o)) err("config/workshop.yaml", `learning outcome ${o} is not covered by any block`);
 }
 
+// docs/CURRICULUM.md must name every non-break block id, so the curriculum cannot drift from the agenda.
+if (workshop?.days && existsSync(abs("docs/CURRICULUM.md"))) {
+  const curriculum = read(abs("docs/CURRICULUM.md"));
+  const ids = [
+    ...(workshop.prework ?? []).map((p) => p.id),
+    ...workshop.days.flatMap((d) => (d.blocks ?? []).filter((b) => b.kind !== "break").map((b) => b.id)),
+  ];
+  for (const id of ids) {
+    // Block ids are written in full (d1-03-model-selection) or as the short prefix (d1-03).
+    const short = id.match(/^(d\d-\d\d)/)?.[1] ?? id;
+    if (!curriculum.includes(id) && !curriculum.includes(`\`${short}\``)) guard("docs/CURRICULUM.md", `does not mention block '${id}'`);
+  }
+}
+
 // ---------------------------------------------------------------- 3. tasks
 const taskFiles = walk(abs("tasks"), (p) => /\/\d\d-[a-z0-9-]+\.md$/.test(p.split("\\").join("/")));
 const taskIds = new Map(); // id -> timebox minutes read from the task file

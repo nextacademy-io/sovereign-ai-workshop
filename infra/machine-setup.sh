@@ -49,6 +49,10 @@ step() { printf '\n==> [%3ds] %s\n' "$(($(date +%s) - T0))" "$*"; }
 die() { echo "machine-setup: $*" >&2; exit 1; }
 
 [[ $EUID -eq 0 ]] || die "run as root"
+# SSH sessions do not inherit the container's environment (PATH to vllm and python, CUDA variables);
+# infra/runpod/pod-start.sh recorded it, minus secrets.
+# shellcheck source=/dev/null
+[[ -f /etc/workshop-container-env ]] && source /etc/workshop-container-env
 [[ -f $REPO/infra/versions.env ]] || die "$REPO/infra/versions.env not found; copy the repository to $REPO first (infra/deploy-to-pod.sh)"
 # shellcheck source=versions.env
 source "$REPO/infra/versions.env"
@@ -163,6 +167,7 @@ visudo -cf /etc/sudoers.d/workshop >/dev/null && echo "sudoers valid"
 
 cat >/etc/profile.d/workshop.sh <<'EOF'
 # Environment for workshop participants (login shells over SSH).
+[ -r /etc/workshop-container-env ] && . /etc/workshop-container-env
 if [ -r /workspace/state/api-key ]; then
   export OPENAI_BASE_URL=http://127.0.0.1:8000/v1
   OPENAI_API_KEY=$(cat /workspace/state/api-key)

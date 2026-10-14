@@ -1,0 +1,82 @@
+# Reference stack: vLLM + Prometheus + Grafana + dcgm-exporter on a host that runs Docker with the
+# NVIDIA Container Toolkit. This is what you would run on your own server. The workshop pods cannot
+# run Docker (they are containers themselves), so there the same components run as plain processes
+# (infra/pod/wsmon) with the same Prometheus scrape config and the same dashboard.
+#
+#   cp .env.example .env              # set VLLM_API_KEY
+#   docker compose -f monitoring/docker-compose.yml --env-file .env up -d --build
+#   open http://127.0.0.1:3000        # Grafana (anonymous viewer); dashboard "KI ohne Cloud: inference"
+#
+# Everything is published on 127.0.0.1 only. `--api-key` protects /v1 but not /metrics or /tokenize,
+# so never publish port 8000 on a public interface without a reverse proxy that enforces auth and TLS.
+name: ki-ohne-cloud
+
+services:
+  vllm:
+    build:
+      context: ..
+      dockerfile: deploy/vllm/Dockerfile
+    image: ki-ohne-cloud/vllm:local
+    environment:
+      PROFILE: ${PROFILE:-baseline}
+      VLLM_API_KEY: ${VLLM_API_KEY:?set VLLM_API_KEY in .env}
+    volumes:
+      - ${HF_HOME:-${HOME}/.cache/huggingface}:/models # pre-populated at the pinned revisions; the image runs offline
+    ipc: host
+    ports:
+      - "127.0.0.1:8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  dcgm-exporter:
+    # Tag from NVIDIA's NGC listing for dcgm-exporter 4.8.4 (released 2026-09-18); verify before use.
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:4.6.1-4.8.4
+    cap_add: [SYS_ADMIN] # needed for the profiling (DCGM_FI_PROF_*) fields
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=3d
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on: [vllm, dcgm-exporter]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me-before-sharing}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

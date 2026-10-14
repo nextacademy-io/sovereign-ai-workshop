@@ -1,0 +1,12 @@
+.git
+.venv
+node_modules
+**/node_modules
+slides
+benchmark/results
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.env
+infra/.state
+infra/participants.yaml

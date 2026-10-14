@@ -1,0 +1,20 @@
+{
+  "_comment": "Arguments of the Runpod MCP `create-pod` tool (v2 API) for one workshop pod. `body` is what the tool takes. Replace <name>; `cmd` is the content of infra/runpod/pod-start.sh, see infra/provision.md. Validated through the MCP server only; the REST scripts are not validated.",
+  "body": {
+    "name": "kic-<group>",
+    "image": "vllm/vllm-openai@sha256:c1c9f6fd5c109ba7f0546a59f5b2f15fb87f64c77782e90a27b648b42a8e67c3",
+    "entrypoint": ["/bin/bash", "-c"],
+    "cmd": ["<contents of infra/runpod/pod-start.sh>"],
+    "cloud": "SECURE",
+    "gpu": {
+      "id": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "count": 1,
+      "minCudaVersion": "13.0"
+    },
+    "dataCenterIds": ["EU-RO-1", "EUR-IS-1", "EUR-IS-2"],
+    "ports": ["22/tcp"],
+    "disk": 50,
+    "mounts": { "persistent": { "size": 150, "path": "/workspace" } },
+    "startSsh": true
+  }
+}
