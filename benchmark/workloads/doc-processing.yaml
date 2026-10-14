@@ -1,0 +1,6 @@
+name: doc-processing
+description: Offline document extraction, long input and a structured, longer output.
+input_tokens: 2000
+output_tokens: 400
+style: extract
+seed: 1234

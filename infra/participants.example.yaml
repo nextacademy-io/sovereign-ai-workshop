@@ -1,0 +1,22 @@
+# Copy to infra/participants.yaml (gitignored) and fill in. Public keys only.
+#
+# host/port come from the provisioned pod: `get-pod` shows the public IP and the mapped
+# port for 22/tcp. If a pod is recreated, the port changes; update it here and re-run
+# `infra/sync-participants.sh`.
+#
+# Group sizes of 3-5 per GPU host work well. Participants share the group's vLLM server.
+groups:
+  - id: alpha
+    host: 203.0.113.10
+    port: 40022
+    participants:
+      - user: anna
+        ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLE anna@laptop"
+      - user: ben
+        ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLE ben@laptop"
+  - id: beta
+    host: 203.0.113.11
+    port: 40023
+    participants:
+      - user: carla
+        ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLE carla@laptop"

@@ -1,0 +1,7 @@
+# The workload from the SLO example in the course material: p50 input 1200, p50 output 180.
+name: workshop-baseline
+description: Reference workload used across Day 2 (input 1200 tokens, output 180 tokens).
+input_tokens: 1200
+output_tokens: 180
+style: chat
+seed: 1234

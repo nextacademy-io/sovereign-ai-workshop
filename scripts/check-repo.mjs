@@ -151,11 +151,25 @@ if (workshop?.days) {
     const [h, m] = String(hhmm).split(":").map(Number);
     return h * 60 + m;
   };
+  const coveredOutcomes = new Set();
+  const seenIds = new Set();
+  for (const p of workshop.prework ?? []) {
+    (p.outcomes ?? []).forEach((o) => coveredOutcomes.add(o));
+    if (p.task) taskTimeboxFromAgenda.set(String(p.task), p.timebox_minutes);
+  }
   for (const day of workshop.days) {
     let teaching = 0;
     let prevEnd = -1;
     for (const b of day.blocks ?? []) {
-      const where = `config/workshop.yaml day ${day.day} block '${b.id}'`;
+      const where = `day ${day.day} block '${b.id}'`;
+      if (seenIds.has(b.id)) err("config/workshop.yaml", `${where}: duplicate block id`);
+      seenIds.add(b.id);
+      (b.outcomes ?? []).forEach((o) => coveredOutcomes.add(o));
+      if (b.kind !== "break") {
+        if (!existsSync(abs("slides/sections", `${b.id}.md`))) guard("config/workshop.yaml", `${where}: no slides/sections/${b.id}.md`);
+        for (const e of b.experiments ?? [])
+          if (!existsSync(abs("experiments", e))) guard("config/workshop.yaml", `${where}: no experiments/${e}/`);
+      }
       if (!/^\d{2}:\d{2}$/.test(String(b.start))) err("config/workshop.yaml", `${where}: bad start '${b.start}'`);
       if (!(b.minutes > 0)) err("config/workshop.yaml", `${where}: minutes must be > 0`);
       const start = toMin(b.start);
@@ -172,6 +186,9 @@ if (workshop?.days) {
     if (teaching < TEACHING_MINUTES.min || teaching > TEACHING_MINUTES.max)
       err("config/workshop.yaml", `day ${day.day}: ${teaching} teaching minutes, expected ${TEACHING_MINUTES.min}-${TEACHING_MINUTES.max}`);
   }
+  // The 23 learning outcomes of the workshop (docs/CURRICULUM.md) must each be taught somewhere.
+  for (let o = 1; o <= 23; o++)
+    if (!coveredOutcomes.has(o)) err("config/workshop.yaml", `learning outcome ${o} is not covered by any block`);
 }
 
 // ---------------------------------------------------------------- 3. tasks
@@ -216,7 +233,7 @@ if (existsSync(tasksReadme) && taskFiles.length) {
 
 // ---------------------------------------------------------------- 4. benchmark results
 const resultFiles = walk(abs("benchmark/results"), (p) => p.endsWith(".json"));
-const REQUIRED_CONFIG = ["hardware", "model", "model_revision", "vllm_version", "cuda_version", "server_args", "workload", "date"];
+const REQUIRED_CONFIG = ["hardware", "model", "model_revision", "engine", "engine_version", "cuda_version", "server_args", "workload", "date"];
 const validResults = new Set();
 for (const f of resultFiles) {
   const name = rel(f);

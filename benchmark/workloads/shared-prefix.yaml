@@ -1,0 +1,7 @@
+name: shared-prefix
+description: Many requests share a long system prompt or document; used for the prefix caching experiment.
+input_tokens: 2200
+output_tokens: 150
+shared_prefix_tokens: 2000
+style: chat
+seed: 1234

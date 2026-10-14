@@ -1,0 +1,307 @@
+# Single source of truth for the workshop agenda.
+#
+# `pnpm check` validates this file: blocks must not overlap, each day must hold about
+# seven hours of teaching time (breaks excluded), every task timebox must match
+# tasks/NN-*.md, tasks/README.md and the lab slides, and every learning outcome (1-23,
+# see docs/CURRICULUM.md) must be covered by at least one block.
+#
+# Times are RELATIVE to the day's start of 09:00 in the trainer's timezone. They are
+# not calendar dates; this repository never records event dates.
+#
+# Block kinds: lecture | demo | lab | discussion | mixed | break
+# Layers (the mental model used on every slide):
+#   runtime | infrastructure | application | all
+# `timebox_minutes` on a lab is what participants are told. It must not exceed `minutes`;
+# the difference is the debrief. Timeboxes are measured in a dry run and padded 20-30 %.
+
+workshop:
+  title: "KI ohne Cloud"
+  subtitle: "Running and Operating Open Models on Your Own Infrastructure"
+  author: "Paweł Sawicki"
+  trainer_profile: "https://www.nextacademy.io/de/trainers/pawel-sawicki"
+  days: 3
+  max_participants: 15
+  format: remote, instructor-led, hands-on
+  gpu_class: "NVIDIA RTX PRO 6000 Blackwell Server Edition (96 GB)"
+  groups:
+    - { id: alpha, host: gpu-01 }
+    - { id: beta, host: gpu-02 }
+    - { id: gamma, host: gpu-03 }
+    - { id: delta, host: gpu-04 }
+
+# Work participants do before the first block. Not part of the 7 h.
+prework:
+  - id: pre-00-preflight
+    title: Preflight checks on the participant laptop
+    task: 00-preflight
+    timebox_minutes: 15
+    outcomes: [9]
+
+days:
+  - day: 1
+    title: "UNDERSTAND & RUN"
+    question: "What are we actually running?"
+    blocks:
+      - id: d1-01-opening
+        title: "Opening: why run models yourself"
+        start: "09:00"
+        minutes: 30
+        kind: lecture
+        layer: all
+        outcomes: [2, 20]
+      - id: d1-02-models
+        title: "Modern language models"
+        start: "09:30"
+        minutes: 60
+        kind: lecture
+        layer: runtime
+        outcomes: [1, 2]
+      - id: d1-break-1
+        title: "Break"
+        start: "10:30"
+        minutes: 15
+        kind: break
+      - id: d1-03-model-selection
+        title: "Model selection"
+        start: "10:45"
+        minutes: 60
+        kind: mixed
+        layer: runtime
+        outcomes: [3]
+      - id: d1-04-lab-model-selection
+        title: "Lab 1: select models for four scenarios"
+        start: "11:45"
+        minutes: 40
+        kind: lab
+        layer: runtime
+        task: 01-model-selection
+        timebox_minutes: 30
+        outcomes: [3, 18]
+      - id: d1-break-2
+        title: "Lunch"
+        start: "12:25"
+        minutes: 65
+        kind: break
+      - id: d1-05-gpu-fundamentals
+        title: "GPU fundamentals for inference"
+        start: "13:30"
+        minutes: 60
+        kind: lecture
+        layer: runtime
+        outcomes: [7]
+      - id: d1-06-gpu-sizing
+        title: "GPU sizing: weights, KV cache, overhead"
+        start: "14:30"
+        minutes: 45
+        kind: mixed
+        layer: runtime
+        outcomes: [4, 5]
+        experiments: [baseline]
+      - id: d1-break-3
+        title: "Break"
+        start: "15:15"
+        minutes: 15
+        kind: break
+      - id: d1-07-inference-mechanics
+        title: "Inference mechanics: prefill, decode, latency"
+        start: "15:30"
+        minutes: 45
+        kind: mixed
+        layer: runtime
+        outcomes: [1, 6, 7]
+      - id: d1-08-first-vllm
+        title: "First vLLM deployment (trainer demo)"
+        start: "16:15"
+        minutes: 30
+        kind: demo
+        layer: runtime
+        outcomes: [8, 9]
+      - id: d1-09-lab-first-server
+        title: "Lab 2: first inference server"
+        start: "16:45"
+        minutes: 45
+        kind: lab
+        layer: runtime
+        task: 02-first-inference-server
+        timebox_minutes: 35
+        outcomes: [8, 9, 11]
+
+  - day: 2
+    title: "MEASURE & OPTIMIZE"
+    question: "How do we make it fast and efficient?"
+    blocks:
+      - id: d2-01-recap
+        title: "Recap and bottleneck predictions"
+        start: "09:00"
+        minutes: 30
+        kind: discussion
+        layer: all
+        outcomes: [1, 7]
+      - id: d2-02-measuring
+        title: "Measuring inference"
+        start: "09:30"
+        minutes: 60
+        kind: mixed
+        layer: runtime
+        outcomes: [6, 11]
+      - id: d2-break-1
+        title: "Break"
+        start: "10:30"
+        minutes: 15
+        kind: break
+      - id: d2-03-lab-benchmark
+        title: "Lab 3: benchmark the baseline"
+        start: "10:45"
+        minutes: 60
+        kind: lab
+        layer: runtime
+        task: 03-benchmark
+        timebox_minutes: 45
+        outcomes: [10, 11, 14, 18]
+        experiments: [baseline, concurrency]
+      - id: d2-04-continuous-batching
+        title: "Continuous batching"
+        start: "11:45"
+        minutes: 45
+        kind: mixed
+        layer: runtime
+        outcomes: [12, 14]
+        experiments: [concurrency]
+      - id: d2-break-2
+        title: "Lunch"
+        start: "12:30"
+        minutes: 60
+        kind: break
+      - id: d2-05-kv-cache
+        title: "KV cache, PagedAttention and prefix caching"
+        start: "13:30"
+        minutes: 45
+        kind: mixed
+        layer: runtime
+        outcomes: [5, 13, 14]
+        experiments: [context-length, prefix-cache]
+      - id: d2-06-quantization
+        title: "Quantization"
+        start: "14:15"
+        minutes: 45
+        kind: mixed
+        layer: runtime
+        outcomes: [14, 18]
+        experiments: [quantization]
+      - id: d2-break-3
+        title: "Break"
+        start: "15:00"
+        minutes: 15
+        kind: break
+      - id: d2-07-parallelism
+        title: "Parallelism: replicas, tensor, pipeline, expert"
+        start: "15:15"
+        minutes: 45
+        kind: mixed
+        layer: runtime
+        outcomes: [14, 17]
+        experiments: [tensor-parallel]
+      - id: d2-08-lab-optimize
+        title: "Lab 4: optimize the deployment"
+        start: "16:00"
+        minutes: 60
+        kind: lab
+        layer: runtime
+        task: 04-optimization
+        timebox_minutes: 40
+        outcomes: [14, 18]
+        experiments: [quantization, prefix-cache, context-length, concurrency]
+      - id: d2-09-demos
+        title: "Trainer demos: speculative decoding, OOM, tensor parallelism"
+        start: "17:00"
+        minutes: 30
+        kind: demo
+        layer: runtime
+        skippable: true
+        outcomes: [14]
+        experiments: [tensor-parallel, demos]
+
+  - day: 3
+    title: "OPERATE"
+    question: "How do we operate this as infrastructure?"
+    blocks:
+      - id: d3-01-production-architecture
+        title: "Production architecture"
+        start: "09:00"
+        minutes: 45
+        kind: lecture
+        layer: infrastructure
+        outcomes: [17, 23]
+      - id: d3-02-containerization
+        title: "Containerization and reproducible deployments"
+        start: "09:45"
+        minutes: 45
+        kind: mixed
+        layer: infrastructure
+        outcomes: [15]
+      - id: d3-break-1
+        title: "Break"
+        start: "10:30"
+        minutes: 15
+        kind: break
+      - id: d3-03-observability
+        title: "Observability: metrics, dashboards, incident investigation"
+        start: "10:45"
+        minutes: 60
+        kind: mixed
+        layer: infrastructure
+        outcomes: [11, 16]
+      - id: d3-04-scaling
+        title: "Scaling strategies"
+        start: "11:45"
+        minutes: 45
+        kind: lecture
+        layer: infrastructure
+        outcomes: [17, 18]
+      - id: d3-break-2
+        title: "Lunch"
+        start: "12:30"
+        minutes: 60
+        kind: break
+      - id: d3-05-security-sovereignty
+        title: "Security, compliance and digital sovereignty"
+        start: "13:30"
+        minutes: 60
+        kind: mixed
+        layer: infrastructure
+        outcomes: [19, 20]
+      - id: d3-06-rag
+        title: "RAG without framework hype"
+        start: "14:30"
+        minutes: 45
+        kind: mixed
+        layer: application
+        outcomes: [21, 22]
+      - id: d3-break-3
+        title: "Break"
+        start: "15:15"
+        minutes: 15
+        kind: break
+      - id: d3-07-tools-agents
+        title: "Tool calling, MCP and agents"
+        start: "15:30"
+        minutes: 30
+        kind: mixed
+        layer: application
+        outcomes: [21, 22]
+      - id: d3-08-lab-architecture
+        title: "Lab 5: production architecture challenge"
+        start: "16:00"
+        minutes: 60
+        kind: lab
+        layer: all
+        task: 05-production-design
+        timebox_minutes: 45
+        outcomes: [18, 23]
+      - id: d3-09-capstone-close
+        title: "Architecture defenses, decision framework, close"
+        start: "17:00"
+        minutes: 30
+        kind: discussion
+        layer: all
+        outcomes: [18, 23]

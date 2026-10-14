@@ -11,9 +11,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+apps = [
+  "openai>=1.50",
+  "numpy>=1.26",
+]
 dev = [
   "pytest>=8.0",
   "ruff>=0.6",
+  "openai>=1.50",
+  "numpy>=1.26",
 ]
 
 [tool.pytest.ini_options]
@@ -27,3 +33,4 @@ extend-exclude = ["node_modules", "slides"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]  # line length is enforced by `ruff format`
