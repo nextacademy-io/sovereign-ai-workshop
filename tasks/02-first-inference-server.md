@@ -72,6 +72,7 @@ You are logged in to your group's GPU machine (`ssh -p <port> <your-user>@<host>
 - You can read from `wsctl info` that the baseline model's weights use about 15 GiB and the KV cache about 58 GiB (a few percent different after a restart), holding about 420,000 tokens.
 - Time to first token grows with prompt length; tokens per second per request hardly changes with prompt length but is lower with a very long context; temperature does not change speed.
 - GPU utilization shows 100 % during generation, even for a single request.
+- The very first request after a server start can be slower (282 ms to first token in the dry run, against about 70 ms for the requests after it): kernels and caches warm up on first use. Do not take it as the baseline.
 
 ## Validation
 

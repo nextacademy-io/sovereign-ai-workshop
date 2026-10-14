@@ -6,7 +6,8 @@ import { computed } from 'vue'
 import { useDay, useLayer, useStages } from './composables/inherit'
 import { STAGES } from './composables/stack'
 
-const { currentLayout, currentPage, total } = useNav()
+const { currentLayout, currentPage, slides } = useNav()
+const total = computed(() => slides.value.length)
 const layer = useLayer()
 const day = useDay()
 const picked = useStages()
@@ -40,11 +41,11 @@ function state(stage: (typeof STAGES)[number]): 'lit' | 'on' | 'off' {
   right: 0;
   bottom: 0;
   height: var(--ki-rail-h);
-  padding: 0 var(--ki-pad-x);
+  padding: 0 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
   border-top: 1px solid var(--ki-border);
   background: var(--ki-bg);
   font-family: var(--ki-font-sans);
@@ -55,11 +56,15 @@ function state(stage: (typeof STAGES)[number]): 'lit' | 'on' | 'off' {
 }
 .rail-left,
 .rail-right {
-  min-width: 190px;
   text-transform: uppercase;
   font-weight: 600;
+  white-space: nowrap;
+}
+.rail-left {
+  min-width: 190px;
 }
 .rail-right {
+  min-width: 110px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }

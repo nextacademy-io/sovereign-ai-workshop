@@ -766,7 +766,7 @@ Runpod is the workshop's GPU provider, driven through its MCP server. Prices, av
 - [Manage Pods](https://docs.runpod.io/pods/manage-pods) — Runpod docs — stopped Pods keep billing for storage and can return with zero GPUs.
 - [Create a custom template](https://docs.runpod.io/pods/templates/create-custom-template) — Runpod docs — installing `sshd` in the upstream vLLM image at start.
 - [Runpod container start script](https://raw.githubusercontent.com/runpod/containers/main/container-template/start.sh) — Runpod, main branch — how the public key from the environment reaches the Pod.
-- [Run Docker in Docker](https://docs.runpod.io/tutorials/pods/run-docker-in-docker) — Runpod docs — works only on CPU Pods, so the containerization block runs on laptops.
+- [Build Docker images on Runpod with Bazel](https://docs.runpod.io/tutorials/pods/build-docker-images) — Runpod docs — building images inside a Pod without a Docker daemon; the earlier Docker-in-Docker tutorial (CPU Pods only) is no longer served, and a measured attempt on a GPU Pod confirmed that Docker does not work there, so the containerization block runs on laptops.
 - [Instant Clusters](https://docs.runpod.io/instant-clusters) — Runpod docs — 2 to 8 self-serve nodes, still containers.
 - [Serverless vLLM overview](https://docs.runpod.io/serverless/vllm/overview) — Runpod docs — the only vLLM path in Runpod's own docs; no official Pod template.
 - [Deploy vLLM on Runpod with Docker](https://www.runpod.io/articles/guides/deploy-vllm-runpod-docker) — Runpod guide — runs the upstream `vllm/vllm-openai` image with a custom start command and port 8000.

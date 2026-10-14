@@ -210,12 +210,12 @@ If the workshop runs behind, cut in this order and keep every lab's debrief:
 
 `FACILITATOR.md` carries the minute-level run sheet and the same list with the exact slides to skip.
 
-## 8. Assumptions to validate before delivery
+## 8. Assumptions, and what validation found
 
-These are decided in advance but must be re-checked on the actual hardware; the validation result is recorded in `docs/VALIDATION.md`.
+Decided in advance, re-checked on the actual hardware; the evidence for each is in [`VALIDATION.md`](VALIDATION.md).
 
-- vLLM v0.31.0 runs the pinned dense BF16 and FP8 models correctly on the RTX PRO 6000 (SM120); the vLLM documentation never names the card (RESEARCH 3.3).
-- Multi-user SSH over a single exposed TCP port, persisted accounts after a pod restart, and the five-minute recovery path (`docs/GPU-POOL.md`).
-- Whether pods expose enough privilege for `nvidia-smi` and NVML metrics (the exporter) and whether the 100-second proxy limit is ever relevant (it is not used: access is through SSH tunnels).
-- Cold-start time of a fresh pod: image pull, model download and engine start, measured once and written into `FACILITATOR.md`.
-- Every timebox in the tasks: measured on a live pod as a fresh participant, then padded 20 to 30 %.
+- vLLM v0.31.0 runs the pinned dense BF16 and FP8 models correctly on the RTX PRO 6000 (SM120). **Confirmed** on two different hosts; the vLLM documentation still never names the card (RESEARCH 3.3).
+- Multi-user SSH over a single exposed TCP port, accounts, isolation and revocation. **Confirmed**. Persisted accounts after a pod restart: **not possible by design**, because the shared volume enforces no permissions; accounts come back from `infra/participants.yaml` in a rebuild of about 5 min 41 s (`docs/GPU-POOL.md`).
+- Whether pods expose enough privilege for `nvidia-smi` and NVML metrics. **Confirmed**: the exporter and the dashboard work; the proxy limit of 100 seconds is never used because access is through SSH tunnels.
+- Cold start of a fresh pod: **measured** (about 3 minutes for vLLM, 5.5 minutes for the whole deployment); written into `FACILITATOR.md`.
+- Every timebox in the tasks: the **machine time** of tasks 02 to 04 was measured as a participant on a fresh pod (minutes, well inside the timeboxes); the human time with real participants is **not** measured and remains the trainer's dry run (`FACILITATOR.md`, section 2).

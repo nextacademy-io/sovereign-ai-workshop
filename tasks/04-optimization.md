@@ -29,6 +29,8 @@ Your hypothesis (the trainer assigns one per group):
 | D: concurrency / batching | Capping the batch limits throughput and creates queueing | `baseline` vs `max-seqs-8` | `workshop-baseline` | aggregate tokens/s, waiting requests, TTFT p95 |
 | E (optional): tensor parallelism | Trainer demo only | | | |
 
+The trainer's reference results for each hypothesis are in `benchmark/results/reference/` (after `./scripts/reset.sh lab-04`) and explained in `experiments/quantization/RESULTS.md`, `experiments/prefix-cache/RESULTS.md`, `experiments/context-length/RESULTS.md` and `experiments/concurrency/RESULTS.md`. Read them **after** your own measurement, not before.
+
 1. **Write the hypothesis** in your report: what do you expect to improve, what do you expect to get worse, and why (which resource is the bottleneck)?
 2. **Baseline.** Use your Task 03 numbers at the concurrency you will compare (for example 8 and 16). For group B and C run the baseline with *their* workload first; the numbers of Task 03 are for another workload.
 3. **Change one variable.**

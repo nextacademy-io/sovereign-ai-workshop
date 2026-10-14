@@ -50,3 +50,9 @@ All ports are published on `127.0.0.1` only. `--api-key` protects `/v1` but not 
 | What the hardware is doing | GPU utilization, VRAM, power, estimated MFU, estimated MBU | what resource is busy? |
 
 Read the hardware row with care. **GPU utilization is the share of time any kernel ran, not efficiency.** Power draw and the estimated MFU/MBU (vLLM's own FLOP and byte estimates against the peaks in the dashboard variables, which are datasheet numbers) say more about how hard the silicon works. Measured results always override datasheet peaks.
+
+## The dashboard under load
+
+![The dashboard "KI ohne Cloud: inference" while a benchmark sweep (concurrency 4, 16, 32) runs on a workshop machine, seen through an SSH tunnel](dashboard-under-load.png)
+
+Taken during the validation dry run: running requests rise to 32, the time-to-first-token panel shows the queue building, GPU utilization reads 100 % in every burst, and the estimated MFU stays low while the estimated MBU rises in the bursts, the signature of a memory-bandwidth-bound decode. Use it as the reference for the Day 3 investigation exercise.

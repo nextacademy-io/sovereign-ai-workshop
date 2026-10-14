@@ -12,4 +12,10 @@ exclude = [
   '^https://\{podId\}',
   '^https://example\.',
   '^https://.*\.proxy\.runpod\.net',
+  # registries and gated models answer 401 to an anonymous request: the link is right, the page is not public
+  '^https://registry-1\.docker\.io/',
+  '^https://nvcr\.io/',
+  '^https://huggingface\.co/meta-llama/',
+  # the CNIL site answers every automated request with 503
+  '^https://www\.cnil\.fr/',
 ]

@@ -83,6 +83,12 @@ for (let n = from; n <= (to ?? from); n++) {
       if (r.bottom > bottomLimit || r.right > 1280 + 1 || r.left < -1 || r.top < -1) out.push({ kind: "outside", label, bottom: Math.round(r.bottom), right: Math.round(r.right) });
       else if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflowX !== "visible") out.push({ kind: "clipped", label });
     }
+    // The bottom rail is a global component outside the layout: its counter must not run off the canvas.
+    if (hasRail)
+      for (const el of document.querySelectorAll(".rail > *")) {
+        const r = el.getBoundingClientRect();
+        if (r.right > 1280 - 8 || r.left < 8) out.push({ kind: "rail clipped", label: `${el.className} "${(el.textContent || "").trim().slice(0, 30)}"`, right: Math.round(r.right) });
+      }
     return { name, hasRail, out: out.slice(0, 6) };
   }, [RAIL, n]);
   if (found.out.length) problems.push({ slide: n, layout: found.name, items: found.out });

@@ -83,7 +83,7 @@ artifact: workshop-artifacts/inference-report.md
 
 </Terminal>
 
-**6. Answer the five questions in the report:**
+**6. Answer the four questions in the report:**
 
 <div class="ki-grid ki-cols-2">
 <div>
@@ -95,8 +95,7 @@ artifact: workshop-artifacts/inference-report.md
 </div>
 <div>
 
-- Which configuration would you deploy?
-- Why?
+- Which configuration would you deploy, and why?
 
 </div>
 </div>
@@ -104,7 +103,7 @@ artifact: workshop-artifacts/inference-report.md
 Stuck: `docs/TROUBLESHOOTING.md`, `./scripts/reset.sh lab-03`, or ask the trainer.
 
 <!--
-**Key:** The contention round makes the shared server visible: two people measuring at once are one load for the machine. The five questions are the deliverable; the numbers are the evidence. **Example:** Agree who runs the first round and who joins for contention. If the first run failed completely, ./scripts/reset.sh lab-03 copies the reference results; continue with those and say so in the report. Numbers more than 20 percent off the reference usually mean someone else is using the server or the run was too short: use --requests 64 per level. **Transition:** What should the table look like when you are done? **Question:** "Which configuration, which concurrency?" The one you would deploy for this morning's SLO; say what would break first above it. **Deeper:** Further exploration: --slo, an open-loop run with --request-rate, another workload, the cross-check script.
+**Key:** The contention round makes the shared server visible: two people measuring at once are one load for the machine. The four questions are the deliverable; the numbers are the evidence. **Example:** Agree who runs the first round and who joins for contention. If the first run failed completely, ./scripts/reset.sh lab-03 copies the reference results; continue with those and say so in the report. Numbers more than 20 percent off the reference usually mean someone else is using the server or the run was too short: use --requests 64 per level. **Transition:** What should the table look like when you are done? **Question:** "Which configuration, which concurrency?" The one you would deploy for this morning's SLO; say what would break first above it. **Deeper:** Further exploration: --slo, an open-loop run with --request-rate, another workload, the cross-check script.
 -->
 
 ---

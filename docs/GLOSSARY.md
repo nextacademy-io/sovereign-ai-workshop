@@ -5,6 +5,7 @@ Short definitions of the terms the workshop uses, in alphabetical order. Each en
 - `RESEARCH n` is section n of [RESEARCH.md](RESEARCH.md), which holds the sources.
 - `METRICS n` is section n of [METRICS.md](METRICS.md), which holds the measurement definitions.
 - A block id such as `d1-07` is a block of the agenda in [CURRICULUM.md](CURRICULUM.md).
+- Security and sovereignty terms are treated in [SECURITY.md](SECURITY.md) and [DIGITAL-SOVEREIGNTY.md](DIGITAL-SOVEREIGNTY.md); model selection terms in [MODEL-SELECTION.md](MODEL-SELECTION.md).
 
 Where a number appears, it is a derived or datasheet value. Measured values are in `benchmark/results/` and in METRICS.
 

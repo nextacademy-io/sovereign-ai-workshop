@@ -29,12 +29,19 @@ uv sync --extra dev     # Python tooling for benchmark/ and apps/
 | --- | --- |
 | `pnpm dev` | Start the Slidev deck with hot reload |
 | `pnpm build` | Build the static deck into `slides/dist/` |
-| `pnpm export` | Export the deck to PDF (needs `pnpm exec playwright-chromium install chromium` once) |
+| `pnpm export` | Export the deck to PDF, one slide at a time so that the layer rail is right (needs `pnpm --filter slides exec playwright-chromium install chromium` once, or `--executable-path` of an installed Chrome) |
+| `node scripts/check-slides-layout.mjs` | Render the BUILT deck in a browser and fail on content outside the slide area (`--shots DIR` writes a PNG per slide) |
+| `node scripts/gen-agenda.mjs` | Rewrite the agenda tables of `README.md` and `FACILITATOR.md` from `config/workshop.yaml` (`pnpm check` fails when they are stale) |
+| `python3 scripts/build_workshop_states.py` | Regenerate the lab states from `benchmark/results/reference/` (CI fails when they are stale) |
 | `pnpm check` | Repo consistency checks (tasks, timeboxes, notes, metric sources, results provenance) |
 | `pnpm check:release` | Same, but path drift becomes an error and all required files must exist (what CI runs) |
 | `pnpm lint` | markdownlint, shellcheck, ruff |
 | `pnpm test` | pytest (benchmark harness against a fake streaming server, repo hygiene) |
 | `pnpm ci` | Everything CI runs |
+
+## Writing slides
+
+[`slides/README.md`](slides/README.md) is the contract: layouts, components, the rules for numbers and speaker notes, how to draw a diagram, and the checks to run before handing a section in. Several people can work at once: each builds a private preview (`slides/preview-<name>.md`, `slidev build ... --out dist-<name>`), both gitignored.
 
 ## Changing the agenda
 
@@ -46,7 +53,7 @@ Edit `config/models.yaml`. Pin the Hugging Face commit SHA (`revision`), record 
 
 ## Adding a benchmark result
 
-Results are produced by `benchmark/run.sh`, which embeds hardware, model, revision, vLLM and CUDA versions, server arguments, workload and date. Commit the JSON together with the Markdown summary under `benchmark/results/<date>-<gpu>-<experiment>/`. Hand-edited result files are rejected in review.
+Results are produced by `benchmark/run.sh` or `experiments/run-session.sh`, which embed hardware, model, revision, vLLM and CUDA versions, server arguments, workload and date. Commit the JSON together with the Markdown summary under `benchmark/results/<date>-<gpu>-<label>/`, then promote what the slides and tasks cite with `benchmark/scripts/promote_reference.py` (see `benchmark/results/README.md`). Hand-edited result files are rejected in review. Before you teach from a new result, run it on the workshop GPU more than once if it will carry a claim, and read the server's own log for what it actually did: two experiments in this repository were wrong in ways only the log showed (`docs/TROUBLESHOOTING.md`, section 2.1).
 
 ## Pull requests
 
