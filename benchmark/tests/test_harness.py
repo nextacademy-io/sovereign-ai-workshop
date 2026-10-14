@@ -293,3 +293,97 @@ def test_markdown_summary_contains_the_lab_columns():
     md = markdown_summary([build_result(configuration=cfg, outcome=out, gpu=None, server=None)])
     for column in ("TTFT p50", "TTFT p95", "Latency p50", "Latency p95", "Aggregate TPS", "VRAM"):
         assert column in md
+
+
+def test_default_seed_is_random_per_invocation_so_a_rerun_is_not_served_from_the_prefix_cache(
+    tmp_path,
+):
+    """Regression for a measured pitfall: the same prompts twice made TTFT 7x faster (391 ms, then 51 ms)."""
+
+    def run(out):
+        with FakeLLMServer(ttft_s=0.001, itl_s=0.001) as srv:
+            main(
+                [
+                    "--endpoint",
+                    srv.url,
+                    "--model",
+                    "fake-model",
+                    "--requests",
+                    "3",
+                    "--warmup",
+                    "0",
+                    "--input-tokens",
+                    "40",
+                    "--output-tokens",
+                    "2",
+                    "--no-gpu",
+                    "--quiet",
+                    "--out",
+                    str(out),
+                ]
+            )
+            return [tuple(p) for p in srv.prompts_seen]
+
+    first, second = run(tmp_path / "a"), run(tmp_path / "b")
+    assert set(first).isdisjoint(second)
+    seeds = {
+        json.loads((d / "c001.json").read_text())["configuration"]["workload"]["seed"]
+        for d in (tmp_path / "a", tmp_path / "b")
+    }
+    assert len(seeds) == 2 and None not in seeds
+
+
+def test_explicit_seed_repeats_the_prompts(tmp_path):
+    def run(out):
+        with FakeLLMServer(ttft_s=0.001, itl_s=0.001) as srv:
+            main(
+                [
+                    "--endpoint",
+                    srv.url,
+                    "--model",
+                    "fake-model",
+                    "--requests",
+                    "3",
+                    "--warmup",
+                    "0",
+                    "--seed",
+                    "9",
+                    "--input-tokens",
+                    "40",
+                    "--output-tokens",
+                    "2",
+                    "--no-gpu",
+                    "--quiet",
+                    "--out",
+                    str(out),
+                ]
+            )
+            return [tuple(p) for p in srv.prompts_seen]
+
+    assert run(tmp_path / "a") == run(tmp_path / "b")
+
+
+def test_cache_flattery_is_warned_about(tmp_path, capsys):
+    # The fake server reports a 25 % prefix cache hit rate and the workload shares no prefix.
+    with FakeLLMServer(ttft_s=0.001, itl_s=0.001) as srv:
+        main(
+            [
+                "--endpoint",
+                srv.url,
+                "--model",
+                "fake-model",
+                "--requests",
+                "4",
+                "--warmup",
+                "0",
+                "--input-tokens",
+                "40",
+                "--output-tokens",
+                "2",
+                "--no-gpu",
+                "--quiet",
+                "--out",
+                str(tmp_path),
+            ]
+        )
+    assert "prefix cache answered" in capsys.readouterr().err

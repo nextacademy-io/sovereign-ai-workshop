@@ -4,4 +4,3 @@ input_tokens: 2200
 output_tokens: 150
 shared_prefix_tokens: 2000
 style: chat
-seed: 1234

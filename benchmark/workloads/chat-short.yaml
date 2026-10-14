@@ -3,4 +3,3 @@ description: Interactive help-desk style question with a short answer.
 input_tokens: 300
 output_tokens: 150
 style: chat
-seed: 1234

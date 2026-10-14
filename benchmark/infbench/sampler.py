@@ -184,6 +184,15 @@ class MetricsSampler:
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=5)
+        # One last scrape so the counters cover the whole run, even a run shorter than the interval.
+        if self.first:
+            try:
+                with httpx.Client(
+                    base_url=self.base_url, headers=self.headers, timeout=5.0
+                ) as client:
+                    self.last = self._scrape(client)
+            except (httpx.HTTPError, ValueError):
+                pass
         if not self.series:
             return None
         gauges = {}

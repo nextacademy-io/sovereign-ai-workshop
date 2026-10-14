@@ -15,3 +15,9 @@ enable-auto-tool-choice: true
 tool-call-parser: hermes
 reasoning-parser: qwen3
 enable-mfu-metrics: true # estimated FLOPs and bytes per step, used for the roofline dashboard
+# Constrained JSON may otherwise emit unlimited whitespace; if the model cannot finish the schema it can
+# then burn its whole token budget on blanks (measured, see docs/RESEARCH.md). Compact output only.
+# (vLLM requires an explicit xgrammar or guidance backend for this option; `auto` is rejected at startup.)
+structured-outputs-config:
+  backend: xgrammar
+  disable_any_whitespace: true

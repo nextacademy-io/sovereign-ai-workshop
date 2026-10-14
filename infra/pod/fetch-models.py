@@ -47,6 +47,23 @@ def select(models: dict, which: str) -> dict:
     return {k: models[k] for k in wanted}
 
 
+def write_main_ref(snapshot_path: str | Path, revision: str) -> Path:
+    """Make `from_pretrained("org/name")` work offline at the PINNED revision.
+
+    Downloading by commit SHA creates snapshots/<sha> but no refs/main, and offline lookups of the default
+    revision "main" go through refs/main. Pointing it at the pinned SHA means every tool that asks for
+    "org/name" gets exactly the revision this workshop validated, never a newer one.
+    """
+    snapshot = Path(snapshot_path)
+    if snapshot.name != revision:
+        raise ValueError(f"snapshot directory {snapshot.name} does not match revision {revision}")
+    refs = snapshot.parent.parent / "refs"
+    refs.mkdir(parents=True, exist_ok=True)
+    ref = refs / "main"
+    ref.write_text(revision)
+    return ref
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -70,6 +87,7 @@ def main() -> int:
             revision=m["revision"],
             allow_patterns=m.get("allow_patterns", DEFAULT_PATTERNS),
         )
+        write_main_ref(path, m["revision"])
         print(
             f"{role:10s} {m['repo']} @ {m['revision'][:12]}  {time.perf_counter() - t0:6.1f}s  {path}",
             flush=True,

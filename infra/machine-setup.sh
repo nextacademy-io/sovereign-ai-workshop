@@ -216,9 +216,6 @@ if [[ $SKIP_MODELS -eq 0 ]]; then
   HF_HOME=$WS_HF HF_XET_HIGH_PERFORMANCE=1 python3 "$WS_LIB/fetch-models.py" --models "$MODELS" --config "$WS_REPO/config/models.yaml"
   chown -R root:root "$WS_HF" && chmod -R a+rX,go-w "$WS_HF"
   du -sh "$WS_HF"
-  if [[ $PERSIST -eq 1 ]]; then
-    mkdir -p "$WS_PERSIST_HF" && rsync -rlt "$WS_HF/" "$WS_PERSIST_HF/" && echo "saved to $WS_PERSIST_HF for the next rebuild"
-  fi
 else
   step "Skipping model download"
 fi
@@ -239,6 +236,14 @@ if [[ $SKIP_SERVERS -eq 0 ]]; then
   wsctl embed start
 else
   step "Skipping server start"
+fi
+
+if [[ $SKIP_MODELS -eq 0 && $PERSIST -eq 1 ]]; then
+  # Saving 30 GB to the network volume takes minutes; do it in the background so the servers are
+  # usable meanwhile. Only a later pod restart needs it.
+  step "Saving the models to the download cache in the background (log: $WS_LOGS/persist.log)"
+  mkdir -p "$WS_PERSIST_HF"
+  nohup rsync -rlt "$WS_HF/" "$WS_PERSIST_HF/" >"$WS_LOGS/persist.log" 2>&1 &
 fi
 
 step "Done"

@@ -159,7 +159,7 @@ def markdown_summary(results: list[dict]) -> str:
             else ""
         ),
         f"- **Server arguments:** `{cfg.get('server_args')}`",
-        f"- **Date:** {cfg['date']}",
+        f"- **Date:** {cfg['date']} · prompt seed {wl.get('seed')}",
         "",
         "| " + " | ".join(HEADER) + " |",
         "| " + " | ".join(["---"] * len(HEADER)) + " |",

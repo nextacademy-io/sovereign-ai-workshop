@@ -40,9 +40,12 @@ if [[ $MODE == remote ]]; then
   fwd=(--local --expect-gpu "$EXPECT_GPU" --gpus "$EXPECT_GPUS")
   [[ $NO_GPU -eq 1 ]] && fwd+=(--no-gpu)
   [[ $QUIET -eq 1 ]] && fwd+=(--quiet)
+  # Quote every argument: the remote shell would otherwise split --expect-gpu "RTX PRO 6000" into words.
+  remote_args=""
+  for a in "${fwd[@]}"; do remote_args="$remote_args $(printf '%q' "$a")"; done
   # shellcheck disable=SC2029
   exec ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$STATE_DIR/known_hosts" \
-    -p "$POD_PORT" ${POD_IDENTITY:+-i "$POD_IDENTITY"} "$POD_USER@$POD_HOST" "bash -s -- ${fwd[*]}" <"${BASH_SOURCE[0]}"
+    -p "$POD_PORT" ${POD_IDENTITY:+-i "$POD_IDENTITY"} "$POD_USER@$POD_HOST" "bash -s --$remote_args" <"${BASH_SOURCE[0]}"
 fi
 : "${ARGS[*]}"
 
@@ -121,6 +124,14 @@ if [[ ${#first_two[@]} -ge 1 ]] && id "${first_two[0]}" >/dev/null 2>&1; then
     if runuser -u "${first_two[0]}" -- test -w "$target"; then fail "integrity: ${first_two[0]} can write to $target"; else pass "integrity: $target is not writable by participants"; fi
   done
   if runuser -u "${first_two[0]}" -- test -r "$STATE/keys"; then fail "participants can list $STATE/keys"; else pass "account registry and public keys are not readable by participants"; fi
+  # ...but a participant must be able to read what the workshop needs: the shared API key, the group name
+  # and the server provenance file. (A directory mode of 700 once broke exactly this.)
+  for needed in api-key group; do
+    if runuser -u "${first_two[0]}" -- test -r "$STATE/$needed"; then pass "participants can read $STATE/$needed"; else fail "participants cannot read $STATE/$needed"; fi
+  done
+  if [[ -f $STATE/server.json ]]; then
+    if runuser -u "${first_two[0]}" -- test -r "$STATE/server.json"; then pass "participants can read the server provenance file"; else fail "participants cannot read $STATE/server.json"; fi
+  fi
 fi
 if [[ -d $WS_PERSIST ]] && grep -rIl --max-count=1 -e "$KEY" "$WS_PERSIST" >/dev/null 2>&1 && [[ -n $KEY ]]; then
   fail "the API key was found under $WS_PERSIST, which does not enforce permissions"

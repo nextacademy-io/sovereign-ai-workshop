@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Structured output: ask for JSON that must match a schema.
 
-The server constrains decoding to the schema, so the reply parses every time. This is
-the building block for classification and extraction pipelines (workshop scenarios B and D).
+The server constrains decoding to the schema, so the reply is syntactically valid JSON. It does NOT
+tell the model what to write: describe the fields in the prompt too. Without that, a model that never
+mentions a required field can run out of tokens on whitespace and return truncated JSON (we measured
+exactly this: 300 tokens, 5,469 of them blanks). This is the building block for classification and
+extraction pipelines (workshop scenarios B and D).
 
     python apps/inference-client/structured.py "My parcel never arrived and I was charged twice."
 """
@@ -38,7 +41,14 @@ def classify(message: str, model: str | None = None) -> dict:
     resp = client.chat.completions.create(
         model=model or model_name(),
         messages=[
-            {"role": "system", "content": "Classify the customer message. Reply with JSON only."},
+            {
+                "role": "system",
+                "content": (
+                    "Classify the customer message. Reply with one compact JSON object with exactly these fields: "
+                    "category (billing, delivery, warranty, security or other), urgency (low, medium or high), "
+                    "needs_human (true or false) and summary (at most 160 characters)."
+                ),
+            },
             {"role": "user", "content": message},
         ],
         temperature=0,

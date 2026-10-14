@@ -31,7 +31,9 @@ class Workload:
     style: str = "chat"  # key of corpus.INSTRUCTIONS
     # ids: send exact token ids (needs /tokenize); text: send text, size approximate.
     prompt_mode: str = "auto"
-    seed: int = 1234
+    # None = a fresh random seed per invocation. A fixed default would make a second run of the same command
+    # send the same prompts, which the server's prefix cache answers almost for free (see benchmark/README.md).
+    seed: int | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -127,8 +129,9 @@ def build_prompts(
     if mode == "ids" and tokenizer is None:
         raise RuntimeError("prompt_mode 'ids' needs the server's /tokenize endpoint")
 
+    seed = workload.seed if workload.seed is not None else 0
     instruction = INSTRUCTIONS.get(workload.style, INSTRUCTIONS["chat"])
-    prefix_rng = random.Random(f"{workload.seed}-prefix")
+    prefix_rng = random.Random(f"{seed}-prefix")
     shared_text = (
         _compose_text(prefix_rng, workload.shared_prefix_tokens, f"{instruction}\n\nShared notes:")
         if workload.shared_prefix_tokens
@@ -145,7 +148,7 @@ def build_prompts(
     unique_target = max(1, workload.input_tokens - workload.shared_prefix_tokens)
     prompts: list[Prompt] = []
     for i in range(count):
-        rng = random.Random(f"{workload.seed}-{i}")
+        rng = random.Random(f"{seed}-{i}")
         # A random leading line makes every request unique from its first token.
         nonce = f"Request {rng.getrandbits(48):012x}."
         header = nonce if shared_text else f"{instruction}\n\n{nonce}"

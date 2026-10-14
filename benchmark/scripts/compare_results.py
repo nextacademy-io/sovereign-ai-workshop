@@ -16,7 +16,8 @@ import json
 import sys
 from pathlib import Path
 
-# (label, path into the infbench result, key in the vLLM bench result)
+# (label, path into the infbench result, key in the vLLM bench result). Tail percentiles (p99) rest on a
+# few dozen samples and swing from run to run, so they get three times the tolerance of means and medians.
 PAIRS = [
     ("requests completed", ("requests",), "completed"),
     ("duration (s)", ("duration_s",), "duration"),
@@ -24,12 +25,12 @@ PAIRS = [
     ("requests/s", ("request_throughput_rps",), "request_throughput"),
     ("TTFT mean (ms)", ("ttft_ms", "mean"), "mean_ttft_ms"),
     ("TTFT median (ms)", ("ttft_ms", "p50"), "median_ttft_ms"),
-    ("TTFT p99 (ms)", ("ttft_ms", "p99"), "p99_ttft_ms"),
+    ("TTFT p99 (ms)", ("ttft_ms", "p99"), "p99_ttft_ms", True),
     ("TPOT mean (ms)", ("tpot_ms", "mean"), "mean_tpot_ms"),
     ("ITL mean (ms)", ("itl_ms", "mean"), "mean_itl_ms"),
-    ("ITL p99 (ms)", ("itl_ms", "p99"), "p99_itl_ms"),
+    ("ITL p99 (ms)", ("itl_ms", "p99"), "p99_itl_ms", True),
     ("E2E latency mean (ms)", ("latency_ms", "mean"), "mean_e2el_ms"),
-    ("E2E latency p99 (ms)", ("latency_ms", "p99"), "p99_e2el_ms"),
+    ("E2E latency p99 (ms)", ("latency_ms", "p99"), "p99_e2el_ms", True),
 ]
 
 
@@ -43,7 +44,8 @@ def dig(doc: dict, path: tuple[str, ...]):
 
 def compare(ours: dict, theirs: dict, tolerance_pct: float) -> list[dict]:
     rows = []
-    for label, path, key in PAIRS:
+    for label, path, key, *tail in PAIRS:
+        limit = tolerance_pct * (3 if tail else 1)
         a, b = dig(ours, path), theirs.get(key)
         if a is None or b is None:
             rows.append(
@@ -57,7 +59,7 @@ def compare(ours: dict, theirs: dict, tolerance_pct: float) -> list[dict]:
             )
             continue
         diff = 100.0 * (a - b) / b if b else float("inf")
-        flag = "ok" if abs(diff) <= tolerance_pct else "DIFFERS"
+        flag = "ok" if abs(diff) <= limit else "DIFFERS"
         rows.append(
             {"metric": label, "infbench": a, "vllm_bench": b, "diff_pct": diff, "flag": flag}
         )

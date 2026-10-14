@@ -111,14 +111,17 @@ start_role() { # role profile [--set k=v ...]
   log=$(logfile "$role")
   [[ -f $log ]] && mv "$log" "$LOGS/vllm-$role-$(date -u +%Y%m%dT%H%M%SZ).log"
   # Keep the ten most recent archived logs per role.
+  # `|| true`: with no archived logs yet, ls fails and pipefail would abort the whole start.
   # shellcheck disable=SC2012
-  ls -1t "$LOGS"/vllm-"$role"-2*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
+  { ls -1t "$LOGS"/vllm-"$role"-2*.log 2>/dev/null | tail -n +11 | xargs -r rm -f; } || true
 
   local started
   started=$(date +%s.%N)
   log "start $role profile=$profile sets=${sets[*]:-none}"
   echo "starting $role server: profile '$profile' on 127.0.0.1:$port"
   # setsid makes the shell the leader of a new process group, so stop can signal all workers at once.
+  # `9>&-` closes the lock descriptor in the server process: otherwise the flock would stay held for as
+  # long as the server runs and every later wsctl command would report "operation in progress".
   # shellcheck disable=SC2016  # the script is single-quoted on purpose; $1/$2 are its own arguments
   setsid bash -c '
     echo $$ > "$1"
@@ -127,7 +130,7 @@ start_role() { # role profile [--set k=v ...]
     VLLM_API_KEY=$(cat "$5")
     export VLLM_API_KEY
     exec vllm serve --config "$2"
-  ' _ "$(pidfile "$role")" "$cfg" "$WS_HF" "$WS_CACHE/vllm" "$STATE/api-key" >"$log" 2>&1 </dev/null &
+  ' _ "$(pidfile "$role")" "$cfg" "$WS_HF" "$WS_CACHE/vllm" "$STATE/api-key" >"$log" 2>&1 </dev/null 9>&- &
   sleep 1
 
   local pid i
@@ -139,19 +142,24 @@ start_role() { # role profile [--set k=v ...]
       echo "--- the server exited during startup; last log lines:" >&2
       tail -n 25 "$log" >&2
       rm -f "$(pidfile "$role")"
-      die "startup failed (full log: $log)"
+      echo "wsctl: startup failed (full log: $log)" >&2
+      return 1
     fi
     if healthy "$role"; then break; fi
     echo -n "."
     sleep 2
   done
-  healthy "$role" || { echo; die "not ready after ${READY_TIMEOUT}s (log: $log)"; }
+  if ! healthy "$role"; then
+    echo
+    echo "wsctl: not ready after ${READY_TIMEOUT}s (log: $log)" >&2
+    return 1
+  fi
   echo
   local ready version cuda gpu
   ready=$(date +%s.%N)
   version=$(curl -fsS "http://127.0.0.1:$port/version" | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])' 2>/dev/null || true)
   cuda=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("torch_cuda",""))' "$STATE/env.json" 2>/dev/null || true)
-  gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader | sort -u | paste -sd+ - || true)
+  gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | sort -u | paste -sd+ - || true)
   python3 "$LIB/server-info.py" --log "$log" --summary "$summary" --out "$STATE/server-$role.json" \
     --started-epoch "$started" --ready-epoch "$ready" --engine-version "$version" \
     --runtime-cuda "$cuda" --gpu "$gpu" --actor "$ACTOR"
@@ -179,9 +187,11 @@ cmd_status() {
     printf '%-7s %-9s %-8s %-22s %s\n' "$role" "$state" "$pid" "$profile" "$health"
   done
   echo
-  nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu --format=csv,noheader || true
-  echo
-  nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader 2>/dev/null | sed 's/^/GPU process: /' || true
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu --format=csv,noheader || true
+    echo
+    nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader 2>/dev/null | sed 's/^/GPU process: /' || true
+  fi
   local strays
   strays=$(find_strays)
   if [[ -n $strays ]]; then
@@ -236,7 +246,21 @@ main() {
       shift
       local role=main
       if [[ $profile == embedding ]]; then role=embed; fi
-      start_role "$role" "$profile" "$@"
+      # Remember what runs now: a profile that fails to start must not leave the whole group without a model.
+      local prev_profile="" prev_sets=() o
+      if [[ $role == main && -f $STATE/active-profile && -f $STATE/server-main.json ]] && pid_of main >/dev/null; then
+        prev_profile=$(<"$STATE/active-profile")
+        while read -r o; do [[ -n $o ]] && prev_sets+=(--set "$o"); done < <(python3 -c 'import json,sys; [print(o) for o in json.load(open(sys.argv[1]))["overrides"]]' "$STATE/server-main.json")
+      fi
+      if ! start_role "$role" "$profile" "$@"; then
+        if [[ -n $prev_profile ]]; then
+          echo "wsctl: rolling back to the previous profile '$prev_profile'" >&2
+          echo "wsctl: the start of '$profile' failed; restoring '$prev_profile' for the group." | wall 2>/dev/null || true
+          start_role main "$prev_profile" "${prev_sets[@]+"${prev_sets[@]}"}" || die "rollback to '$prev_profile' failed as well; see $(logfile main)"
+          log "rollback to $prev_profile after failed start of $profile"
+        fi
+        exit 1
+      fi
       ;;
     restart)
       acquire_lock

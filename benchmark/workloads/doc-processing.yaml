@@ -3,4 +3,3 @@ description: Offline document extraction, long input and a structured, longer ou
 input_tokens: 2000
 output_tokens: 400
 style: extract
-seed: 1234

@@ -32,12 +32,12 @@ mkdir -p "$out/infbench" "$out/vllm"
 echo "== infbench: concurrency $concurrency, $input in / $output out, $requests requests"
 "$here/../run.sh" --endpoint "$base" --model "$model" --concurrency "$concurrency" \
   --input-tokens "$input" --output-tokens "$output" --requests "$requests" --warmup 4 \
-  --out "$out/infbench" --quiet >/dev/null
+  --seed "$((RANDOM * 32768 + RANDOM))" --out "$out/infbench" --quiet >/dev/null
 
 echo "== vllm bench serve: the same shape"
 vllm bench serve --backend openai --base-url "$base" --endpoint /v1/completions --model "$model" \
   --dataset-name random --random-input-len "$input" --random-output-len "$output" \
-  --num-prompts "$requests" --max-concurrency "$concurrency" --num-warmups 4 --ignore-eos --seed 1 \
+  --num-prompts "$requests" --max-concurrency "$concurrency" --num-warmups 4 --ignore-eos --seed "$((RANDOM * 32768 + RANDOM))" \
   --percentile-metrics ttft,tpot,itl,e2el --metric-percentiles 50,90,95,99 \
   --save-result --result-dir "$out/vllm" --result-filename vllm.json >"$out/vllm/stdout.txt" 2>&1 || {
   tail -20 "$out/vllm/stdout.txt" >&2

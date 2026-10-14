@@ -49,8 +49,12 @@ audit() { # action user detail
 
 ensure_dirs() {
   mkdir -p "$KEYS" "$ARCHIVE" "$(dirname "$AUDIT")"
-  chmod 700 "$STATE" "$KEYS"
+  # The state directory must stay traversable: participants read api-key (group), group and server.json.
+  # Only the registry and the public keys are private.
+  chmod 755 "$STATE"
+  chmod 700 "$KEYS"
   touch "$REGISTRY"
+  chmod 600 "$REGISTRY"
   getent group "$GROUP" >/dev/null || groupadd -g "$GID" "$GROUP"
 }
 

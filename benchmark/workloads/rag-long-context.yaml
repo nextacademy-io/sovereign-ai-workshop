@@ -3,4 +3,3 @@ description: Retrieval-augmented question with about 3k tokens of retrieved cont
 input_tokens: 3000
 output_tokens: 250
 style: summarize
-seed: 1234

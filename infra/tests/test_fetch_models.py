@@ -37,3 +37,14 @@ def test_every_model_is_pinned_to_a_full_sha_and_has_a_licence():
     for role, m in MODELS.items():
         assert len(m["revision"]) == 40 and set(m["revision"]) <= set("0123456789abcdef"), role
         assert m["license"] and m["license_url"] and m["source"], role
+
+
+def test_main_ref_points_at_the_pinned_revision(tmp_path):
+    sha = "b968826d9c46dd6066d109eabc6255188de91218"
+    snap = tmp_path / "hub" / "models--Qwen--Qwen3-8B" / "snapshots" / sha
+    snap.mkdir(parents=True)
+    ref = fetch_models.write_main_ref(snap, sha)
+    assert ref == tmp_path / "hub" / "models--Qwen--Qwen3-8B" / "refs" / "main"
+    assert ref.read_text() == sha
+    with pytest.raises(ValueError):
+        fetch_models.write_main_ref(snap, "0" * 40)

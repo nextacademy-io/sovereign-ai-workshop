@@ -7,6 +7,7 @@ import asyncio
 import dataclasses
 import json
 import os
+import secrets
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -67,7 +68,9 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument(
         "--prompt-mode", choices=["auto", "ids", "text"], help="exact token ids or plain text"
     )
-    g.add_argument("--seed", type=int, help="prompt seed (default 1234)")
+    g.add_argument(
+        "--seed", type=int, help="prompt seed (default: random per run, stored in the result)"
+    )
     g.add_argument("--temperature", type=float, default=0.0)
     g.add_argument(
         "--no-engine-extensions",
@@ -231,6 +234,10 @@ def main(argv: list[str] | None = None) -> int:
 
     model = _resolve_model(base_url, headers, a.model)
     workload = _workload_from_args(a)
+    if workload.seed is None:
+        # Fresh prompts on every invocation; the seed is stored in the result, so a run can be repeated on
+        # purpose. A fixed default would make a second run of the same command hit the server's prefix cache.
+        workload = dataclasses.replace(workload, seed=secrets.randbelow(2**31))
     tokenizer = Tokenizer(base_url, model, headers)
     if workload.prompt_mode == "ids" and not tokenizer.available():
         raise SystemExit("prompt_mode 'ids' requested but the server has no /tokenize endpoint")
@@ -302,6 +309,14 @@ def main(argv: list[str] | None = None) -> int:
             configuration=run_cfg, outcome=outcome, gpu=gpu, server=server, slo=slo or None
         )
         results.append(result)
+        hit_rate = (server or {}).get("prefix_cache_hit_rate")
+        if hit_rate is not None and hit_rate > 0.05 and not workload.shared_prefix_tokens:
+            print(
+                f"warning: the server's prefix cache answered {hit_rate:.0%} of the prompt tokens during this run, "
+                "although the workload shares no prefix. TTFT is probably optimistic (an earlier run sent the same "
+                "prompts). Use a new --seed, or restart the server, for a cold measurement.",
+                file=sys.stderr,
+            )
         name = f"rate-{a.request_rate}.json" if a.request_rate is not None else f"c{level:03d}.json"
         (out_dir / name).write_text(json.dumps(result, indent=2) + "\n")
         t = result["ttft_ms"] or {}

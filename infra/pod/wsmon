@@ -80,10 +80,19 @@ cmd_start() {
   start_proc prometheus "$LOGS/prometheus.log" "$MON/bin/prometheus" \
     --config.file="$MON/etc/prometheus.yml" --storage.tsdb.path="$MON/prometheus-data" \
     --storage.tsdb.retention.time=3d --web.listen-address=127.0.0.1:9090
-  GF_PATHS_DATA="$MON/grafana-data" GF_PATHS_LOGS="$LOGS/grafana" GF_PATHS_PLUGINS="$MON/grafana-data/plugins" \
-    GF_PATHS_PROVISIONING="$MON/etc/provisioning" GF_PATHS_CONFIG="$MON/etc/grafana.ini" \
-    GF_SECURITY_ADMIN_PASSWORD__FILE="$STATE/grafana-admin-password" \
-    start_proc grafana "$LOGS/grafana.log" "$MON/grafana/bin/grafana" server --homepath "$MON/grafana"
+  # Grafana ignores GF_SECURITY_ADMIN_PASSWORD__FILE for the admin user, and an existing database keeps
+  # the old password, so set it explicitly: via the environment for a new database and via the CLI for an
+  # existing one. Without this `admin:admin` stays valid, and every participant on the pod can reach Grafana.
+  local gf_password
+  gf_password=$(<"$STATE/grafana-admin-password")
+  export GF_PATHS_DATA="$MON/grafana-data" GF_PATHS_LOGS="$LOGS/grafana" GF_PATHS_PLUGINS="$MON/grafana-data/plugins"
+  export GF_PATHS_PROVISIONING="$MON/etc/provisioning"
+  if [[ -f $MON/grafana-data/grafana.db ]]; then
+    "$MON/grafana/bin/grafana" cli --homepath "$MON/grafana" --config "$MON/etc/grafana.ini" \
+      admin reset-admin-password "$gf_password" >/dev/null 2>&1 || echo "warning: could not reset the Grafana admin password" >&2
+  fi
+  GF_SECURITY_ADMIN_PASSWORD="$gf_password" \
+    start_proc grafana "$LOGS/grafana.log" "$MON/grafana/bin/grafana" server --homepath "$MON/grafana" --config "$MON/etc/grafana.ini"
 }
 
 cmd_stop() {
