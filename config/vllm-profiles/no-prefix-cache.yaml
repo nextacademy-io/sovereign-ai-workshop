@@ -1,0 +1,3 @@
+extends: baseline
+description: "Prefix caching off (it is on by default in vLLM V1). The control for the prefix-cache experiment."
+enable-prefix-caching: false

@@ -1,0 +1,3 @@
+extends: kv-constrained
+description: "Same 4 GiB KV budget with an FP8 KV cache: twice the tokens fit in the same bytes."
+kv-cache-dtype: fp8

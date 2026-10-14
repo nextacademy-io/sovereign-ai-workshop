@@ -1,0 +1,7 @@
+extends: baseline
+description: "Trainer demo: n-gram speculative decoding (drafts from the prompt, no extra model)."
+speculative-config:
+  method: ngram
+  num_speculative_tokens: 4
+  prompt_lookup_min: 2
+  prompt_lookup_max: 5

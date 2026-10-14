@@ -1,0 +1,3 @@
+extends: baseline
+description: "Caps the running batch at 8 requests so queueing is visible even on a large GPU."
+max-num-seqs: 8

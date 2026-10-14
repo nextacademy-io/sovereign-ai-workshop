@@ -8,6 +8,9 @@
 #   ws-user revoke-all [--delete]    revoke every participant account
 #   ws-user restore                  recreate accounts after a pod restart (the container disk
 #                                    is wiped on restart, /workspace is not)
+#   ws-user reset-home <user> [--hard]
+#                                    give the user a fresh copy of the repository. The old one is
+#                                    archived first; workshop-artifacts/ is carried over unless --hard
 #   ws-user list                     users, UIDs and key fingerprints
 #
 # Why a registry? A pod's container disk (including /etc/passwd) is lost on restart, while
@@ -84,6 +87,16 @@ create_account() { # user uid
   chmod 700 "$HOME_BASE/$user"
 }
 
+# Each participant works in their own copy of the repository (never overwritten once it exists).
+init_home() { # user
+  local user=$1 dest="$HOME_BASE/$1/ki-ohne-cloud"
+  [[ -d /workspace/repo && ! -d $dest ]] || return 0
+  mkdir -p "$dest"
+  tar -C /workspace/repo --exclude=.git --exclude=node_modules --exclude=./slides --exclude=.venv \
+    --exclude=./infra --exclude=participants.yaml --exclude=.env -cf - . | tar -C "$dest" -xf -
+  chown -R "$user:$GROUP" "$dest"
+}
+
 install_key() { # user keyfile
   local user=$1 keyfile=$2 ssh_dir="$HOME_BASE/$1/.ssh"
   install -d -m 700 -o "$user" -g "$GROUP" "$ssh_dir"
@@ -105,6 +118,7 @@ cmd_add() {
   create_account "$user" "$uid"
   usermod -U "$user" 2>/dev/null || true
   install_key "$user" "$KEYS/$user.pub"
+  init_home "$user"
   audit add "$user" "$(fingerprint "$KEYS/$user.pub")"
   echo "ok: $user (uid $uid) key $(fingerprint "$KEYS/$user.pub")"
 }
@@ -156,10 +170,38 @@ cmd_restore() {
     [[ -n "$user" && -f "$KEYS/$user.pub" ]] || continue
     create_account "$user" "$uid"
     install_key "$user" "$KEYS/$user.pub"
+    init_home "$user"
     echo "restored $user (uid $uid)"
   done <"$REGISTRY"
   chown root:"$GROUP" "$HOME_BASE" && chmod 755 "$HOME_BASE"
 }
+
+cmd_reset_home() {
+  local user=${1:-} mode=${2:-}
+  [[ -n "$user" ]] || die "usage: ws-user reset-home <user> [--hard]"
+  validate_user "$user"
+  id "$user" >/dev/null 2>&1 || die "no such user '$user'"
+  [[ -z "$mode" || "$mode" == --hard ]] || die "unknown option '$mode'"
+  local dest="$HOME_BASE/$user/ki-ohne-cloud" stamp backup
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  backup="/workspace/backups/home-$user-$stamp-$$"
+  mkdir -p "$backup"
+  if [[ -d $dest ]]; then
+    end_sessions_quiet "$user"
+    cp -a "$dest" "$backup/"
+    rm -rf "$dest"
+  fi
+  init_home "$user"
+  if [[ -z $mode && -d $backup/ki-ohne-cloud/workshop-artifacts ]]; then
+    cp -a "$backup/ki-ohne-cloud/workshop-artifacts/." "$dest/workshop-artifacts/"
+    chown -R "$user:$GROUP" "$dest/workshop-artifacts"
+  fi
+  audit reset-home "$user" "${mode:-keep-artifacts}"
+  echo "ok: fresh repository copy for $user (old one archived in $backup)"
+}
+
+# Stop processes that would be running inside the directory being replaced (not the SSH session itself).
+end_sessions_quiet() { pkill -KILL -u "$1" -f 'infbench|vllm|python3 .*ki-ohne-cloud' 2>/dev/null || true; }
 
 cmd_list() {
   ensure_dirs
@@ -184,8 +226,9 @@ main() {
     revoke) cmd_revoke "$@" ;;
     revoke-all) cmd_revoke_all "$@" ;;
     restore) cmd_restore ;;
+    reset-home) cmd_reset_home "$@" ;;
     list) cmd_list ;;
-    *) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+    *) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
   esac
 }
 

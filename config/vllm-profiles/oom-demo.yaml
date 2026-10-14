@@ -1,0 +1,4 @@
+extends: baseline
+description: "Trainer demo, fails on purpose: a 1M-token context cannot fit into a 4 GiB KV budget. Read the error."
+kv-cache-memory-bytes: 4G
+max-model-len: 1048576

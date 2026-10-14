@@ -3,6 +3,7 @@
 
 Used by infra/sync-participants.sh so the shell scripts need no YAML parser.
     python3 infra/lib/participants.py infra/participants.yaml [--group alpha]
+    python3 infra/lib/participants.py infra/participants.yaml --groups     # group, host, port
 """
 
 import re
@@ -12,7 +13,9 @@ from pathlib import Path
 import yaml
 
 USER_RE = re.compile(r"^[a-z][a-z0-9_-]{1,30}$")
-KEY_RE = re.compile(r"^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-[a-z0-9@.-]+) [A-Za-z0-9+/=]+( .*)?$")
+KEY_RE = re.compile(
+    r"^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-[a-z0-9@.-]+) [A-Za-z0-9+/=]+( .*)?$"
+)
 
 
 def rows(path: Path, group: str | None):
@@ -33,8 +36,18 @@ def rows(path: Path, group: str | None):
             yield g["id"], g["host"], g.get("port", 22), user, key
 
 
+def groups(path: Path):
+    data = yaml.safe_load(path.read_text()) or {}
+    for g in data.get("groups", []):
+        yield g["id"], g["host"], g.get("port", 22)
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
+    if "--groups" in args:
+        for r in groups(Path(args[0])):
+            print("\t".join(map(str, r)))
+        raise SystemExit(0)
     group = args[args.index("--group") + 1] if "--group" in args else None
     for r in rows(Path(args[0]), group):
         print("\t".join(map(str, r)))

@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+# Bring a fresh GPU pod to workshop-ready state. Run ON THE POD as root, normally through
+# infra/deploy-to-pod.sh, which first copies this repository to /workspace/repo.
+#
+#   bash /workspace/repo/infra/machine-setup.sh --group alpha
+#   bash /workspace/repo/infra/machine-setup.sh --group alpha --skip-servers     # no GPU work yet
+#
+# Safe to run repeatedly: every step checks before it changes anything. After a pod restart the
+# container disk is empty again but /workspace survives, so running this script again restores
+# users, tools, configuration and (unless --skip-servers) the running servers.
+#
+# Options:
+#   --group NAME        group label shown in the login banner (alpha, beta, ...)
+#   --models SET        which models to download: workshop (default), demo, all, or a role list
+#   --default-profile P vLLM profile started at the end (default: baseline)
+#   --skip-models       do not download models
+#   --skip-monitoring   do not install/start Prometheus, Grafana and the GPU exporter
+#   --skip-servers      do not start vLLM
+#   --no-gpu            allow a machine without a GPU (used by tests in plain containers)
+set -euo pipefail
+
+GROUP_NAME=workshop
+MODELS=workshop
+DEFAULT_PROFILE=baseline
+SKIP_MODELS=0 SKIP_MON=0 SKIP_SERVERS=0 NO_GPU=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --group) GROUP_NAME=$2; shift 2 ;;
+    --models) MODELS=$2; shift 2 ;;
+    --default-profile) DEFAULT_PROFILE=$2; shift 2 ;;
+    --skip-models) SKIP_MODELS=1; shift ;;
+    --skip-monitoring) SKIP_MON=1; shift ;;
+    --skip-servers) SKIP_SERVERS=1; shift ;;
+    --no-gpu) NO_GPU=1; SKIP_MODELS=1; SKIP_MON=1; SKIP_SERVERS=1; shift ;;
+    -h | --help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
+WS=/workspace
+REPO=$WS/repo
+STATE=$WS/state
+LOGS=$WS/logs
+LIB=/usr/local/lib/workshop
+T0=$(date +%s)
+
+step() { printf '\n==> [%3ds] %s\n' "$(($(date +%s) - T0))" "$*"; }
+die() { echo "machine-setup: $*" >&2; exit 1; }
+
+[[ $EUID -eq 0 ]] || die "run as root"
+[[ -f $REPO/infra/versions.env ]] || die "$REPO/infra/versions.env not found; copy the repository to $REPO first (infra/deploy-to-pod.sh)"
+# shellcheck source=versions.env
+source "$REPO/infra/versions.env"
+
+# --------------------------------------------------------------------------------------------
+step "Preconditions"
+mkdir -p "$WS" "$STATE" "$LOGS" "$WS/home" "$WS/backups" "$WS/hf-cache" "$WS/vllm-cache" "$LIB"
+if ! touch "$WS/.write-test"; then die "$WS is not writable"; fi
+rm -f "$WS/.write-test"
+free_gb=$(df -BG --output=avail "$WS" | tail -1 | tr -dc '0-9')
+echo "free space on $WS: ${free_gb} GB"
+if [[ $NO_GPU -eq 0 ]]; then
+  command -v nvidia-smi >/dev/null || die "nvidia-smi not found: is this a GPU pod?"
+  nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
+  [[ $free_gb -ge 60 ]] || echo "WARNING: less than 60 GB free on $WS; models and caches may not fit" >&2
+fi
+command -v python3 >/dev/null || die "python3 not found"
+
+# --------------------------------------------------------------------------------------------
+step "System packages"
+need=()
+for pkg in openssh-server rsync tmux htop jq less sudo curl bsdutils bc; do
+  dpkg -s "$pkg" >/dev/null 2>&1 || need+=("$pkg")
+done
+if [[ ${#need[@]} -gt 0 ]]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y -qq "${need[@]}" >/dev/null
+  echo "installed: ${need[*]}"
+else
+  echo "all present"
+fi
+
+# --------------------------------------------------------------------------------------------
+step "Environment facts (PATH, vllm binary, CUDA runtime)"
+# sudo resets PATH; record the one that finds python3 and vllm so wsctl/wsmon can restore it.
+printf '%s' "$PATH" >/etc/workshop-path
+VLLM_BIN=$(command -v vllm || true)
+python3 - "$STATE/env.json" "$VLLM_BIN" <<'PY'
+import json, platform, subprocess, sys
+out, vllm_bin = sys.argv[1], sys.argv[2]
+info = {"python": platform.python_version(), "vllm_bin": vllm_bin}
+try:
+    import torch
+    info["torch"] = torch.__version__
+    info["torch_cuda"] = torch.version.cuda
+except Exception as exc:  # no torch on a CPU test machine
+    info["torch_error"] = str(exc)
+try:
+    smi = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=15).stdout
+    import re
+    m = re.search(r"CUDA Version:\s*(\d+\.\d+)", smi)
+    info["driver_cuda"] = m.group(1) if m else None
+except Exception:
+    info["driver_cuda"] = None
+json.dump(info, open(out, "w"), indent=2)
+print(json.dumps(info))
+PY
+chmod 644 "$STATE/env.json"
+
+# --------------------------------------------------------------------------------------------
+step "Install tools (wsctl, wsmon, ws-user, helpers)"
+install -m 755 "$REPO/infra/pod/wsctl" /usr/local/bin/wsctl
+install -m 755 "$REPO/infra/pod/wsmon" /usr/local/bin/wsmon
+install -m 755 "$REPO/infra/pod/ws-user.sh" /usr/local/bin/ws-user
+install -m 755 "$REPO/infra/pod/render-profile.py" "$LIB/render-profile.py"
+install -m 755 "$REPO/infra/pod/server-info.py" "$LIB/server-info.py"
+install -m 755 "$REPO/infra/pod/fetch-models.py" "$LIB/fetch-models.py"
+install -m 755 "$REPO/infra/pod/ws-reset.sh" /usr/local/bin/ws-reset
+
+# --------------------------------------------------------------------------------------------
+step "SSH daemon configuration"
+install -d -m 755 /etc/ssh/sshd_config.d /run/sshd
+cat >/etc/ssh/sshd_config.d/10-workshop.conf <<'EOF'
+# KI ohne Cloud workshop pod. Key-only access; participants may forward ports (ssh -L).
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PermitRootLogin prohibit-password
+PubkeyAuthentication yes
+AllowGroups root workshop
+AllowTcpForwarding local
+GatewayPorts no
+X11Forwarding no
+MaxAuthTries 3
+LoginGraceTime 20
+ClientAliveInterval 30
+ClientAliveCountMax 6
+EOF
+grep -q '^Include /etc/ssh/sshd_config.d/' /etc/ssh/sshd_config || sed -i '1i Include /etc/ssh/sshd_config.d/*.conf' /etc/ssh/sshd_config
+sshd -t && echo "sshd config valid"
+# Reload only if a daemon is running (the pod start command launched one).
+if [[ -f /run/sshd.pid ]] && kill -0 "$(</run/sshd.pid)" 2>/dev/null; then kill -HUP "$(</run/sshd.pid)" && echo "sshd reloaded"; fi
+
+# --------------------------------------------------------------------------------------------
+step "Shared API key and group access"
+getent group workshop >/dev/null || groupadd -g 2000 workshop
+if [[ ! -s $STATE/api-key ]]; then
+  python3 -c 'import secrets; print("wk-" + secrets.token_urlsafe(24))' >"$STATE/api-key"
+  echo "generated a new API key"
+fi
+chown root:workshop "$STATE/api-key" && chmod 640 "$STATE/api-key"
+chown root:root "$WS/home" && chmod 755 "$WS/home" "$STATE" "$LOGS"
+echo "$GROUP_NAME" >"$STATE/group"
+chmod 644 "$STATE/group"
+
+cat >/etc/sudoers.d/workshop <<'EOF'
+# Participants may control the shared servers, and nothing else.
+%workshop ALL=(root) NOPASSWD: /usr/local/bin/wsctl, /usr/local/bin/wsctl *
+EOF
+chmod 440 /etc/sudoers.d/workshop
+visudo -cf /etc/sudoers.d/workshop >/dev/null && echo "sudoers valid"
+
+cat >/etc/profile.d/workshop.sh <<'EOF'
+# Environment for workshop participants (login shells over SSH).
+if [ -r /workspace/state/api-key ]; then
+  export OPENAI_BASE_URL=http://127.0.0.1:8000/v1
+  OPENAI_API_KEY=$(cat /workspace/state/api-key)
+  export OPENAI_API_KEY VLLM_API_KEY="$OPENAI_API_KEY"
+  export EMBEDDING_BASE_URL=http://127.0.0.1:8001/v1
+  export EMBEDDING_MODEL=Qwen/Qwen3-Embedding-0.6B
+  export WORKSHOP_MODEL=Qwen/Qwen3-8B
+  export HF_HOME=/workspace/hf-cache HF_HUB_OFFLINE=1
+  export PATH="$PATH:/usr/local/bin"
+  [ -d "$HOME/ki-ohne-cloud" ] && export PYTHONPATH="$HOME/ki-ohne-cloud/benchmark${PYTHONPATH:+:$PYTHONPATH}"
+  if [ -n "$PS1" ] && [ -z "$WORKSHOP_BANNER_SHOWN" ]; then
+    export WORKSHOP_BANNER_SHOWN=1
+    echo "KI ohne Cloud · group $(cat /workspace/state/group 2>/dev/null) · $(hostname)"
+    echo "  API:      $OPENAI_BASE_URL  (key and model are already in your environment)"
+    echo "  server:   sudo wsctl status | sudo wsctl profiles | sudo wsctl start <profile>"
+    echo "  your repo: ~/ki-ohne-cloud   (reset a lab: ./scripts/reset.sh lab-02)"
+  fi
+fi
+EOF
+chmod 644 /etc/profile.d/workshop.sh
+
+# --------------------------------------------------------------------------------------------
+step "Participant accounts (restored from the persistent registry)"
+ws-user restore
+ws-user list
+
+# --------------------------------------------------------------------------------------------
+if [[ $SKIP_MODELS -eq 0 ]]; then
+  step "Download pinned models ($MODELS)"
+  HF_HOME=$WS/hf-cache HF_XET_HIGH_PERFORMANCE=1 python3 "$LIB/fetch-models.py" --models "$MODELS" --config "$REPO/config/models.yaml"
+  chmod -R a+rX "$WS/hf-cache"
+  du -sh "$WS/hf-cache"
+else
+  step "Skipping model download"
+fi
+
+# --------------------------------------------------------------------------------------------
+if [[ $SKIP_MON -eq 0 ]]; then
+  step "Monitoring (Prometheus, Grafana, GPU exporter)"
+  wsmon install
+  wsmon start
+else
+  step "Skipping monitoring"
+fi
+
+# --------------------------------------------------------------------------------------------
+if [[ $SKIP_SERVERS -eq 0 ]]; then
+  step "Start the embedding server and the shared vLLM server (profile: $DEFAULT_PROFILE)"
+  wsctl start "$DEFAULT_PROFILE"
+  wsctl embed start
+else
+  step "Skipping server start"
+fi
+
+step "Done"
+echo "Time to ready: $(($(date +%s) - T0)) s"
+[[ $SKIP_SERVERS -eq 0 ]] && wsctl status || true
+echo "Next: infra/sync-participants.sh --group $GROUP_NAME, then infra/verify-machine.sh"

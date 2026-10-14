@@ -1,0 +1,17 @@
+# Shared settings for every workshop server. Other profiles `extends: base`.
+# Keys are `vllm serve` flags without the leading dashes (docs: configuration/serve_args).
+description: Shared base. Not started directly.
+abstract: true
+
+host: 127.0.0.1 # vLLM's --api-key only guards /v1; /metrics and /tokenize are open, so never bind publicly
+port: 8000
+dtype: bfloat16
+max-model-len: 32768
+gpu-memory-utilization: 0.80 # the embedding server on :8001 takes about 0.08 of the same GPU
+# Qwen3 sampling defaults live in generation_config.json; "vllm" ignores them so that
+# sampling is exactly what each request says. Reproducible experiments need that.
+generation-config: vllm
+enable-auto-tool-choice: true
+tool-call-parser: hermes
+reasoning-parser: qwen3
+enable-mfu-metrics: true # estimated FLOPs and bytes per step, used for the roofline dashboard

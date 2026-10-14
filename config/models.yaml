@@ -1,0 +1,166 @@
+# The models this workshop runs. Everything that downloads weights reads this file.
+#
+# The open-model ecosystem moves fast. Before each delivery:
+#   1. re-check that each model is still the right smallest-model-that-works for its role,
+#   2. re-pin `revision` to the commit you validated (Hugging Face commit SHA, never `main`),
+#   3. re-run the baseline experiment (experiments/baseline) and update docs/MODEL-SELECTION.md.
+# `pnpm check` rejects a revision that is not a full 40-character SHA.
+#
+# `architecture` carries the fields needed to size memory by hand (scripts/sizing.py):
+#   KV cache bytes per token = 2 (K and V) x layers x kv_heads x head_dim x bytes per element.
+# Values are copied from each model's config.json at the pinned revision.
+# `weights_gb` is the sum of the *.safetensors files at that revision (10^9 bytes).
+
+models:
+  primary:
+    repo: Qwen/Qwen3-8B
+    revision: b968826d9c46dd6066d109eabc6255188de91218
+    publisher: "Alibaba Cloud (Qwen team)"
+    role: "Primary model for Day 1-3 (dense, grouped-query attention, tool calling, thinking mode)"
+    license: Apache-2.0
+    license_url: https://huggingface.co/Qwen/Qwen3-8B/blob/main/LICENSE
+    commercial_use: "Permitted under Apache-2.0 (attribution and licence notice required; no patent retaliation clause beyond Apache terms)"
+    source: https://huggingface.co/Qwen/Qwen3-8B
+    precision: bf16
+    weights_gb: 16.38
+    context_native: 40960
+    workshop: true
+    architecture:
+      type: dense
+      parameters_b: 8.2
+      layers: 36
+      hidden_size: 4096
+      attention_heads: 32
+      kv_heads: 8
+      head_dim: 128
+
+  quantized:
+    repo: Qwen/Qwen3-8B-FP8
+    revision: 220b46e3b2180893580a4454f21f22d3ebb187d3
+    publisher: "Alibaba Cloud (Qwen team)"
+    role: "Quantization experiment: the publisher's own FP8 build of the primary model"
+    license: Apache-2.0
+    license_url: https://huggingface.co/Qwen/Qwen3-8B-FP8/blob/main/LICENSE
+    commercial_use: "Permitted under Apache-2.0"
+    source: https://huggingface.co/Qwen/Qwen3-8B-FP8
+    precision: fp8
+    weights_gb: 9.44 # not half of 16.38: embeddings and the output head stay in BF16
+    context_native: 40960
+    workshop: true
+    architecture:
+      type: dense
+      parameters_b: 8.2
+      layers: 36
+      hidden_size: 4096
+      attention_heads: 32
+      kv_heads: 8
+      head_dim: 128
+
+  small:
+    repo: Qwen/Qwen3-1.7B
+    revision: 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e
+    publisher: "Alibaba Cloud (Qwen team)"
+    role: "Model-size comparison and speculative-decoding draft candidate"
+    license: Apache-2.0
+    license_url: https://huggingface.co/Qwen/Qwen3-1.7B/blob/main/LICENSE
+    commercial_use: "Permitted under Apache-2.0"
+    source: https://huggingface.co/Qwen/Qwen3-1.7B
+    precision: bf16
+    weights_gb: 4.06
+    context_native: 40960
+    workshop: true
+    architecture:
+      type: dense
+      parameters_b: 1.7
+      layers: 28
+      hidden_size: 2048
+      attention_heads: 16
+      kv_heads: 8
+      head_dim: 128
+
+  embedding:
+    repo: Qwen/Qwen3-Embedding-0.6B
+    revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+    publisher: "Alibaba Cloud (Qwen team)"
+    role: "Embeddings for the RAG demo (served as a second vLLM instance on port 8001)"
+    license: Apache-2.0
+    license_url: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/blob/main/LICENSE
+    commercial_use: "Permitted under Apache-2.0"
+    source: https://huggingface.co/Qwen/Qwen3-Embedding-0.6B
+    precision: bf16
+    weights_gb: 1.19
+    context_native: 32768
+    embedding_dimensions: 1024
+    workshop: true
+    architecture:
+      type: dense-embedding
+      parameters_b: 0.6
+      layers: 28
+      hidden_size: 1024
+      attention_heads: 16
+      kv_heads: 8
+      head_dim: 128
+
+  moe_demo:
+    repo: Qwen/Qwen3-30B-A3B-FP8
+    revision: d206ba732169f29bb77fbf80fc2c4b81d4d30782
+    publisher: "Alibaba Cloud (Qwen team)"
+    role: "Trainer demo, dense vs mixture-of-experts (30B parameters stored, about 3B active per token)"
+    license: Apache-2.0
+    license_url: https://huggingface.co/Qwen/Qwen3-30B-A3B-FP8/blob/main/LICENSE
+    commercial_use: "Permitted under Apache-2.0"
+    source: https://huggingface.co/Qwen/Qwen3-30B-A3B-FP8
+    precision: fp8
+    weights_gb: 32.45
+    context_native: 40960
+    workshop: demo # downloaded only with --models demo; not needed for the labs
+    architecture:
+      type: moe
+      parameters_b: 30.5
+      active_parameters_b: 3.3
+      layers: 48
+      hidden_size: 2048
+      attention_heads: 32
+      kv_heads: 4
+      head_dim: 128
+      experts: 128
+      experts_per_token: 8
+
+  gguf_demo:
+    repo: Qwen/Qwen3-8B-GGUF
+    revision: 7c41481f57cb95916b40956ab2f0b139b296d974
+    publisher: "Alibaba Cloud (Qwen team)"
+    role: "Trainer demo, llama.cpp / Ollama comparison on the same model (GGUF, 4 to 8 bit)"
+    license: Apache-2.0
+    license_url: https://huggingface.co/Qwen/Qwen3-8B-GGUF/blob/main/LICENSE
+    commercial_use: "Permitted under Apache-2.0"
+    source: https://huggingface.co/Qwen/Qwen3-8B-GGUF
+    precision: gguf
+    workshop: demo
+    allow_patterns: ["Qwen3-8B-Q8_0.gguf", "*.json", "*.md"]
+    architecture:
+      type: dense
+      parameters_b: 8.2
+      layers: 36
+      hidden_size: 4096
+      attention_heads: 32
+      kv_heads: 8
+      head_dim: 128
+
+# Alternatives discussed in the model-selection lab. They are NOT downloaded and carry no
+# pinned revision here; check their current licence text before recommending them.
+alternatives_discussed:
+  - family: Qwen3.5
+    note: "Newer Qwen generation (hybrid attention). Verify the vLLM version and tool-call parser before using."
+  - family: Gemma
+    note: "Check the current licence terms and size options on the model card."
+  - family: Mistral
+    note: "Mistral Small and Ministral releases; licence differs between releases (Apache-2.0 vs research licences)."
+  - family: Llama
+    note: "Llama community licence with usage conditions; not Apache-2.0."
+  - family: DeepSeek
+    note: "Large mixture-of-experts models; does not fit a single 96 GB GPU in full precision."
+  - family: Kimi
+    note: "Very large mixture-of-experts models; modified licence conditions apply at scale."
+  - family: gpt-oss
+    note: "OpenAI open-weight models (Apache-2.0), 20B and 120B, MXFP4 weights."

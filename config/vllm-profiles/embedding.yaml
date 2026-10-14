@@ -1,0 +1,13 @@
+# Second vLLM instance on the same GPU for the RAG demo. Started by `wsctl embed start`.
+description: "Qwen3-Embedding-0.6B served for /v1/embeddings (pooling runner)."
+model: Qwen/Qwen3-Embedding-0.6B
+revision: 97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+served-model-name: Qwen/Qwen3-Embedding-0.6B
+host: 127.0.0.1
+port: 8001
+runner: pooling
+dtype: bfloat16
+max-model-len: 8192
+gpu-memory-utilization: 0.08
+generation-config: vllm
+role: embedding

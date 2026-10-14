@@ -1,0 +1,5 @@
+extends: baseline
+description: "Quantization experiment: the publisher's FP8 checkpoint of Qwen3-8B (weights 8 bit, same tokenizer)."
+model: Qwen/Qwen3-8B-FP8
+revision: 220b46e3b2180893580a4454f21f22d3ebb187d3
+served-model-name: Qwen/Qwen3-8B

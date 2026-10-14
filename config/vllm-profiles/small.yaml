@@ -1,0 +1,5 @@
+extends: base
+description: "Model size comparison: Qwen3-1.7B on the same GPU."
+model: Qwen/Qwen3-1.7B
+revision: 70d244cc86ccca08cf5af4e1e306ecf908b1ad5e
+served-model-name: Qwen/Qwen3-1.7B

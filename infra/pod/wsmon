@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# wsmon: run the monitoring processes (Prometheus, Grafana, GPU exporter) on this pod.
+# Pods cannot run Docker, so these are plain processes from checksum-verified binaries, all
+# bound to 127.0.0.1. Reach Grafana from your laptop with:  ssh -L 3000:127.0.0.1:3000 <pod>
+#
+#   wsmon install     download and verify Prometheus and Grafana (idempotent)
+#   wsmon start       start all three
+#   wsmon stop        stop all three
+#   wsmon status      show what runs and whether it answers
+#
+# Config comes from /workspace/repo/monitoring; versions and checksums from infra/versions.env.
+set -euo pipefail
+
+WS=/workspace
+MON=$WS/monitoring
+STATE=$WS/state
+LOGS=$WS/logs
+REPO=$WS/repo
+[[ -f /etc/workshop-path ]] && PATH=$(</etc/workshop-path) && export PATH
+
+die() { echo "wsmon: $*" >&2; exit 1; }
+[[ $EUID -eq 0 ]] || die "must run as root"
+
+# shellcheck source=/dev/null
+source "$REPO/infra/versions.env"
+
+fetch_verified() { # url sha256 dest_tarball
+  local url=$1 sha=$2 dest=$3
+  if [[ -f $dest ]] && echo "$sha  $dest" | sha256sum -c --quiet - 2>/dev/null; then return; fi
+  echo "downloading $(basename "$dest")..."
+  curl -fsSL --retry 3 -o "$dest.part" "$url"
+  echo "$sha  $dest.part" | sha256sum -c --quiet - || { rm -f "$dest.part"; die "checksum mismatch for $url"; }
+  mv "$dest.part" "$dest"
+}
+
+cmd_install() {
+  mkdir -p "$MON/dl" "$MON/bin" "$MON/prometheus-data" "$MON/grafana-data" "$MON/etc" "$LOGS"
+  if [[ ! -x $MON/bin/prometheus ]]; then
+    fetch_verified "$PROMETHEUS_URL" "$PROMETHEUS_SHA256" "$MON/dl/prometheus.tar.gz"
+    tar -xzf "$MON/dl/prometheus.tar.gz" -C "$MON/dl"
+    install -m 755 "$MON/dl/prometheus-$PROMETHEUS_VERSION.linux-amd64/prometheus" "$MON/bin/prometheus"
+  fi
+  if [[ ! -d $MON/grafana ]]; then
+    fetch_verified "$GRAFANA_URL" "$GRAFANA_SHA256" "$MON/dl/grafana.tar.gz"
+    mkdir -p "$MON/grafana"
+    tar -xzf "$MON/dl/grafana.tar.gz" -C "$MON/grafana" --strip-components=1
+  fi
+  # Configuration (re-rendered on every install so repo changes take effect).
+  cp "$REPO/monitoring/prometheus/prometheus.pod.yml" "$MON/etc/prometheus.yml"
+  cp "$REPO/monitoring/pod/grafana.ini" "$MON/etc/grafana.ini"
+  rm -rf "$MON/etc/provisioning" && mkdir -p "$MON/etc/provisioning" "$MON/etc/dashboards"
+  cp -r "$REPO/monitoring/grafana/provisioning/." "$MON/etc/provisioning/"
+  cp "$REPO/monitoring/grafana/dashboards/"*.json "$MON/etc/dashboards/"
+  sed -i 's|http://prometheus:9090|http://127.0.0.1:9090|' "$MON/etc/provisioning/datasources/prometheus.yml"
+  sed -i "s|path: /var/lib/grafana/dashboards.*|path: $MON/etc/dashboards|" "$MON/etc/provisioning/dashboards/workshop.yml"
+  if [[ ! -f $STATE/grafana-admin-password ]]; then
+    python3 -c 'import secrets; print(secrets.token_urlsafe(18))' >"$STATE/grafana-admin-password"
+    chmod 600 "$STATE/grafana-admin-password"
+  fi
+  echo "monitoring installed: prometheus $PROMETHEUS_VERSION, grafana $GRAFANA_VERSION"
+}
+
+start_proc() { # name logfile cmd...
+  local name=$1 log=$2
+  shift 2
+  if [[ -f $STATE/mon-$name.pid ]] && kill -0 "$(<"$STATE/mon-$name.pid")" 2>/dev/null; then
+    echo "$name already running"
+    return
+  fi
+  setsid "$@" >>"$log" 2>&1 </dev/null &
+  echo $! >"$STATE/mon-$name.pid"
+  echo "started $name (pid $!)"
+}
+
+cmd_start() {
+  [[ -x $MON/bin/prometheus && -d $MON/grafana ]] || cmd_install
+  start_proc gpu-exporter "$LOGS/gpu-exporter.log" python3 "$REPO/monitoring/gpu-exporter/exporter.py" --port 9400 --bind 127.0.0.1
+  start_proc prometheus "$LOGS/prometheus.log" "$MON/bin/prometheus" \
+    --config.file="$MON/etc/prometheus.yml" --storage.tsdb.path="$MON/prometheus-data" \
+    --storage.tsdb.retention.time=3d --web.listen-address=127.0.0.1:9090
+  GF_PATHS_DATA="$MON/grafana-data" GF_PATHS_LOGS="$LOGS/grafana" GF_PATHS_PLUGINS="$MON/grafana-data/plugins" \
+    GF_PATHS_PROVISIONING="$MON/etc/provisioning" GF_PATHS_CONFIG="$MON/etc/grafana.ini" \
+    GF_SECURITY_ADMIN_PASSWORD__FILE="$STATE/grafana-admin-password" \
+    start_proc grafana "$LOGS/grafana.log" "$MON/grafana/bin/grafana" server --homepath "$MON/grafana"
+}
+
+cmd_stop() {
+  local name pid
+  for name in grafana prometheus gpu-exporter; do
+    if [[ -f $STATE/mon-$name.pid ]]; then
+      pid=$(<"$STATE/mon-$name.pid")
+      kill -TERM "$pid" 2>/dev/null && echo "stopped $name" || true
+      rm -f "$STATE/mon-$name.pid"
+    fi
+  done
+}
+
+cmd_status() {
+  local name url
+  printf '%-14s %-9s %s\n' PROCESS STATE ENDPOINT
+  for pair in "gpu-exporter|http://127.0.0.1:9400/metrics" "prometheus|http://127.0.0.1:9090/-/ready" "grafana|http://127.0.0.1:3000/api/health"; do
+    name=${pair%%|*}
+    url=${pair#*|}
+    if [[ -f $STATE/mon-$name.pid ]] && kill -0 "$(<"$STATE/mon-$name.pid")" 2>/dev/null; then
+      if curl -fsS --max-time 3 "$url" >/dev/null 2>&1; then
+        printf '%-14s %-9s %s\n' "$name" ok "$url"
+      else
+        printf '%-14s %-9s %s\n' "$name" starting "$url"
+      fi
+    else
+      printf '%-14s %-9s %s\n' "$name" stopped "$url"
+    fi
+  done
+}
+
+case "${1:-}" in
+  install) cmd_install ;;
+  start) cmd_start ;;
+  stop) cmd_stop ;;
+  restart) cmd_stop; sleep 1; cmd_start ;;
+  status) cmd_status ;;
+  *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

@@ -1,0 +1,4 @@
+extends: baseline
+description: "Two-GPU pod only: tensor parallelism across two GPUs (PCIe, no NVLink on this card)."
+tensor-parallel-size: 2
+gpu-memory-utilization: 0.90

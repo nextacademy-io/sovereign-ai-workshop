@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+# wsctl: control the shared vLLM servers on this GPU pod. Runs as root (participants use sudo).
+#
+#   wsctl status                       what is running, GPU memory, and any stray vLLM processes
+#   wsctl profiles                     the profiles you may start
+#   wsctl start <profile> [--set k=v]  (re)start the shared server with a profile
+#   wsctl restart                      restart with the profile that is running now
+#   wsctl stop                         stop the main server
+#   wsctl embed start|stop             the embedding server for the RAG demo (port 8001)
+#   wsctl logs [lines]                 tail the main server log
+#   wsctl info                         provenance of the running server (server.json)
+#   wsctl reap                         kill vLLM processes that wsctl did not start (trainer)
+#
+# Restarting changes the server for everyone in the group: it takes the model offline for the
+# duration of the load (see `wsctl status` for the measured start time). Profiles and the
+# `--set` allowlist are validated by render-profile.py; participants cannot pass arbitrary flags.
+set -euo pipefail
+
+WS=/workspace
+STATE=$WS/state
+LOGS=$WS/logs
+PROFILES=$WS/repo/config/vllm-profiles
+LIB=/usr/local/lib/workshop
+READY_TIMEOUT=${WSCTL_READY_TIMEOUT:-900}
+ACTOR=${SUDO_USER:-root}
+
+die() { echo "wsctl: $*" >&2; exit 1; }
+log() { mkdir -p "$LOGS"; printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ACTOR" "$*" >>"$LOGS/wsctl.log"; }
+
+[[ $EUID -eq 0 ]] || die "run with sudo: sudo wsctl $*"
+mkdir -p "$STATE" "$LOGS"
+# sudo resets PATH; machine-setup.sh records the PATH that finds vllm and python3.
+if [[ -f /etc/workshop-path ]]; then PATH=$(</etc/workshop-path); export PATH; fi
+
+# Read-only commands (status, logs, info) must keep working while a long start holds the lock.
+acquire_lock() {
+  exec 9>"$STATE/wsctl.lock"
+  flock -w 5 9 || die "another wsctl operation is in progress; try again in a moment"
+}
+
+role_port() { [[ $1 == embed ]] && echo 8001 || echo 8000; }
+pidfile() { echo "$STATE/vllm-$1.pid"; }
+logfile() { echo "$LOGS/vllm-$1.log"; }
+
+pid_of() { # role -> pid if alive
+  local f pid
+  f=$(pidfile "$1")
+  [[ -f $f ]] || return 1
+  pid=$(<"$f")
+  kill -0 "$pid" 2>/dev/null || return 1
+  echo "$pid"
+}
+
+api_key() { cat "$STATE/api-key"; }
+
+healthy() { curl -fsS --max-time 3 "http://127.0.0.1:$(role_port "$1")/health" >/dev/null 2>&1; }
+
+stop_role() { # role
+  local role=$1 pid
+  if ! pid=$(pid_of "$role"); then
+    rm -f "$(pidfile "$role")"
+    return 0
+  fi
+  echo "stopping $role server (pid $pid)..."
+  kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+  local i
+  for ((i = 0; i < 90; i++)); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 1
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "still running after 90 s, sending SIGKILL"
+    kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
+    sleep 2
+  fi
+  rm -f "$(pidfile "$role")" "$STATE/server-$role.json"
+  [[ $role == main ]] && rm -f "$STATE/server.json" "$STATE/active-profile"
+  log "stop $role"
+}
+
+start_role() { # role profile [--set k=v ...]
+  local role=$1 profile=$2
+  shift 2
+  local sets=() port summary cfg
+  while [[ $# -gt 0 ]]; do
+    [[ $1 == --set ]] || die "unknown option '$1'"
+    [[ $# -ge 2 ]] || die "--set needs KEY=VALUE"
+    sets+=(--set "$2")
+    shift 2
+  done
+  port=$(role_port "$role")
+  cfg="$STATE/active-$role.yaml"
+  summary=$(python3 "$LIB/render-profile.py" "$profile" --dir "$PROFILES" --out "$cfg" "${sets[@]}") \
+    || die "cannot start profile '$profile'"
+  local want_role
+  want_role=$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["role"])' "$summary")
+  if [[ $role == main && $want_role == embedding ]] || [[ $role == embed && $want_role != embedding ]]; then
+    die "profile '$profile' has role '$want_role' and cannot run as the $role server"
+  fi
+  [[ -f $STATE/api-key ]] || die "no API key at $STATE/api-key (run infra/machine-setup.sh)"
+
+  if pid_of "$role" >/dev/null; then
+    echo "NOTE: this restarts the $role server for everyone on this pod."
+    echo "wsctl: $ACTOR is restarting the $role server with profile '$profile'. Requests will fail for a minute or two." \
+      | wall 2>/dev/null || true
+    stop_role "$role"
+  fi
+
+  local log
+  log=$(logfile "$role")
+  [[ -f $log ]] && mv "$log" "$LOGS/vllm-$role-$(date -u +%Y%m%dT%H%M%SZ).log"
+  # Keep the ten most recent archived logs per role.
+  # shellcheck disable=SC2012
+  ls -1t "$LOGS"/vllm-"$role"-2*.log 2>/dev/null | tail -n +11 | xargs -r rm -f
+
+  local started
+  started=$(date +%s.%N)
+  log "start $role profile=$profile sets=${sets[*]:-none}"
+  echo "starting $role server: profile '$profile' on 127.0.0.1:$port"
+  # setsid makes the shell the leader of a new process group, so stop can signal all workers at once.
+  # shellcheck disable=SC2016  # the script is single-quoted on purpose; $1/$2 are its own arguments
+  setsid bash -c '
+    echo $$ > "$1"
+    export HOME=/root HF_HOME=/workspace/hf-cache HF_HUB_OFFLINE=1 VLLM_CACHE_ROOT=/workspace/vllm-cache
+    export VLLM_NO_USAGE_STATS=1 DO_NOT_TRACK=1 PYTHONUNBUFFERED=1
+    VLLM_API_KEY=$(cat /workspace/state/api-key)
+    export VLLM_API_KEY
+    exec vllm serve --config "$2"
+  ' _ "$(pidfile "$role")" "$cfg" >"$log" 2>&1 </dev/null &
+  sleep 1
+
+  local pid i
+  pid=$(<"$(pidfile "$role")") || die "server did not start"
+  echo -n "waiting for the server to become ready"
+  for ((i = 0; i < READY_TIMEOUT; i += 2)); do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo
+      echo "--- the server exited during startup; last log lines:" >&2
+      tail -n 25 "$log" >&2
+      rm -f "$(pidfile "$role")"
+      die "startup failed (full log: $log)"
+    fi
+    if healthy "$role"; then break; fi
+    echo -n "."
+    sleep 2
+  done
+  healthy "$role" || { echo; die "not ready after ${READY_TIMEOUT}s (log: $log)"; }
+  echo
+  local ready version cuda gpu
+  ready=$(date +%s.%N)
+  version=$(curl -fsS "http://127.0.0.1:$port/version" | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])' 2>/dev/null || true)
+  cuda=$(python3 -c 'import json; print(json.load(open("/workspace/state/env.json")).get("torch_cuda",""))' 2>/dev/null || true)
+  gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader | sort -u | paste -sd+ - || true)
+  python3 "$LIB/server-info.py" --log "$log" --summary "$summary" --out "$STATE/server-$role.json" \
+    --started-epoch "$started" --ready-epoch "$ready" --engine-version "$version" \
+    --runtime-cuda "$cuda" --gpu "$gpu" --actor "$ACTOR"
+  if [[ $role == main ]]; then
+    cp "$STATE/server-main.json" "$STATE/server.json"
+    chmod 644 "$STATE/server.json" "$STATE/server-main.json"
+    echo "$profile" >"$STATE/active-profile"
+  fi
+  chmod 644 "$STATE/server-$role.json"
+  echo "ready in $(awk -v a="$ready" -v b="$started" 'BEGIN { printf "%.0f", a - b }') s. vLLM $version, profile '$profile'."
+}
+
+cmd_status() {
+  local role pid
+  printf '%-7s %-9s %-8s %-22s %s\n' ROLE STATE PID PROFILE HEALTH
+  for role in main embed; do
+    local profile="-" state=stopped health="-"
+    if pid=$(pid_of "$role"); then
+      state=running
+      profile=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["profile"])' "$STATE/server-$role.json" 2>/dev/null || echo "?")
+      healthy "$role" && health=ok || health="not ready"
+    else
+      pid="-"
+    fi
+    printf '%-7s %-9s %-8s %-22s %s\n' "$role" "$state" "$pid" "$profile" "$health"
+  done
+  echo
+  nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu --format=csv,noheader || true
+  echo
+  nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader 2>/dev/null | sed 's/^/GPU process: /' || true
+  local strays
+  strays=$(find_strays)
+  if [[ -n $strays ]]; then
+    echo
+    echo "WARNING: vLLM processes not started by wsctl (duplicate model servers waste GPU memory):"
+    echo "$strays"
+  fi
+}
+
+# vLLM processes whose process group is not one of ours.
+find_strays() {
+  local known="" role pid
+  for role in main embed; do
+    if pid=$(pid_of "$role"); then known="$known $pid"; fi
+  done
+  local line p pg
+  # shellcheck disable=SC2009  # we need the process group id, which pgrep does not print
+  while read -r p pg line; do
+    [[ -n $p ]] || continue
+    case " $known " in *" $pg "*) continue ;; esac
+    echo "  pid $p (user $(ps -o user= -p "$p" 2>/dev/null | tr -d ' ')): $line"
+  done < <(ps -eo pid=,pgid=,args= | grep -E 'vllm (serve|\.entrypoints)|vllm/entrypoints' | grep -v grep || true)
+}
+
+cmd_reap() {
+  local pids
+  pids=$(find_strays | sed -n 's/^  pid \([0-9]*\) .*/\1/p')
+  [[ -n $pids ]] || { echo "no stray vLLM processes"; return; }
+  # shellcheck disable=SC2086
+  kill -TERM $pids 2>/dev/null || true
+  log "reap $pids"
+  echo "sent SIGTERM to: $pids"
+}
+
+cmd_profiles() {
+  python3 "$LIB/render-profile.py" --dir "$PROFILES" --list | awk -F'\t' '{ printf "%-24s %-11s %s\n", $1, $2, $3 }'
+  echo
+  echo "Overrides: wsctl start baseline --set max-num-seqs=8"
+  echo "Allowed override keys: $(python3 "$LIB/render-profile.py" --dir "$PROFILES" --allowed-sets)"
+}
+
+main() {
+  local sub=${1:-}
+  shift || true
+  case "$sub" in
+    status) cmd_status ;;
+    profiles) cmd_profiles ;;
+    start)
+      acquire_lock
+      [[ $# -ge 1 ]] || die "usage: wsctl start <profile> [--set k=v]"
+      local profile=$1
+      shift
+      local role=main
+      if [[ $profile == embedding ]]; then role=embed; fi
+      start_role "$role" "$profile" "$@"
+      ;;
+    restart)
+      acquire_lock
+      [[ -f $STATE/active-profile ]] || die "no running server to restart; use: wsctl start <profile>"
+      local profile
+      profile=$(<"$STATE/active-profile")
+      local sets=() o
+      while read -r o; do [[ -n $o ]] && sets+=(--set "$o"); done < <(python3 -c 'import json; [print(o) for o in json.load(open("/workspace/state/server-main.json"))["overrides"]]')
+      start_role main "$profile" "${sets[@]}"
+      ;;
+    stop) acquire_lock && stop_role main ;;
+    embed)
+      acquire_lock
+      case "${1:-}" in
+        start) start_role embed embedding ;;
+        stop) stop_role embed ;;
+        *) die "usage: wsctl embed start|stop" ;;
+      esac
+      ;;
+    logs) tail -n "${1:-60}" "$(logfile main)" ;;
+    info) cat "$STATE/server.json" 2>/dev/null || die "no server is running" ;;
+    reap) acquire_lock && cmd_reap ;;
+    *) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+  esac
+}
+
+main "$@"

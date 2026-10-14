@@ -1,0 +1,3 @@
+extends: baseline
+description: "KV-cache quantization: BF16 weights, FP8 KV cache. Roughly doubles the tokens that fit; may change quality."
+kv-cache-dtype: fp8

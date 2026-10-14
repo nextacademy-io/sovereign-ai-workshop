@@ -143,6 +143,18 @@ if (models) {
   }
 }
 
+// vLLM profiles may only serve models that models.yaml pins, at exactly the pinned revision.
+if (models) {
+  const pinned = new Map();
+  for (const m of Object.values(models.models ?? models)) if (m?.repo) pinned.set(m.repo, m.revision);
+  for (const [file, doc] of yamlDocs) {
+    if (!file.startsWith("config/vllm-profiles/") || !doc?.model) continue;
+    if (!pinned.has(doc.model)) err(file, `model '${doc.model}' is not listed in config/models.yaml`);
+    else if (doc.revision !== pinned.get(doc.model))
+      err(file, `revision ${String(doc.revision).slice(0, 12)} differs from the pin in config/models.yaml (${String(pinned.get(doc.model)).slice(0, 12)})`);
+  }
+}
+
 // ---------------------------------------------------------------- 2. agenda
 const workshop = yamlDocs.get("config/workshop.yaml");
 const taskTimeboxFromAgenda = new Map(); // task id -> minutes

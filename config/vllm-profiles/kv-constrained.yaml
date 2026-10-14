@@ -1,0 +1,3 @@
+extends: baseline
+description: "Simulates a small GPU: the KV cache is capped at 4 GiB so context length and concurrency compete for it."
+kv-cache-memory-bytes: 4G

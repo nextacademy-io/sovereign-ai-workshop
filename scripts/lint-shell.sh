@@ -12,7 +12,7 @@ if ! command -v shellcheck >/dev/null 2>&1; then
 fi
 
 # Extensionless scripts that are not caught by '*.sh'.
-extra=(infra/wsctl)
+extra=(infra/pod/wsctl infra/pod/wsmon)
 
 files=()
 while IFS= read -r f; do
