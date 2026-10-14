@@ -55,6 +55,15 @@ curl -s http://127.0.0.1:8000/tokenize \
 
 </Terminal>
 
+<Terminal title="the same call with the prompt Unabhängigkeit (output as measured on the workshop model)">
+
+```json
+{"count": 3, "max_model_len": 32768, "tokens": [1806, 138644, 50499],
+ "token_strs": ["Un", "abhÃ¤ng", "igkeit"]}
+```
+
+</Terminal>
+
 - `count`: tokens in your prompt
 - `token_strs`: the pieces the tokenizer chose
 - `max_model_len`: the context limit this server enforces

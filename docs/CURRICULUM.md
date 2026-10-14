@@ -104,7 +104,7 @@ Each block lists goal, concepts, the demonstration or experiment, the production
 
 **`d1-01-opening` (30 min, all layers).** Why organisations run models themselves: privacy, sovereignty, cost control, specialisation, latency, regulation. Compare laptop, dedicated GPU server, private data centre, dedicated GPU cloud, sovereign cloud. Introduce `TRAINING ≠ FINE-TUNING ≠ INFERENCE` and the three layers. Consequence: the rest of the workshop is about engineering a system, not about a download. Cut: shorten the comparison discussion.
 
-**`d1-02-models` (60 min, runtime).** Tokens, embeddings, transformer blocks, attention, context, autoregressive generation, dense vs mixture-of-experts, reasoning and multimodal models; training only as far as it explains inference. Demonstration: tokenise a sentence on the live server (`/tokenize`), show the KV-cache arithmetic for the pinned model. Consequence: parameters decide memory, architecture (KV heads, layers) decides KV cost.
+**`d1-02-models` (60 min, runtime).** Tokens, embeddings, transformer blocks, attention, context, autoregressive generation, dense vs mixture-of-experts, reasoning and multimodal models; training only as far as it explains inference. Demonstration: tokenise a sentence on the live server (`/tokenize`); the KV-cache arithmetic for the pinned model is a forward reference to `d1-06` and is not done here. Consequence: parameters decide memory, architecture (KV heads, layers) decides KV cost.
 
 **`d1-03-model-selection` (60 min, runtime).** Families (Qwen, Llama, Gemma, Mistral, DeepSeek, Kimi), general vs reasoning vs coding vs multilingual, tool use and structured output; size and active parameters, context, licences, quantization and engine compatibility, memory. Evaluation beyond leaderboards. Licences are read per repository at the pinned revision because they drift (RESEARCH 11.4). Consequence: the smallest model that reliably does the task.
 
@@ -201,7 +201,7 @@ Every advertised item of the public workshop page ([RESEARCH 1](RESEARCH.md)) ha
 
 If the workshop runs behind, cut in this order and keep every lab's debrief:
 
-1. `d2-09-demos` entirely (30 min); the trainer can show one demo inside `d2-07`.
+1. The demos of `d2-09-demos` (about 20 of its 30 min); the trainer can show one demo inside `d2-07`. Keep the last three slides of the block (predictions scored, the five sentences of Day 2, the bridge to Day 3): they close the day.
 2. In `d1-02-models`, skip multimodal and reasoning detail (10 min).
 3. In Lab 1, two scenarios instead of four (10 min).
 4. In `d2-03-lab-benchmark`, concurrency 1, 8, 16 only (10 min).

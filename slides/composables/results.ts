@@ -19,12 +19,13 @@ export function parseSource(source: string | undefined): Source {
 }
 
 /** Result documents under a file or directory path, in path order (natural sort: c2 before c10). `match` keeps the
- * paths that contain it (a list means: contain any of them). */
+ * paths that contain it (a list means: contain any of them). The runner's `preemptions.json` next to a run's
+ * result carries provenance but is not a result, so it is skipped. */
 export function measuredDocs(path: string, match?: string | string[]): { path: string; doc: any }[] {
   const wanted = match === undefined ? [] : Array.isArray(match) ? match : [match]
   const prefix = path.endsWith('/') || path.endsWith('.json') ? path : `${path}/`
   return Object.entries(results)
-    .filter(([p, doc]) => (p === path || p.startsWith(prefix)) && doc?.configuration && (!wanted.length || wanted.some((m) => p.includes(m))))
+    .filter(([p, doc]) => (p === path || p.startsWith(prefix)) && doc?.configuration && !p.endsWith('/preemptions.json') && (!wanted.length || wanted.some((m) => p.includes(m))))
     .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
     .map(([p, doc]) => ({ path: p, doc }))
 }

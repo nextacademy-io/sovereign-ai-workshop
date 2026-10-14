@@ -277,7 +277,7 @@ The 5-minute recovery path for a broken pod: `deploy-to-pod.sh` (rebuilds users,
 
 Cut in this order and keep every lab's debrief (details in `docs/CURRICULUM.md` section 7):
 
-1. `d2-09-demos` entirely (30 min); show one demo inside `d2-07-parallelism`.
+1. The demos of `d2-09-demos` (about 20 of its 30 min); show one demo inside `d2-07-parallelism`. Keep the last three slides of the block (predictions scored, the five sentences of Day 2, the bridge to Day 3).
 2. In `d1-02-models`, skip multimodal and reasoning detail (10 min).
 3. In Lab 1, two scenarios instead of four (10 min).
 4. In Lab 3, concurrency 1, 8 and 16 only (10 min).

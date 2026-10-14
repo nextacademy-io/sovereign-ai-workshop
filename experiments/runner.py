@@ -575,7 +575,7 @@ def exp_tensor_parallel(out: Path) -> dict:
             out, f"tensor-parallel/single-gpu-c{c:03d}", concurrency=c, requests=reqs(c), **WORKLOAD
         ):
             log("  one GPU: " + summary_line(r))
-    start_profile("tp2", "gpu-memory-utilization=0.80", fresh=True)
+    start_profile("tp2", fresh=True)
     for c in levels:
         for r in bench(
             out, f"tensor-parallel/tp2-c{c:03d}", concurrency=c, requests=reqs(c), **WORKLOAD

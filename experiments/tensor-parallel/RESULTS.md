@@ -4,7 +4,7 @@
 
 ## What exists
 
-- The runner (`experiments/runner.py`, experiment `tensor-parallel`) and the profiles `baseline`, `tp2` and `baseline-replica` are written. It compares one GPU, tensor parallelism across both GPUs (`gpu-memory-utilization=0.80` for a fair comparison) and two independent servers, one per GPU, each driven by its own harness process with half of the concurrency.
+- The runner (`experiments/runner.py`, experiment `tensor-parallel`) and the profiles `baseline`, `tp2` and `baseline-replica` are written. It compares one GPU, tensor parallelism across both GPUs (the same `gpu-memory-utilization` of 0.80 as the baseline) and two independent servers, one per GPU, each driven by its own harness process with half of the concurrency.
 - `combine_replica_results` is unit-tested (`experiments/test_runner_tp.py`). **The process handling for the two replicas and the `tp2` start have never run on hardware.** Expect to debug them on the first real run, and budget that time: shared memory for NCCL (`/dev/shm`) and the start order of the two servers are the likely first problems.
 - The arithmetic of the hypothesis is in [`README.md`](README.md).
 

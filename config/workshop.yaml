@@ -218,6 +218,8 @@ days:
         kind: demo
         layer: runtime
         skippable: true
+        # Skip the demos, not the last three slides: predictions scored, five sentences, bridge to Day 3.
+        keep_slides: 3
         outcomes: [14]
         experiments: [tensor-parallel, demos]
 

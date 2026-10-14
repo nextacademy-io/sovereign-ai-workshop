@@ -83,6 +83,8 @@ for (let n = from; n <= (to ?? from); n++) {
       if (r.bottom > bottomLimit || r.right > 1280 + 1 || r.left < -1 || r.top < -1) out.push({ kind: "outside", label, bottom: Math.round(r.bottom), right: Math.round(r.right) });
       else if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflowX !== "visible") out.push({ kind: "clipped", label });
     }
+    // A measured component that could not find its data says so in red (.err or .note.error): never ship that.
+    for (const el of layout.querySelectorAll(".err, .note.error")) if (visible(el) && (el.textContent || "").trim()) out.push({ kind: "component error", label: (el.textContent || "").trim().slice(0, 80) });
     // The bottom rail is a global component outside the layout: its counter must not run off the canvas.
     if (hasRail)
       for (const el of document.querySelectorAll(".rail > *")) {
