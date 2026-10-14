@@ -22,7 +22,7 @@ experiments/run-session.sh --host <ip> --port <port> --label <label> demos
 `experiments/runner.py` restarts the shared server with the profiles below, runs the benchmark harness with fresh prompts
 at every level, and stores each result with its hardware, model revision, engine version, server arguments and date.
 
-Profiles: `oom-demo`, `baseline`, `spec-ngram`
+Profiles: `oom-demo`, `baseline`, `spec-ngram`. For a live speculative-decoding demo the copy workload is ready as `benchmark/workloads/copy-text.jsonl` (`./scripts/benchmark.sh --prompts-file benchmark/workloads/copy-text.jsonl --output-tokens 350 --no-engine-extensions --concurrency 1,16`; the last flag stops the harness from forcing the output length, so the model ends the copy when the text ends).
 
 ## What is measured
 

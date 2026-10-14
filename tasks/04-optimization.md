@@ -27,7 +27,7 @@ Your hypothesis (the trainer assigns one per group):
 | B: prefix caching | A long prompt prefix shared by many requests is prefilled only once | `baseline` vs `no-prefix-cache` | `shared-prefix` | TTFT, prefix-cache hit rate |
 | C: context length | Long prompts cost time to first token and KV memory; with a small KV budget they queue or get evicted | `baseline` vs `kv-constrained` | `--input-tokens 8192` | TTFT, waiting requests, preemptions, KV usage |
 | D: concurrency / batching | Capping the batch limits throughput and creates queueing | `baseline` vs `max-seqs-8` | `workshop-baseline` | aggregate tokens/s, waiting requests, TTFT p95 |
-| E (optional): tensor parallelism | Trainer demo only | | | |
+| E (optional): tensor parallelism | Trainer demo only: it needs a two-GPU machine, and the reference run could not be made (`experiments/tensor-parallel/RESULTS.md`) | | | |
 
 The trainer's reference results for each hypothesis are in `benchmark/results/reference/` (after `./scripts/reset.sh lab-04`) and explained in `experiments/quantization/RESULTS.md`, `experiments/prefix-cache/RESULTS.md`, `experiments/context-length/RESULTS.md` and `experiments/concurrency/RESULTS.md`. Read them **after** your own measurement, not before.
 
