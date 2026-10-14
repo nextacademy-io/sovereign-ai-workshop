@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // A table of measured results, one row per result file (or a typed table marked illustrative).
 //   measured:     source="measured:benchmark/results/<dir>" :columns='["concurrency","ttft_ms.p50"]'
-//                 optional: match="baseline-c" (only files whose path contains it), :headers, :digits
+//                 optional: match="baseline-c" or :match='["baseline-c001", "baseline-c016"]' (files whose path contains one),
+//                 :headers, :digits, label-by="configuration.server_profile" or :labels='[...]' for a first column
 //   illustrative: source="illustrative" :headers='[...]' :rows='[[...],[...]]'
 import { computed } from 'vue'
 import { fmt, LABELS, measuredDocs, parseSource, pick, provenance } from '../composables/results'
@@ -12,8 +13,11 @@ const props = defineProps<{
   columns?: string[]
   headers?: string[]
   rows?: (string | number)[][]
-  match?: string
+  match?: string | string[]
   digits?: Record<string, number>
+  labelBy?: string
+  labels?: string[]
+  labelHeader?: string
 }>()
 
 const table = computed(() => {
@@ -22,10 +26,15 @@ const table = computed(() => {
     return { illustrative: true, headers: props.headers ?? [], rows: (props.rows ?? []).map((r) => r.map(String)), text: '' }
   const cols = props.columns ?? []
   const docs = measuredDocs(src.path, props.match)
+  const labelled = !!(props.labelBy || props.labels)
+  const head = props.headers ?? cols.map((c) => LABELS[c] ?? c)
   return {
     illustrative: false,
-    headers: props.headers ?? cols.map((c) => LABELS[c] ?? c),
-    rows: docs.map(({ doc }) => cols.map((c) => fmt(pick(doc, c), props.digits?.[c] ?? (c.includes('tps') || c.includes('rps') ? 1 : 0)))),
+    headers: labelled ? [props.labelHeader ?? '', ...head] : head,
+    rows: docs.map(({ doc }, i) => [
+      ...(labelled ? [props.labels?.[i] ?? String(pick(doc, props.labelBy ?? '') ?? '')] : []),
+      ...cols.map((c) => fmt(pick(doc, c), props.digits?.[c] ?? (c.includes('tps') || c.includes('rps') ? 1 : 0))),
+    ]),
     text: docs.length ? provenance(docs[0].doc) : '',
     empty: docs.length === 0,
   }

@@ -83,7 +83,7 @@ You are logged in to your group's GPU machine (`ssh -p <port> <your-user>@<host>
 | Symptom | Fix |
 | --- | --- |
 | `401` from the API | Log in again: the key is set at login. |
-| No answer for a long time | `sudo wsctl status`. A restart takes one to three minutes. Do not start another server. |
+| No answer for a long time | `sudo wsctl status`. A start takes under a minute for a profile the server has run before, up to about two and a half minutes the first time. Do not start another server. |
 | `nvidia-smi` shows more memory in use than the model needs | Correct: vLLM reserves its budget at startup. The KV cache fills only as requests arrive. |
 | You broke something | `./scripts/reset.sh lab-02` |
 

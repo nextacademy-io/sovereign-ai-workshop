@@ -60,6 +60,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - name: Render every slide in a browser and fail on content outside the slide area
+        run: |
+          pnpm --filter slides exec playwright-chromium install --with-deps chromium
+          node scripts/check-slides-layout.mjs
+      - name: PDF export (the handout and the offline fallback)
+        run: pnpm export
 
   python:
     name: Python lint and tests
@@ -73,6 +79,8 @@ jobs:
       - run: uv run --extra dev ruff check .
       - run: uv run --extra dev ruff format --check .
       - run: uv run --extra dev pytest
+      - name: Workshop states are generated from the reference results
+        run: uv run --extra dev python scripts/build_workshop_states.py --check
 
   shell:
     name: Shell scripts (shellcheck)

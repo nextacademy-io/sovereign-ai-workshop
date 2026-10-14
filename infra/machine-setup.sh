@@ -67,7 +67,10 @@ step "Preconditions"
 mkdir -p "$WS_OPT" "$WS_STATE" "$WS_LOGS" "$WS_CACHE" "$WS_BACKUPS" "$WS_HF" "$WS_LIB"
 chmod 755 "$WS_OPT" "$WS_REPO" "$WS_STATE" "$WS_LOGS" "$WS_HF"
 free_gb=$(df -BG --output=avail "$WS_OPT" | tail -1 | tr -dc '0-9')
-echo "free space on the container disk ($WS_OPT): ${free_gb} GB"
+# Models that are already on the disk count: a rerun on a populated pod must not fail for lack of space.
+have_gb=$(du -s --block-size=1G "$WS_HF" 2>/dev/null | cut -f1 || true)
+have_gb=${have_gb:-0}
+echo "free space on the container disk ($WS_OPT): ${free_gb} GB (plus ${have_gb} GB of models already there)"
 if [[ -d $WS_PERSIST ]]; then
   echo "persistent volume $WS_PERSIST present ($(df -h --output=avail "$WS_PERSIST" | tail -1 | tr -d ' ') free); used as a download cache only"
 else
@@ -77,7 +80,7 @@ fi
 if [[ $NO_GPU -eq 0 ]]; then
   command -v nvidia-smi >/dev/null || die "nvidia-smi not found: is this a GPU pod?"
   nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
-  [[ $SKIP_MODELS -eq 1 || $free_gb -ge 40 ]] || die "less than 40 GB free on the container disk; the workshop models need about 31 GB. Recreate the pod with a larger disk."
+  [[ $SKIP_MODELS -eq 1 || $((free_gb + have_gb)) -ge 40 ]] || die "less than 40 GB free on the container disk (${free_gb} GB free, ${have_gb} GB of models already present); the workshop models need about 31 GB. Recreate the pod with a larger disk."
 fi
 command -v python3 >/dev/null || die "python3 not found"
 

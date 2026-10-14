@@ -18,11 +18,13 @@ export function parseSource(source: string | undefined): Source {
   throw new Error(`source must be "illustrative" or "measured:benchmark/results/..." (got "${source}")`)
 }
 
-/** Result documents under a file or directory path, in path order (natural sort: c2 before c10). */
-export function measuredDocs(path: string, match?: string): { path: string; doc: any }[] {
+/** Result documents under a file or directory path, in path order (natural sort: c2 before c10). `match` keeps the
+ * paths that contain it (a list means: contain any of them). */
+export function measuredDocs(path: string, match?: string | string[]): { path: string; doc: any }[] {
+  const wanted = match === undefined ? [] : Array.isArray(match) ? match : [match]
   const prefix = path.endsWith('/') || path.endsWith('.json') ? path : `${path}/`
   return Object.entries(results)
-    .filter(([p, doc]) => (p === path || p.startsWith(prefix)) && doc?.configuration && (!match || p.includes(match)))
+    .filter(([p, doc]) => (p === path || p.startsWith(prefix)) && doc?.configuration && (!wanted.length || wanted.some((m) => p.includes(m))))
     .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
     .map(([p, doc]) => ({ path: p, doc }))
 }

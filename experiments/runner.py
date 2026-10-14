@@ -15,10 +15,12 @@ then a RESULTS.md written by a human from these numbers. Nothing here interprets
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.util
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -218,6 +220,17 @@ def exp_context_length(out: Path) -> dict:
             output_tokens=128,
         ):
             log(f"  in={n:<6}" + summary_line(r))
+    # The same load as the KV-limited runs below, on the full KV cache: the control for them.
+    for c in [2, 4, 8, 16]:
+        for r in bench(
+            out,
+            f"context-length/baseline-c{c:03d}-in08192",
+            concurrency=c,
+            requests=max(16, 3 * c),
+            input_tokens=8192,
+            output_tokens=128,
+        ):
+            log("  in=8192  " + summary_line(r))
     start_profile("kv-constrained")
     for c in [1, 2, 4, 8, 16]:
         before = metrics()
@@ -237,6 +250,27 @@ def exp_context_length(out: Path) -> dict:
             (
                 out / f"context-length/kv-constrained-c{c:03d}-in08192" / "preemptions.json"
             ).write_text(json.dumps({"preemptions": preempt}))
+    # The same 4 GiB with an FP8 KV cache: twice the tokens fit in the same bytes.
+    start_profile("kv-constrained-fp8kv")
+    for c in [4, 8]:
+        before = metrics()
+        for r in bench(
+            out,
+            f"context-length/kv-constrained-fp8kv-c{c:03d}-in08192",
+            concurrency=c,
+            requests=max(16, 3 * c),
+            input_tokens=8192,
+            output_tokens=128,
+        ):
+            after = metrics()
+            preempt = after.get("vllm:num_preemptions_total", 0) - before.get(
+                "vllm:num_preemptions_total", 0
+            )
+            log(f"  KV-limited, FP8 KV c={c}: " + summary_line(r) + f" preemptions={preempt:.0f}")
+            (
+                out / f"context-length/kv-constrained-fp8kv-c{c:03d}-in08192" / "preemptions.json"
+            ).write_text(json.dumps({"preemptions": preempt}))
+    start_profile("baseline")
     return {}
 
 
@@ -318,6 +352,19 @@ def exp_prefix_cache(out: Path) -> dict:
                 log("  unique prompts: " + summary_line(r))
     (out / "prefix-cache").mkdir(parents=True, exist_ok=True)
     (out / "prefix-cache" / "counters.json").write_text(json.dumps(stats, indent=2) + "\n")
+    # The pitfall: the same prompts twice (same seed) are answered from the cache the second time. A benchmark
+    # that repeats its own prompts measures the cache, not the deployment.
+    start_profile("baseline", fresh=True)
+    for label, seed in [("first", 4711), ("again", 4711), ("new-seed", 4712)]:
+        for r in bench(
+            out,
+            f"prefix-cache/pitfall-{label}-c008",
+            concurrency=8,
+            requests=64,
+            seed=seed,
+            **WORKLOAD,
+        ):
+            log(f"  same prompts? {label}: " + summary_line(r))
     return stats
 
 
@@ -325,22 +372,26 @@ def exp_demos(out: Path) -> dict:
     """Trainer demonstrations: the intentional failure, then speculative decoding."""
     demo = out / "demos"
     demo.mkdir(parents=True, exist_ok=True)
-    # 1. A configuration that cannot work: read the error, then see the automatic rollback.
+    # 1. Configurations that cannot work: read the error, then see the automatic rollback. Two different checks fire,
+    #    depending on what is asked for: the KV budget (oom-demo as it is), or the model's own context limit.
     start_profile("baseline")
-    r = wsctl("start", "oom-demo", check=False)
-    text = r.stdout + "\n" + r.stderr
-    errors = [
-        ln
-        for ln in text.splitlines()
-        if "KV cache" in ln
-        or "max seq len" in ln
-        or "estimated maximum model length" in ln
-        or "rolling back" in ln
-    ]
-    (demo / "oom-demo.txt").write_text(text[-6000:])
-    log(
-        f"oom-demo exit={r.returncode}; {len(errors)} relevant lines; healthy afterwards: {urllib.request.urlopen(BASE + '/health', timeout=10).status == 200}"
-    )
+    for label, sets in [("kv", []), ("model-limit", ["--set", "max-model-len=1048576"])]:
+        r = wsctl("start", "oom-demo", *sets, check=False)
+        text = r.stdout + "\n" + r.stderr
+        errors = [
+            ln
+            for ln in text.splitlines()
+            if "KV cache" in ln
+            or "max seq len" in ln
+            or "max_model_len" in ln
+            or "estimated maximum model length" in ln
+            or "rolling back" in ln
+        ]
+        (demo / f"oom-demo-{label}.txt").write_text(text[-6000:])
+        healthy = urllib.request.urlopen(BASE + "/health", timeout=10).status == 200
+        log(
+            f"oom-demo ({label}) exit={r.returncode}; {len(errors)} relevant lines; healthy afterwards: {healthy}"
+        )
     # 2. Speculative decoding with n-gram drafting: helps when output repeats the input.
     passage = " ".join(
         f"Section {i}: invoices above {1000 + 250 * i} euros need a second approval, and approved invoices are paid within {7 + i} days."
@@ -370,12 +421,211 @@ def exp_demos(out: Path) -> dict:
                 no_engine_extensions=True,
             ):
                 log(f"  {profile}: " + summary_line(r))
+        # The control: open questions whose answers are new text. Drafts taken from the prompt rarely match. (The
+        # harness's own synthetic prompts are NOT a control: the model copies them, 146 of 157 four-word
+        # sequences of one answer came from the prompt, so they behave almost like the copy task.)
+        for c in [1, 16]:
+            for r in bench(
+                out,
+                f"demos/spec-{profile}-open-questions-c{c:03d}",
+                concurrency=c,
+                requests=max(32, 2 * c),
+                prompts_file=str(ROOT / "benchmark" / "workloads" / "open-questions.jsonl"),
+                output_tokens=200,
+                no_engine_extensions=True,
+            ):
+                log(f"  {profile}, open questions: " + summary_line(r))
         m = metrics()
         (demo / f"spec-{profile}-metrics.json").write_text(
             json.dumps({k: v for k, v in m.items() if "spec_decode" in k}, indent=2) + "\n"
         )
     start_profile("baseline")
     return {}
+
+
+# ----------------------------------------------------------------------------- tensor parallelism and replicas
+def gpu_count() -> int:
+    out = subprocess.run(
+        ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"], capture_output=True, text=True
+    ).stdout
+    return len([ln for ln in out.splitlines() if ln.strip()])
+
+
+def combine_replica_results(results: list[dict], concurrency: int) -> dict:
+    """What two servers deliver together under one client load that was split between them.
+
+    Throughputs add. Latency percentiles cannot be pooled from summaries, so they are not combined:
+    the per-replica result files keep them.
+    """
+    first = results[0]
+    cfg = dict(first["configuration"])
+    cfg["server_profile"] = "baseline x2 (one server per GPU)"
+    cfg["note"] = "two servers, each on its own GPU, each driven by its own harness process"
+    return {
+        "configuration": cfg,
+        "concurrency": concurrency,
+        "replicas": len(results),
+        "requests": sum(r["requests"] for r in results),
+        "requests_failed": sum(r["requests_failed"] for r in results),
+        "aggregate_tps": round(sum(r["aggregate_tps"] for r in results), 2),
+        "request_throughput_rps": round(sum(r["request_throughput_rps"] for r in results), 4),
+        "per_replica_ttft_ms_p50": [r["ttft_ms"]["p50"] for r in results],
+        "per_replica_itl_ms_p50": [r["itl_ms"]["p50"] for r in results],
+        "per_replica_output_tps_p50": [r["output_tps_per_request"]["p50"] for r in results],
+    }
+
+
+@contextlib.contextmanager
+def replica_servers(out: Path):
+    """Two independent baseline servers, one per GPU (ports 8000 and 8001), started like wsctl does."""
+    lib = ROOT / "infra" / "pod"
+    procs: list[subprocess.Popen] = []
+    infos: list[Path] = []
+    try:
+        for gpu, profile in enumerate(["baseline", "baseline-replica"]):
+            cfg = STATE / f"active-replica{gpu}.yaml"
+            summary = subprocess.run(
+                [sys.executable, str(lib / "render-profile.py"), profile, "--dir",
+                 str(ROOT / "config" / "vllm-profiles"), "--out", str(cfg)],
+                capture_output=True, text=True, check=True,
+            ).stdout  # fmt: skip
+            logfile = Path("/var/log/workshop") / f"vllm-replica{gpu}.log"
+            env = {
+                **os.environ, "CUDA_VISIBLE_DEVICES": str(gpu), "HOME": "/root",
+                "HF_HOME": "/opt/workshop/hf", "HF_HUB_OFFLINE": "1", "VLLM_NO_USAGE_STATS": "1",
+                "VLLM_CACHE_ROOT": "/var/cache/workshop/vllm", "VLLM_API_KEY": KEY, "PYTHONUNBUFFERED": "1",
+            }  # fmt: skip
+            t0 = time.time()
+            proc = subprocess.Popen(
+                ["vllm", "serve", "--config", str(cfg)],
+                stdout=open(logfile, "w"),  # noqa: SIM115 - the server writes to it until it is stopped
+                stderr=subprocess.STDOUT, env=env, start_new_session=True,
+            )  # fmt: skip
+            procs.append(proc)
+            port = 8000 + gpu
+            log(f"replica {gpu}: vllm serve on GPU {gpu}, port {port} (pid {proc.pid})")
+            deadline = time.time() + 600
+            while time.time() < deadline:
+                if proc.poll() is not None:
+                    raise RuntimeError(f"replica {gpu} exited early; see {logfile}")
+                try:
+                    if (
+                        urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=3).status
+                        == 200
+                    ):
+                        break
+                except OSError:
+                    time.sleep(3)
+            else:
+                raise RuntimeError(f"replica {gpu} not healthy after 600 s; see {logfile}")
+            info = out / "tensor-parallel" / f"replica{gpu}-server.json"
+            subprocess.run(
+                [sys.executable, str(lib / "server-info.py"), "--log", str(logfile), "--summary", summary,
+                 "--out", str(info), "--started-epoch", str(t0), "--ready-epoch", str(time.time()),
+                 "--engine-version", _engine_version(), "--gpu", f"GPU {gpu}"],
+                capture_output=True, text=True, check=True,
+            )  # fmt: skip
+            infos.append(info)
+            log(f"  replica {gpu} ready in {time.time() - t0:.0f}s")
+        yield infos
+    finally:
+        for proc in procs:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGTERM)
+        for proc in procs:
+            try:
+                proc.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                with contextlib.suppress(ProcessLookupError):
+                    os.killpg(proc.pid, signal.SIGKILL)
+
+
+def _engine_version() -> str:
+    return subprocess.run(
+        [sys.executable, "-c", "import vllm; print(vllm.__version__)"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+NOTE_ONE = "pod with two GPUs; this server uses one of them"
+NOTE_TP = "pod with two GPUs; this server uses both (tensor parallel size 2)"
+NOTE_REPLICAS = (
+    "pod with two GPUs; two servers, one per GPU, each driven by its own harness process"
+)
+
+
+def exp_tensor_parallel(out: Path) -> dict:
+    """When do two GPUs help: tensor parallelism across both, or one replica per GPU? Needs two GPUs."""
+    if gpu_count() < 2:
+        raise RuntimeError("tensor-parallel needs a pod with two GPUs")
+    tp = out / "tensor-parallel"
+    tp.mkdir(parents=True, exist_ok=True)
+    topo = subprocess.run(["nvidia-smi", "topo", "-m"], capture_output=True, text=True)
+    (tp / "topology.txt").write_text(topo.stdout)
+    wsctl("embed", "stop", check=False)  # the RAG embedding server is not part of this comparison
+    levels = [1, 8, 32]
+
+    def reqs(c: int) -> int:
+        return max(48, 6 * c)
+
+    start_profile("baseline", fresh=True)
+    for c in levels:
+        for r in bench(
+            out, f"tensor-parallel/single-gpu-c{c:03d}", concurrency=c, requests=reqs(c), **WORKLOAD
+        ):
+            log("  one GPU: " + summary_line(r))
+    start_profile("tp2", "gpu-memory-utilization=0.80", fresh=True)
+    for c in levels:
+        for r in bench(
+            out, f"tensor-parallel/tp2-c{c:03d}", concurrency=c, requests=reqs(c), **WORKLOAD
+        ):
+            log("  TP=2: " + summary_line(r))
+    wsctl("stop", check=False)
+    time.sleep(10)  # let the GPU memory come back
+    combined = {}
+    with replica_servers(out) as infos:
+        for c in [8, 32]:  # the same total load as above, split between the two servers
+            procs = []
+            for i, info in enumerate(infos):
+                label = f"tensor-parallel/replicas-c{c:03d}/server{i}"
+                argv = [
+                    sys.executable, "-m", "infbench", "--endpoint", f"http://127.0.0.1:{8000 + i}",
+                    "--model", MODEL, "--concurrency", str(c // 2), "--requests", str(reqs(c) // 2),
+                    "--out", str(out / label), "--label", label, "--quiet", "--note", NOTE_REPLICAS,
+                    "--server-info", str(info),
+                    "--input-tokens", str(WORKLOAD["input_tokens"]), "--output-tokens", str(WORKLOAD["output_tokens"]),
+                ]  # fmt: skip
+                procs.append(
+                    subprocess.Popen(
+                        argv, cwd=ROOT / "benchmark", env={**os.environ, "OPENAI_API_KEY": KEY}
+                    )
+                )
+            codes = [p.wait() for p in procs]
+            if any(codes):
+                raise RuntimeError(f"replica benchmark at c={c} failed (exit codes {codes})")
+            docs = [
+                json.loads(
+                    next(
+                        (out / f"tensor-parallel/replicas-c{c:03d}/server{i}").glob("c*.json")
+                    ).read_text()
+                )
+                for i in range(2)
+            ]
+            combined[c] = combine_replica_results(docs, c)
+            (tp / f"replicas-c{c:03d}").mkdir(exist_ok=True)
+            (tp / f"replicas-c{c:03d}" / "combined.json").write_text(
+                json.dumps(combined[c], indent=2) + "\n"
+            )
+            log(
+                f"  two replicas, total concurrency {c}: aggregate {combined[c]['aggregate_tps']} tok/s"
+            )
+    start_profile("baseline", fresh=True)
+    wsctl("embed", "start", check=False)
+    return {
+        "gpus": gpu_count(),
+        "replicas": {str(k): v["aggregate_tps"] for k, v in combined.items()},
+    }
 
 
 EXPERIMENTS = {
@@ -385,6 +635,7 @@ EXPERIMENTS = {
     "quantization": exp_quantization,
     "prefix-cache": exp_prefix_cache,
     "demos": exp_demos,
+    "tensor-parallel": exp_tensor_parallel,
 }
 
 

@@ -307,6 +307,24 @@ def test_markdown_summary_contains_the_lab_columns():
     md = markdown_summary([build_result(configuration=cfg, outcome=out, gpu=None, server=None)])
     for column in ("TTFT p50", "TTFT p95", "Latency p50", "Latency p95", "Aggregate TPS", "VRAM"):
         assert column in md
+    assert "Goodput" not in md  # only when an SLO was given
+
+
+def test_markdown_summary_reports_slo_attainment_and_goodput():
+    with FakeLLMServer(ttft_s=0.01, itl_s=0.002) as srv:
+        out = asyncio.run(run_closed_loop(srv.url, {}, CFG, _prompts(4), concurrency=2, quiet=True))
+    cfg = {
+        "hardware": {"gpu": "G", "gpu_count": 1, "vram_gb": 1},
+        "model": "m",
+        "engine": "e",
+        "workload": {"name": "w", "input_tokens": 3, "output_tokens": 20},
+        "date": "d",
+    }
+    slo = parse_slo("ttft_ms=5000,output_tps=5")
+    md = markdown_summary(
+        [build_result(configuration=cfg, outcome=out, gpu=None, server=None, slo=slo)]
+    )
+    assert "Goodput (req/s)" in md and "Attainment" in md and "100.0 %" in md
 
 
 def test_default_seed_is_random_per_invocation_so_a_rerun_is_not_served_from_the_prefix_cache(

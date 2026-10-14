@@ -59,7 +59,7 @@ def test_set_allowlist_and_value_validation():
     config, summary = rp.render(
         "baseline", PROFILES, ["max-num-seqs=8", "enable_prefix_caching=false"]
     )
-    assert config["max-num-seqs"] == 8 and config["enable-prefix-caching"] is False
+    assert config["max-num-seqs"] == 8 and config["no-enable-prefix-caching"] is True
     assert summary["overrides"] == ["max-num-seqs=8", "enable_prefix_caching=false"]
     for bad in (
         "api-key=abc",
@@ -134,3 +134,11 @@ def test_container_mode_binds_inside_the_container_namespace_only_when_asked():
     assert {k: v for k, v in box_cfg.items() if k != "host"} == {
         k: v for k, v in host_cfg.items() if k != "host"
     }
+
+
+def test_false_booleans_become_explicit_negative_flags_because_vllm_drops_false_in_config_files():
+    """Measured on the workshop GPU: `enable-prefix-caching: false` in a config file left prefix caching ON."""
+    config, summary = rp.render("no-prefix-cache", PROFILES)
+    assert "enable-prefix-caching" not in config and config["no-enable-prefix-caching"] is True
+    assert not any(v is False for v in config.values())
+    assert summary["args"].count("--no-enable-prefix-caching") == 1

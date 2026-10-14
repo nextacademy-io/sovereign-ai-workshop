@@ -6,11 +6,11 @@ Trainer demonstrations: what happens when a configuration cannot work, and when 
 
 ## Hypothesis (a prediction to test, not a result)
 
-A context length that cannot fit into the KV budget fails at startup with a message that names the numbers, and the supervisor restores the previous profile. N-gram speculative decoding speeds up inter-token latency when the output repeats the input at low load, and stops helping, or hurts, at high load.
+A context length that cannot fit into the KV budget fails at startup with a message that names the numbers, and the supervisor restores the previous profile. N-gram speculative decoding speeds up generation when the output repeats the input at low load, and stops helping, or hurts, at high load and on ordinary prompts.
 
 ## What changes, what stays the same
 
-Intentional failure: a 1,048,576-token context with a 4 GiB KV budget. Speculation: a copy-the-text workload at concurrency 1 and 16 with and without n-gram drafting.
+Intentional failures: the model's full context with a 4 GiB KV budget (`oom-demo`), and a context beyond the model's own limit (`oom-demo` with `--set max-model-len=1048576`). Speculation: a copy-the-text workload and, as the control, ordinary prompts, each at concurrency 1 and 16 with and without n-gram drafting.
 
 ## Run it
 

@@ -66,9 +66,10 @@ How long things take (measured):
 
 | Event | Time |
 | --- | --- |
-| Cold start of the baseline profile (first `torch.compile` and FlashInfer autotune) | 188 to 194 s |
-| Warm restart (compile cache present) | 67 s |
-| First start of the FP8 profile | 136 s |
+| Cold start of the baseline profile (first `torch.compile` and FlashInfer autotune) | 176 to 198 s (three measurements) |
+| Start with warm caches | 55 to 67 s |
+| Restart of the same profile | 29 to 41 s |
+| First start of the FP8 profile | 136 to 143 s |
 | Embedding server | 53 s |
 | Whole machine rebuilt after a pod restart | 5 min 41 s |
 
@@ -130,7 +131,7 @@ ssh -p <port> root@<ip> 'tail -n 20 /var/log/workshop/wsctl.log'   # who started
 
 ### 2.1 Incidents from building and validating the pods
 
-Every row is something that happened on a live pod. Each is now covered by a test, a check or a rule; the last column says which. The threat model behind rows 1 to 4 is in [`SECURITY.md`](SECURITY.md).
+Every row is something that happened on a live pod or in a measurement session. Each is now covered by a test, a check or a rule; the last column says which. The threat model behind rows 1 to 4 is in [`SECURITY.md`](SECURITY.md).
 
 | # | What you will see | Why | Fix | How it is prevented now |
 | --- | --- | --- | --- | --- |
@@ -150,6 +151,12 @@ Every row is something that happened on a live pod. Each is now covered by a tes
 | 14 | You run `pkill -f "vllm serve"` through SSH and your own session dies. | The pattern also matches the SSH command line itself. | Reconnect. Use `ssh -p <port> root@<ip> 'wsctl stop'`. | `wsctl stop` signals the process group from a PID file. `wsctl reap` finds strays by process group. Never use `pkill -f` over SSH. |
 | 15 | After a pod restart: connection refused, a new port, no accounts, no participant files, the GPU idle. | A restart destroys and recreates the container. The container disk is wiped, `/workspace` is kept. The recorded start command is stored at creation, so changing `pod-start.sh` later does not change a running pod. | Section 2.2. To change the start command, recreate the pod. | The rebuild is one command. Accounts come from `infra/participants.yaml`, models from the cache. `infra/cleanup.sh --collect` each evening saves participants' work. |
 | 16 | `docker` does not work on the pod. | A pod is a container. Docker, Compose and Docker-in-Docker are not available on GPU pods. | Do the Day 3 container exercise on the participants' laptops. | The exercise builds `apps/inference-client/Dockerfile` (CPU only, non-root, 72 MB in the test). Monitoring runs as plain processes (`wsmon`). `./scripts/preflight.sh` warns when the laptop's Docker daemon is not running. |
+| 17 | A profile with a small KV pool does not start: "To serve at least one request with the model's max seq len (32768), (4.5 GiB KV cache is needed, which is larger than the available KV cache memory (4.0 GiB)... the estimated maximum model length is 29104". `wsctl` rolls back. | The KV pool (`kv-cache-memory-bytes: 4G`) held less than one request of the default maximum length. The profile had been written from arithmetic and never started on a GPU. | Lower `max-model-len` (the profile now sets 16,384) or raise the pool. | Every profile is started once on the workshop GPU before it is documented (the experiment sessions do it). `experiments/context-length/RESULTS.md` records the error. |
+| 18 | The `no-prefix-cache` profile still shows a prefix-cache hit rate of 91 % and the same TTFT as the baseline. | vLLM's `--config` loader silently drops `some-flag: false`, so `enable-prefix-caching: false` changed nothing, and the "equivalent command line" stored in `wsctl info` showed `--no-enable-prefix-caching` although the flag never reached the engine. | Use the explicit negative flag: `no-enable-prefix-caching: true`. | `infra/pod/render-profile.py` writes `no-<flag>: true` for every `false`; `infra/tests/test_render_profile.py` checks it. After a start, vLLM's own log line "non-default args" is the proof. |
+| 19 | Experiment sessions never end: `experiments/run-session.sh` keeps following a log although the runner has finished. | `pgrep -f 'experiments/runner.py run'` over SSH matches the remote shell's own command line. | Ctrl-C, then copy the results by hand. | The pattern is `'[e]xperiments/runner.py run'`, which cannot match its own text. The same trap as row 14. |
+| 20 | The log of a start that failed earlier is gone. | `wsctl` kept only the ten newest archived logs per server, and an experiment session restarts the server dozens of times. | Reproduce the failure. | `wsctl` keeps forty. |
+| 21 | A quality spot check shows a category at 14 % in every deployment, so it cannot show any difference. | The probe allowed 16 tokens, and the model writes its working first ("548 - 105 + 131 = 5..."), which was cut off mid-number and scored wrong. | Allow a short line of working for arithmetic items (48 tokens) and score the last number. | `experiments/quality_probe.py` does; the arithmetic category rose to about a third, the other two stay at 100 %. |
+| 22 | A benchmark that shares no prefix reports a prefix-cache hit rate of 1 % (6 % for 256-token prompts) and the harness warns. | Every prompt began with the same instruction line: one shared 16-token block that the cache serves. | None needed for 1 %; below the 5 % warning it is noise. | The random request line now comes first (`benchmark/infbench/workload.py`); `test_unrelated_prompts_share_less_than_one_cache_block` checks that unrelated prompts share fewer tokens than one cache block. |
 
 ### 2.2 Pod restart and rebuild
 

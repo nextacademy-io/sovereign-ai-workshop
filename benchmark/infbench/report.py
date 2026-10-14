@@ -170,6 +170,28 @@ def markdown_summary(results: list[dict]) -> str:
         "| " + " | ".join(["---"] * len(HEADER)) + " |",
     ]
     lines += ["| " + " | ".join(result_row(r)) + " |" for r in results]
+    if any(r.get("slo") for r in results):
+        targets = next(r["slo"]["targets"] for r in results if r.get("slo"))
+        lines += [
+            "",
+            "SLO: "
+            + ", ".join(f"{k} {v:g}" for k, v in targets.items())
+            + ". Goodput counts only requests that met every target.",
+            "",
+            "| Load | Attainment | Goodput (req/s) | Throughput (req/s) |",
+            "| --- | --- | --- | --- |",
+        ]
+        for r in results:
+            slo = r.get("slo") or {}
+            load = (
+                r["concurrency"]
+                if r["concurrency"] is not None
+                else f"{r['request_rate_target']}/s"
+            )
+            att = slo.get("attainment")
+            lines.append(
+                f"| {load} | {_fmt(att * 100 if att is not None else None, 1)} % | {_fmt(slo.get('goodput_rps'), 2)} | {_fmt(r['request_throughput_rps'], 2)} |"
+            )
     lines += [
         "",
         "TTFT = time to first token. ITL = inter-token latency. Output TPS/req = tokens per second one",

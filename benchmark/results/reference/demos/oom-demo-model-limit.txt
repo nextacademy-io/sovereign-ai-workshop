@@ -1,0 +1,37 @@
+NOTE: this restarts the main server for everyone on this pod.
+stopping main server (pid 48197)...
+starting main server: profile 'oom-demo' on 127.0.0.1:8000
+waiting for the server to become ready.....
+starting main server: profile 'baseline' on 127.0.0.1:8000
+waiting for the server to become ready...................
+{"profile": "baseline", "startup_seconds": 39.3, "model_memory_gib": 15.27, "model_load_seconds": 3.548133, "weights_seconds": 1.75, "kv_cache_memory_gib": 58.64, "graph_capture_seconds": 5.0, "graph_capture_gib": 0.21, "engine_init_seconds": 14.17, "kv_cache_tokens": 426992, "kv_cache_max_model_len": 32768, "kv_cache_max_concurrency": 13.03, "timeline_seconds": {"engine_core_started": 8.0, "weights_loaded": 14.0, "kv_cache_sized": 21.0, "engine_ready": 28.0}, "memory_accounting_gib": {"device_total": 94.97, "device_free_at_start": 86.58, "gpu_memory_utilization": 0.8, "budget": 75.98, "weights_and_non_torch": 16.14, "peak_activation": 1.2, "cuda_graphs": 0.21}}
+ready in 39 s. vLLM 0.31.0, profile 'baseline'.
+
+--- the server exited during startup; last log lines:
+    await run_server_worker(listen_address, sock, args, **uvicorn_kwargs)
+  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/launchers/api_server/entry.py", line 185, in run_server_worker
+    async with build_async_engine_client(
+  File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/launchers/api_server/entry.py", line 58, in build_async_engine_client
+    async with build_async_engine_client_from_engine_args(
+  File "/usr/lib/python3.12/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/launchers/api_server/entry.py", line 80, in build_async_engine_client_from_engine_args
+    vllm_config = engine_args.create_engine_config(usage_context=usage_context)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/engine/arg_utils.py", line 2183, in create_engine_config
+    model_config = self.create_model_config()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/engine/arg_utils.py", line 1918, in create_model_config
+    return ModelConfig(
+           ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/pydantic/_internal/_dataclasses.py", line 121, in __init__
+    s.__pydantic_validator__.validate_python(ArgsKwargs(args, kwargs), self_instance=s)
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ModelConfig
+  Value error, User-specified max_model_len (1048576) is greater than the derived max_model_len (max_position_embeddings=40960.0 or model_max_length=None in model's config.json). To allow overriding this maximum, set the env var VLLM_ALLOW_LONG_MAX_MODEL_LEN=1. VLLM_ALLOW_LONG_MAX_MODEL_LEN must be used with extreme caution. If the model uses relative position encoding (RoPE), positions exceeding derived_max_model_len lead to nan. If the model uses absolute position encoding, positions exceeding derived_max_model_len will cause a CUDA array out-of-bounds error. [type=value_error, input_value=ArgsKwargs((), {'model': ...nderer_num_workers': 1}), input_type=ArgsKwargs]
+    For further information visit https://errors.pydantic.dev/2.13/v/value_error
+wsctl: startup failed (full log: /var/log/workshop/vllm-main.log)
+wsctl: rolling back to the previous profile 'baseline'

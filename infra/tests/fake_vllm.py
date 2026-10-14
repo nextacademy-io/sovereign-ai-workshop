@@ -26,8 +26,18 @@ def main() -> int:
     if (
         cfg.get("max-num-seqs") == 666
     ):  # simulated startup failure (like a rejected engine argument)
+        # Like the real engine: the root cause comes first, then a long traceback that ends in a generic error.
         print(
-            "vllm serve: error: argument --max-num-seqs: simulated failure",
+            "ValueError: simulated root cause: --max-num-seqs 666 is not allowed",
+            file=sys.stderr,
+            flush=True,
+        )
+        for i in range(40):
+            print(
+                f'  File "/fake/vllm/engine_{i}.py", line {i}, in step', file=sys.stderr, flush=True
+            )
+        print(
+            "RuntimeError: Engine core initialization failed. See root cause above.",
             file=sys.stderr,
             flush=True,
         )

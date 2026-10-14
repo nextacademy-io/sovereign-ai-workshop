@@ -1,3 +1,6 @@
 extends: baseline
-description: "Simulates a small GPU: the KV cache is capped at 4 GiB so context length and concurrency compete for it."
+description: "Simulates a small GPU: the KV cache is capped at 4 GiB and one request may use at most 16k tokens, so context length and concurrency compete for about 29,000 tokens."
 kv-cache-memory-bytes: 4G
+# Measured on the workshop GPU: with the baseline max-model-len (32768) the server refuses to start, because one
+# request of that length needs 4.5 GiB of KV cache and only 4.0 GiB exist (see docs/TROUBLESHOOTING.md).
+max-model-len: 16384

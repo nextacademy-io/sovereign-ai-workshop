@@ -62,7 +62,7 @@ python3 apps/inference-client/chat.py "What is a KV cache? One sentence."
 Your group's model server is a single process that every member uses. That is on purpose: you will see queueing, batching and contention first-hand. It also means:
 
 - `sudo wsctl status` shows what runs. `sudo wsctl profiles` lists the configurations you may start.
-- `./scripts/start-vllm.sh <profile>` **restarts the server for everyone in your group** and takes one to three minutes. Tell your group first. If a new profile fails to start, the previous one is restored automatically.
+- `./scripts/start-vllm.sh <profile>` **restarts the server for everyone in your group** and takes under a minute for a profile the server has run before and up to about two and a half minutes the first time (measured: 40 seconds for `baseline`, 143 seconds for the first `fp8` start). Tell your group first. If a new profile fails to start, the previous one is restored automatically.
 - Start only what the labs ask for. Do not start your own copy of a model: the GPU memory belongs to the shared server.
 
 ## 3. Using the API and the dashboard from your laptop

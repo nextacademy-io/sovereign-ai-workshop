@@ -83,7 +83,7 @@ Use the tables at steps 2 to 5. Each row says what to look at and the mistake pe
 
 | Criterion | What to look at | Common mistake |
 | --- | --- | --- |
-| VRAM | Weights plus KV cache (context times concurrency) plus overhead, against the budget: 96 GiB times 0.80 is 76.8 GiB here. Run `scripts/sizing.py`, then compare with the server's `GPU KV cache size` line. | Counting only the weights. Forgetting a second model on the same GPU (the embedding server takes 0.08 of it). Using the maximum context for every request. |
+| VRAM | Weights plus KV cache (context times concurrency) plus overhead, against the budget: 94.97 GiB (usable) times 0.80 is 75.98 GiB here. Run `scripts/sizing.py`, then compare with the server's `GPU KV cache size` line. | Counting only the weights. Forgetting a second model on the same GPU (the embedding server takes 0.08 of it). Using the maximum context for every request. |
 | Throughput | Aggregate output tokens per second at the concurrency you expect, measured with the shape of your workload (`benchmark/run.sh`, workloads in `benchmark/workloads/`). | Quoting single-request tokens per second. Using a vendor figure from other hardware. Repeating identical prompts so that the prefix cache flatters the result (measured: TTFT p50 391 ms, then 51 ms). |
 | Latency | TTFT and inter-token latency at p95, at the expected concurrency, including queueing and the tokens spent on thinking. The curriculum's example SLO: TTFT p95 800 ms and 25 output tokens per second per request. | Using averages. Testing at concurrency 1 only. Not counting thinking tokens as time. |
 
@@ -181,7 +181,7 @@ WEIGHTS + KV CACHE + RUNTIME OVERHEAD = VRAM REQUIREMENT
 KV bytes per token = 2 (K and V) x layers x KV heads x head_dim x bytes per element
 ```
 
-The architecture fields come from `config/models.yaml`. The tool is `scripts/sizing.py`. Its overhead term (4 GiB) is an assumption. The vLLM budget is `gpu-memory-utilization` times GPU memory: 0.80 times 96 GiB is 76.8 GiB.
+The architecture fields come from `config/models.yaml`. The tool is `scripts/sizing.py`. Its overhead term (4 GiB) is an assumption. The vLLM budget is `gpu-memory-utilization` times the usable GPU memory, which vLLM reports as 94.97 GiB on the workshop GPU (the nominal 96 GB card): 0.80 times 94.97 GiB is 75.98 GiB.
 
 ### The workshop's models
 
@@ -204,11 +204,11 @@ python3 scripts/sizing.py --model primary --precision bf16 --context 32768 --con
 
 | Step | Value | Source |
 | --- | --- | --- |
-| Budget | 96 GiB x 0.80 = 76.8 GiB | profile `base`, `sizing.py` defaults |
+| Budget | 94.97 GiB usable x 0.80 = 75.98 GiB | server log: "Desired GPU memory utilization is (0.8, 75.98 GiB)" |
 | Weights | 8.2 B x 2 bytes = 15.27 GiB | `sizing.py`; measured in memory: 15.27 GiB |
-| Overhead | assumed 4.00 GiB; measured 76.8 - 15.27 - 58.14 = 3.39 GiB | `sizing.py` default; server log |
+| Overhead | assumed 4.00 GiB; measured 75.98 - 15.27 - 58.14 = 2.57 GiB (0.87 GiB outside PyTorch's allocator, 1.70 GiB peak activations, CUDA graphs 0.21 GiB, minus a 0.24 GiB over-estimate that vLLM gives back) | `sizing.py` default; server log |
 | KV bytes per token | 2 x 36 x 8 x 128 x 2 = 147,456 | `config/models.yaml` |
-| KV pool, estimated | 76.8 - 15.27 - 4.00 = 57.53 GiB, so 418,893 tokens | `sizing.py` (computed) |
+| KV pool, estimated | 75.98 - 15.27 - 4.00 = 56.71 GiB, so 412,893 tokens | `sizing.py` (computed) |
 | KV pool, server | "Available KV cache memory: 58.14 GiB" | measured |
 | Capacity from the server's own number | 58.14 GiB / 147,456 bytes = 423,363 tokens | computed |
 | Capacity reported by the server | `GPU KV cache size: 423,328 tokens` | measured |
@@ -217,7 +217,7 @@ python3 scripts/sizing.py --model primary --precision bf16 --context 32768 --con
 Reading the result:
 
 - The hand formula and the server agree: 423,363 predicted against 423,328 reported (ratio 0.9999).
-- The `sizing.py` estimate is 1.05 % low (418,893 against 423,328). The whole gap is the assumed overhead: 4.00 GiB assumed, 3.39 GiB measured, and 0.61 GiB is about 4,400 tokens. That is far inside the 10 % bound of curriculum outcome 4.
+- The `sizing.py` estimate is 2.5 % low (412,893 against 423,328). The whole gap is the assumed overhead: 4.00 GiB assumed against 2.57 GiB measured, and 1.43 GiB is about 10,400 tokens. That is inside the 10 % bound of curriculum outcome 4, and it errs on the safe side.
 - A pool of this size holds about 51 requests of 8,192 tokens (computed from the `sizing.py` pool) or 12.9 requests of 32,768 tokens. Context and concurrency trade against each other one for one.
 
 ### Example 2: FP8 weights
@@ -236,8 +236,8 @@ Reading the result:
 ### Example 3: FP8 KV cache and a constrained budget
 
 - With `kv-cache-dtype: fp8` a token costs 73,728 bytes instead of 147,456. In the same bytes, twice the tokens fit. This is the formula's prediction; the `kv-fp8` and `kv-constrained-fp8kv` profiles exist to measure it, and quality must be checked as well.
-- The `kv-constrained` profile caps the pool at 4 GiB (`kv-cache-memory-bytes`). That is 1,820 blocks of 16 tokens, about 29,120 tokens, or 0.89 requests of 32,768 tokens (computed, RESEARCH 3.8). With an FP8 KV cache: 58,240 tokens, 1.78 requests.
-- `oom-demo` asks for a context of 1,048,576 tokens in that 4 GiB. The KV for one such sequence would be 144 GiB (computed).
+- The `kv-constrained` profile caps the pool at 4 GiB (`kv-cache-memory-bytes`). That is 1,820 blocks of 16 tokens, about 29,120 tokens, or 0.89 requests of 32,768 tokens (computed, RESEARCH 3.8). With an FP8 KV cache: 58,240 tokens, 1.78 requests. Because the pool holds less than one 32,768-token request, vLLM refuses to start with the default `max-model-len` (measured: "4.5 GiB KV cache is needed, which is larger than the available KV cache memory (4.0 GiB)... the estimated maximum model length is 29104"); the profile therefore also sets `max-model-len: 16384`.
+- `oom-demo` keeps the model's full 40,960-token context in the same 4 GiB and fails on purpose with that message (5.6 GiB needed, computed). Asking for 1,048,576 tokens (the KV for one such sequence would be 144 GiB, computed) is rejected earlier, by the model's own limit (`--set max-model-len=1048576`, measured).
 
 ### Example 4: the small model
 
@@ -445,7 +445,7 @@ Questions to ask:
 - Is thinking worth it? Output length multiplies cost: measure the distribution of output tokens with thinking on and off, not only the mean.
 - Which levers raise throughput: a smaller model, FP8 weights, an FP8 KV cache, higher concurrency, a shared instruction prefix? For each: what do you measure afterwards, and what does it do to quality (`experiments/quality_probe.py` is the pattern)?
 - Are the inputs text, or scanned pages and images? Does that change the model class?
-- Does the job need a server with an HTTP API, or is it a batch? How do you retry and resume a 72-hour run when a restart takes 67 s to 188 s?
+- Does the job need a server with an HTTP API, or is it a batch? How do you retry and resume a 72-hour run when a restart takes 40 s to 3 minutes?
 - How much slack is in 72 hours, and would a slower, cheaper setup still make it?
 - If you process documents for other companies, could a licence's Model-as-a-Service definition apply to you?
 

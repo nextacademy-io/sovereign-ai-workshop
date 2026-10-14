@@ -27,3 +27,21 @@ def test_auxiliary_documents_receive_the_configuration_of_a_result(tmp_path):
     assert "derived_from" in check
     assert (dest / "baseline" / "single-stream" / "c001.json").exists()
     assert not any(p.suffix == ".log" for p in written)
+
+
+def test_normalize_adds_provenance_in_place(tmp_path):
+    (tmp_path / "baseline").mkdir()
+    config = {"model": "m"}
+    (tmp_path / "baseline" / "c001.json").write_text(
+        json.dumps({"configuration": config, "requests": 1})
+    )
+    (tmp_path / "baseline" / "startup.json").write_text(json.dumps({"first_start_s": 67.4}))
+    (tmp_path / "session-summary.json").write_text(json.dumps({"baseline": {"ok": True}}))
+
+    changed = promote_reference.normalize(tmp_path)
+
+    assert {p.name for p in changed} == {"startup.json", "session-summary.json"}
+    assert (
+        json.loads((tmp_path / "baseline" / "startup.json").read_text())["configuration"] == config
+    )
+    assert promote_reference.normalize(tmp_path) == []  # idempotent

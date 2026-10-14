@@ -68,8 +68,8 @@ Props with arrays or objects use a bound attribute with JSON in single quotes: `
 | Component | What it is | Notes |
 | --- | --- | --- |
 | `MetricCard` | one number | **`source` required.** `source="measured:benchmark/results/reference/<file>.json"` plus `metric="ttft_ms.p50"`, or `source="illustrative"` plus `value`. Props: `label`, `unit`, `digits`, `note`, `tone` (`good`, `bad`). A slide with measured cards also has one `<Provenance source="..." />`. |
-| `ResultTable` | table of results, one row per result file | **`source` required** (a file or a directory), `:columns` (metric paths such as `concurrency`, `ttft_ms.p50`, `aggregate_tps`), optional `match`, `:headers`, `:digits`. Illustrative: `:headers` and `:rows`. |
-| `ResultChart` | line or bar chart | **`source` required**, `x`, `y` (metric paths), `kind`, `title`, `xlabel`, `ylabel`, `match`. Illustrative: `:points='[{"x":1,"y":10}]'`. |
+| `ResultTable` | table of results, one row per result file | **`source` required** (a file or a directory), `:columns` (metric paths such as `concurrency`, `ttft_ms.p50`, `aggregate_tps`), optional `match` (a string, or a list: files whose path contains any of them), `:headers`, `:digits`, `label-by="configuration.server_profile"` or `:labels='[...]'` for a first column (with `label-header`). Illustrative: `:headers` and `:rows`. |
+| `ResultChart` | line or bar chart | **`source` required**, `x`, `y` (metric paths), `kind`, `title`, `xlabel`, `ylabel`, `match` (string or list), `by="configuration.server_profile"` for one series per profile with a legend. Illustrative: `:points='[{"x":1,"y":10}]'`. |
 | `Benchmark` | the numbers of one benchmark run on one card | **`source` required** (one result file). |
 | `MemoryBar` | VRAM budget as one stacked bar | **`source` required**, `:segments`, `total`. See the exemplar. |
 | `Provenance` | one line: hardware, model, engine version, date | under measured numbers |

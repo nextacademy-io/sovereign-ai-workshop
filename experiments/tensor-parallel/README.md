@@ -22,7 +22,7 @@ experiments/run-session.sh --host <ip> --port <port> --label <label> tensor-para
 `experiments/runner.py` restarts the shared server with the profiles below, runs the benchmark harness with fresh prompts
 at every level, and stores each result with its hardware, model revision, engine version, server arguments and date.
 
-Profiles: `baseline` (one GPU), `tp2`, and two baseline servers on separate GPUs. Requires a two-GPU pod.
+Profiles: `baseline` (one GPU), `tp2` (with `gpu-memory-utilization=0.80`, like the baseline), and `baseline` plus `baseline-replica` on separate GPUs (ports 8000 and 8001, each driven by its own harness process with half of the total concurrency). The embedding server is stopped for the experiment. Requires a two-GPU pod.
 
 ## What is measured
 

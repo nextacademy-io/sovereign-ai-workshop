@@ -10,18 +10,18 @@ What to measure when you run a language model yourself, and how to read what you
 - **Dense.** Every TFLOPS figure is a dense BF16 rate, never a sparse one (RESEARCH 6.1).
 - **Final numbers** live in `benchmark/results/` and in each experiment's `RESULTS.md`. If a number here disagrees with a result file, the result file wins.
 
-Indicative smoke runs used in this document (RTX PRO 6000 Blackwell Server Edition, 96 GB; vLLM 0.31.0; Qwen3-8B; workload of 1,200 input and 180 output tokens unless the row says otherwise):
+Measurements used in this document (RTX PRO 6000 Blackwell Server Edition, 96 GB; vLLM 0.31.0; Qwen3-8B; workload of 1,200 input and 180 output tokens unless the row says otherwise). Rows marked *reference* are in `benchmark/results/reference/`; rows marked *smoke run* come from the first sessions on a pod and are not committed as result files:
 
-| Item | Indicative smoke run |
+| Item | Measurement |
 | --- | --- |
-| BF16, concurrency 1 | TTFT p50 67 ms; ITL p50 11.6 ms (86 tokens/s per request); aggregate 84 tokens/s |
-| BF16, concurrency 8 | TTFT p50 356 ms; ITL p50 12.4 ms; aggregate 549 tokens/s (6.5 × concurrency 1); GPU-Util 100 % |
-| FP8 weights, concurrency 1 | ITL p50 7.3 ms (138 tokens/s per request, 1.6 × BF16) |
-| FP8 weights, concurrency 8 | aggregate 838 tokens/s |
-| 12 concurrent requests, BF16 | KV cache 3.9 % used; estimated MFU 6.6 %; estimated MBU about 28 % to 60 % depending on the averaging window; 358 W; GPU-Util 100 % |
-| Harness against `vllm bench serve` (concurrency 8, 64 requests, fresh seeds) | throughput within 0.4 %; TTFT within 3 to 4 %; mean ITL and TPOT within 0.2 %; end-to-end latency within 0.4 %; ITL p99 differed by 29 % |
-| Same prompts sent twice | TTFT p50 391 ms, then 51 ms; aggregate 550, then 636 tokens/s; with a new seed TTFT p50 back to 357 ms |
-| vLLM start-up | cold start 188 to 194 s; warm restart 67 s; rebuild of the whole pod after a restart 5 min 41 s |
+| BF16, concurrency 1 (reference) | TTFT p50 69 ms; ITL p50 11.6 ms (86.2 tokens/s per request); aggregate 83.9 tokens/s |
+| BF16, concurrency 8 (reference) | TTFT p50 356 ms; ITL p50 12.3 ms; aggregate 551 tokens/s (6.6 × concurrency 1); GPU-Util 100 % |
+| FP8 weights, concurrency 1 (reference) | ITL p50 7.3 ms (138.2 tokens/s per request, 1.6 × BF16) |
+| FP8 weights, concurrency 16 (reference) | aggregate 1,323 tokens/s (BF16: 897) |
+| 12 concurrent requests, BF16 (smoke run) | KV cache 3.9 % used; estimated MFU 6.6 %; estimated MBU about 28 % to 60 % depending on the averaging window; 358 W; GPU-Util 100 % |
+| Harness against `vllm bench serve` (smoke run; concurrency 8, 64 requests, fresh seeds) | throughput within 0.4 %; TTFT within 3 to 4 %; mean ITL and TPOT within 0.2 %; end-to-end latency within 0.4 %; ITL p99 differed by 29 % |
+| Same prompts sent twice (reference) | TTFT p50 359 ms, then 50 ms; aggregate 550, then 639 tokens/s; with a new seed TTFT p50 back to 360 ms |
+| vLLM start-up (reference and dry run) | first start in a fresh container 176 to 198 s (three measurements); start with warm caches 55 to 67 s; restart 29 to 41 s; the first start of the FP8 checkpoint about 143 s; rebuild of the whole pod after a restart 5 min 41 s |
 | Pod price | $2.49 per hour |
 
 ## 2. The user's view and the operator's view
@@ -68,7 +68,7 @@ t_sched ────── queue + prefill ──────► t_first ── 
 
 | Term | Formula in the harness | Result key | Note |
 | --- | --- | --- | --- |
-| TTFT | `t_first − t_sched` | `ttft_ms` | Queueing plus prefill plus the first decode step. Reasoning deltas count as text. |
+| TTFT | `t_first − t_sched` | `ttft_ms` | Queueing plus prefill: the pass over the prompt already yields the distribution of the first token, so that token is sampled at its end and no separate decode step precedes it. Reasoning deltas count as text. |
 | ITL | gap between two consecutive text-carrying chunks, pooled over all requests | `itl_ms` | A chunk gap. It equals a token gap only when each chunk holds one token. |
 | TPOT | `(latency − TTFT) ÷ (N − 1)` per request; requests with N < 2 are left out | `tpot_ms` | Per request, so every request weighs the same. |
 | End-to-end latency | `t_end − t_sched` | `latency_ms` | Always reported. |
@@ -432,11 +432,11 @@ The availability budget against the restart times (indicative smoke run, measure
 
 | Event | Duration | Share of the monthly budget |
 | --- | --- | --- |
-| Warm restart of vLLM | 67 s | 2.6 % |
-| Cold start of vLLM | 194 s | 7.5 % |
+| Restart of vLLM with warm caches | 39 s | 1.5 % |
+| Cold start of vLLM | 198 s | 7.6 % |
 | Rebuild of the whole pod after a restart | 341 s | 13.2 % |
 
-Three cold starts in a month use more than a fifth of the budget on their own (582 s of 2,592 s). That is an argument for a second replica and for rolling restarts (`d3-04-scaling`).
+Three cold starts in a month use almost a quarter of the budget on their own (594 s of 2,592 s). That is an argument for a second replica and for rolling restarts (`d3-04-scaling`).
 
 ### What the indicative smoke runs can and cannot say
 

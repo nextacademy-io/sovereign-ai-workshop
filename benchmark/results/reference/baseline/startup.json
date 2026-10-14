@@ -41,7 +41,7 @@
       "request_rate": null
     }
   },
-  "derived_from": "configuration copied from baseline/single-stream/c001.json; this file was written by experiments/runner.py",
+  "derived_from": "configuration copied from baseline/kv-formula-check.json; this file was written by experiments/runner.py or run-session.sh",
   "first_start_s": 67.4,
   "restart_s": 39.3
 }

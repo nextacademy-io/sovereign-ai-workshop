@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "configuration": {
+    "hardware": {
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "gpu_count": 1,
+      "vram_gb": 95.6,
+      "driver_version": "580.159.04",
+      "cpu_count": 256,
+      "os": "Linux 6.8.0-124-generic"
+    },
+    "model": "Qwen/Qwen3-8B",
+    "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "engine": "vllm",
+    "engine_version": "0.31.0",
+    "vllm_version": "0.31.0",
+    "cuda_version": "13.0",
+    "cuda_details": {
+      "runtime": "13.0",
+      "driver_max": "13.0"
+    },
+    "server_args": "--host 127.0.0.1 --port 8000 --dtype bfloat16 --max-model-len 32768 --gpu-memory-utilization 0.8 --generation-config vllm --enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3 --enable-mfu-metrics --structured-outputs-config '{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}' --model Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --served-model-name Qwen/Qwen3-8B",
+    "server_profile": "baseline",
+    "date": "2026-10-14T16:28:57+00:00",
+    "note": null,
+    "workload": {
+      "name": "workshop-baseline",
+      "description": "Reference workload used across Day 2 (input 1200 tokens, output 180 tokens).",
+      "input_tokens": 1200,
+      "output_tokens": 180,
+      "shared_prefix_tokens": 0,
+      "style": "chat",
+      "prompt_mode": "auto",
+      "prompts_file": null,
+      "seed": 1153775525
+    },
+    "harness_version": "0.1.0",
+    "endpoint_type": "completions",
+    "load": {
+      "mode": "closed",
+      "concurrency": 32,
+      "request_rate": null
+    }
+  },
+  "requests": 64,
+  "requests_failed": 192,
+  "concurrency": 32,
+  "request_rate_target": null,
+  "load_mode": "closed",
+  "duration_s": 102.503,
+  "ttft_ms": {
+    "count": 64,
+    "mean": 975.063,
+    "min": 148.759,
+    "p50": 1099.972,
+    "p90": 1516.039,
+    "p95": 1516.243,
+    "p99": 1658.513,
+    "max": 1658.591
+  },
+  "itl_ms": {
+    "count": 11456,
+    "mean": 19.751,
+    "min": 0.016,
+    "p50": 16.241,
+    "p90": 17.351,
+    "p95": 18.266,
+    "p99": 142.101,
+    "max": 349.128
+  },
+  "tpot_ms": {
+    "count": 64,
+    "mean": 19.766,
+    "min": 16.173,
+    "p50": 18.949,
+    "p90": 22.468,
+    "p95": 23.953,
+    "p99": 24.282,
+    "max": 24.332
+  },
+  "latency_ms": {
+    "count": 64,
+    "mean": 4513.124,
+    "min": 4069.555,
+    "p50": 4498.419,
+    "p90": 4638.007,
+    "p95": 4640.174,
+    "p99": 4982.495,
+    "max": 4982.81
+  },
+  "output_tps": 51.25,
+  "output_tps_per_request": {
+    "count": 64,
+    "mean": 51.25,
+    "min": 41.1,
+    "p1": 41.18,
+    "p5": 41.78,
+    "p50": 52.77,
+    "p90": 59.06,
+    "p95": 59.09,
+    "p99": 61.82,
+    "max": 61.83
+  },
+  "aggregate_tps": 112.39,
+  "input_tps": 749.25,
+  "total_tps": 861.64,
+  "request_throughput_rps": 0.6244,
+  "tokens": {
+    "prompt_total": 76800,
+    "completion_total": 11520,
+    "prompt_mean": 1200.0,
+    "completion_mean": 180.0
+  },
+  "gpu": {
+    "note": "utilization.gpu = share of time any kernel was running, not efficiency",
+    "interval_s": 1.0,
+    "samples": 103,
+    "gpus": 1,
+    "utilization_pct": {
+      "count": 103,
+      "mean": 12.6,
+      "min": 0.0,
+      "p50": 0.0,
+      "p90": 100.0,
+      "p95": 100.0,
+      "p99": 100.0,
+      "max": 100.0
+    },
+    "memory_used_mib": {
+      "count": 103,
+      "mean": 18011.0,
+      "min": 8061.0,
+      "p50": 8061.0,
+      "p90": 86854.0,
+      "p95": 86854.0,
+      "p99": 86854.0,
+      "max": 87413.0
+    },
+    "power_w": {
+      "count": 103,
+      "mean": 142.0,
+      "min": 91.2,
+      "p50": 93.6,
+      "p90": 391.2,
+      "p95": 501.4,
+      "p99": 579.5,
+      "max": 600.9
+    },
+    "temperature_c": {
+      "count": 103,
+      "mean": 41.0,
+      "min": 33.0,
+      "p50": 38.0,
+      "p90": 54.0,
+      "p95": 57.0,
+      "p99": 63.0,
+      "max": 64.0
+    },
+    "sm_clock_mhz": {
+      "count": 103,
+      "mean": 2346.0,
+      "min": 2212.0,
+      "p50": 2332.0,
+      "p90": 2422.0,
+      "p95": 2422.0,
+      "p99": 2422.0,
+      "max": 2422.0
+    }
+  },
+  "server": {
+    "interval_s": 1.0,
+    "samples": 13,
+    "gauges": {
+      "num_requests_running": {
+        "mean": 25.692,
+        "max": 32.0
+      },
+      "num_requests_waiting": {
+        "mean": 1.923,
+        "max": 10.0
+      },
+      "kv_cache_usage_perc": {
+        "mean": 0.076,
+        "max": 0.10189555705401965
+      }
+    },
+    "counters_delta": {
+      "prompt_tokens": 115200.0,
+      "generation_tokens": 14247.0,
+      "prefix_cache_queries": 115200.0,
+      "prefix_cache_hits": 0.0,
+      "preemptions": 0.0,
+      "requests_success": 64.0
+    },
+    "prefix_cache_hit_rate": 0.0
+  },
+  "errors": [
+    {
+      "count": 160,
+      "error": "ConnectError: All connection attempts failed"
+    },
+    {
+      "count": 32,
+      "error": "RemoteProtocolError: peer closed connection without sending complete message body (incomplete chunked read)"
+    }
+  ]
+}

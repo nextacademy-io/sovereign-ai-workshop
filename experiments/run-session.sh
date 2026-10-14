@@ -49,7 +49,7 @@ while true; do
     ssh_pod "sed -n '$((seen + 1)),${lines}p' '$remote_out/runner.log'" 2>/dev/null || true
     seen=$lines
   fi
-  if ! ssh_pod "pgrep -f 'experiments/runner.py run' >/dev/null" 2>/dev/null; then break; fi
+  if ! ssh_pod "pgrep -f '[e]xperiments/runner.py run' >/dev/null" 2>/dev/null; then break; fi
   sleep 20
 done
 
@@ -57,5 +57,8 @@ info "copying results to $local_out"
 mkdir -p "$local_out"
 ssh_pod "tar -czf - -C '$remote_out' . 2>/dev/null" | tar -xzf - -C "$local_out"
 ssh_pod "cp /var/lib/workshop/server.json /tmp/s.json 2>/dev/null; cat /var/lib/workshop/env.json" >"$local_out/pod-env.json" 2>/dev/null || true
+# Files the runner wrote itself (formula checks, start-up times, counters) get the provenance of a result
+# from the same session, so every JSON under benchmark/results/ is attributable (pnpm check enforces it).
+python3 "$REPO_DIR/benchmark/scripts/promote_reference.py" --normalize "$local_out" || echo "warning: could not add provenance to auxiliary files" >&2
 info "done: $(find "$local_out" -name '*.json' | wc -l | tr -d ' ') JSON files in $local_out"
 [ -f "$local_out/session-summary.json" ] && cat "$local_out/session-summary.json" | head -30

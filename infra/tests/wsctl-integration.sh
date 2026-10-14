@@ -69,6 +69,7 @@ before=$(python3 -c "import json; print(json.load(open(\"/var/lib/workshop/serve
 ! wsctl start baseline --set max-num-seqs=666 >/tmp/rb.out 2>&1 && curl -fsS localhost:8000/health >/dev/null \
   && after=$(python3 -c "import json; print(json.load(open(\"/var/lib/workshop/server.json\"))[\"profile\"])") \
   && [ "$before" = "$after" ] && grep -q "rolling back" /tmp/rb.out && ok || { cat /tmp/rb.out; no "rollback"; }
+t "a failed start prints the root cause, not only the tail of the traceback"; grep -q "ValueError: simulated root cause" /tmp/rb.out && ok || { cat /tmp/rb.out; no "root cause not shown"; }
 t "the failed attempt and the rollback are in the audit log"; grep -q "rollback to baseline" /var/log/workshop/wsctl.log && ok || no "rollback audit"
 
 echo "stray servers"

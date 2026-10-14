@@ -38,7 +38,9 @@ cleanup_pod() { # label host port
     dest="$STATE_DIR/collected/$label-$(date -u +%Y%m%dT%H%M%SZ)"
     mkdir -p "$dest"
     # Participants' artifacts and benchmark results, the access and control logs, and the server provenance.
-    ssh_pod "tar -czf - -C / home/*/ki-ohne-cloud/workshop-artifacts home/*/ki-ohne-cloud/benchmark/results var/log/workshop/access.log var/log/workshop/wsctl.log var/lib/workshop/server.json 2>/dev/null" >"$dest/collected.tar.gz" || true
+    # `cd /` first: the remote shell expands the home/*/ globs relative to ITS directory, not tar's -C (a measured bug: only the logs
+    # were collected and the participants' work was silently missing).
+    ssh_pod "cd / && tar -czf - home/*/ki-ohne-cloud/workshop-artifacts home/*/ki-ohne-cloud/benchmark/results var/log/workshop/access.log var/log/workshop/wsctl.log var/lib/workshop/server.json 2>/dev/null" >"$dest/collected.tar.gz" || true
     info "[$label] collected to $dest ($(wc -c <"$dest/collected.tar.gz" | tr -d ' ') bytes)"
   fi
   if [ "$stop" -eq 1 ]; then

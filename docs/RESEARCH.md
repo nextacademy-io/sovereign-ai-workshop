@@ -353,7 +353,7 @@ Sources for the table: [gpu_model_runner.py](https://github.com/vllm-project/vll
 
 **Workshop decision**
 
-- `config/vllm-profiles/kv-constrained.yaml`, `kv-constrained-fp8kv.yaml` and `oom-demo.yaml` implement these numbers (4 GiB budget; FP8 KV; a 1M-token context that cannot fit). `scripts/sizing.py` is the repository's hand-sizing tool; compare its output with the `KV cache size` log line, as in the arithmetic above.
+- `config/vllm-profiles/kv-constrained.yaml`, `kv-constrained-fp8kv.yaml` and `oom-demo.yaml` implement these numbers (4 GiB budget with a 16,384-token context limit, because 32,768 tokens do not fit into 4 GiB and the server refuses to start, measured; FP8 KV; the model's full context in 4 GiB, which fails on purpose). `scripts/sizing.py` is the repository's hand-sizing tool; compare its output with the `KV cache size` log line, as in the arithmetic above.
 
 ### 3.9 Scheduler, continuous batching, chunked prefill, prefix caching, preemption
 
@@ -1302,7 +1302,7 @@ Verified 2026-10-14. Facts marked MCP-LIVE come from live reads of the Runpod MC
 - Account SSH keys are injected into Pods. Runpod's own `start.sh` reads the `PUBLIC_KEY` environment variable. External TCP port mappings change whenever a Pod resets; requesting a port number above 70000 yields identical internal and external ports readable from `RUNPOD_TCP_PORT_<n>` ([Runpod SSH docs](https://docs.runpod.io/pods/configuration/use-ssh), [start.sh](https://raw.githubusercontent.com/runpod/containers/main/container-template/start.sh), [expose ports](https://docs.runpod.io/pods/configuration/expose-ports)).
 - The upstream vLLM image has no sshd; the documented approach is to install openssh-server in the start command, write `$PUBLIC_KEY` into `authorized_keys` and start sshd ([custom templates](https://docs.runpod.io/pods/templates/create-custom-template)).
 - MCP-LIVE: the account had exactly one registered SSH key (ed25519), matching the local `~/.ssh/id_ed25519.pub`; no pods and no network volumes existed at the start of the research session. (No URL: live account read.)
-- Unverified: multiple Linux users with separate `authorized_keys` over the exposed TCP port (expected to work because sshd runs as root in the container; "validated in session S1" per the notes, no evidence attached).
+- MEASURED on a live pod (S1, RTX PRO 6000 Server Edition, EUR-IS-2): multiple Linux users with separate `authorized_keys` work over the one exposed TCP port (`infra/tests/wsctl-integration.sh` and the live checks cover login, isolation of home directories and revocation: a revoked key is removed, running sessions are killed and the next login is denied). A pod restart destroyed the container disk, kept `/workspace` and changed the public SSH port (22290 to 22235) while the IP stayed the same; sshd answered 11 seconds after the restart.
 
 **Caution:** The Runpod docs mention `SSH_PUBLIC_KEY` while the Runpod `start.sh` reads `PUBLIC_KEY`. The script is the primary source for behaviour; verify on a test pod ([SSH docs](https://docs.runpod.io/pods/configuration/use-ssh), [start.sh](https://raw.githubusercontent.com/runpod/containers/main/container-template/start.sh)).
 
@@ -1312,7 +1312,7 @@ Verified 2026-10-14. Facts marked MCP-LIVE come from live reads of the Runpod MC
 
 **Workshop decision**
 
-- Participants reach the vLLM server over SSH tunnels to 127.0.0.1:8000 (generation) and 127.0.0.1:8001 (embeddings). Per-user keys are managed by `infra/add-participant-key.sh`, `infra/revoke-participant-key.sh` and `infra/sync-participants.sh` (template: `infra/participants.example.yaml`); users and keys are persisted under `/workspace` and recreated at boot, and SSH host keys are persisted so clients do not see host-key changes.
+- Participants reach the vLLM server over SSH tunnels to 127.0.0.1:8000 (generation) and 127.0.0.1:8001 (embeddings). Per-user keys are managed by `infra/add-participant-key.sh`, `infra/revoke-participant-key.sh` and `infra/sync-participants.sh` (template: `infra/participants.example.yaml`). The source of truth for accounts and keys is `infra/participants.yaml` on the trainer's laptop, not the pod: after a pod restart the container disk is gone and `infra/deploy-to-pod.sh` recreates every account from that file. Nothing identity-related is kept on `/workspace` because that volume does not enforce permissions (7.6). The SSH host key is new after a rebuild, so clients must expect a host-key change and the trainer's scripts use a per-pod `known_hosts` file.
 
 ### 7.5 Networking
 
@@ -1343,7 +1343,7 @@ Verified 2026-10-14. Facts marked MCP-LIVE come from live reads of the Runpod MC
 
 **Workshop decision**
 
-- Models are pinned in `config/models.yaml` and fetched by `infra/pod/fetch-models.py`; the target must be the volume disk (`/workspace`) or a network volume. During a live workshop Pods stay running; `terminate` is used only at the end.
+- Models are pinned in `config/models.yaml` and fetched by `infra/pod/fetch-models.py`. MEASURED on a live pod (S1): the volume mounted at `/workspace` is a FUSE network filesystem with **no permission enforcement**: `chmod` is silently ignored, `chown` fails, and another user could read a root-owned `0600` file and list a root-owned `0700` directory. The workshop therefore keeps only the download cache on `/workspace` (seeded back into `/opt/workshop/hf` on the container disk in about 60 seconds after a rebuild) and puts homes, keys, API key, state and caches on the container disk. Model downloads from the Hugging Face hub ran at about 1.3 GB/s (Qwen3-8B, 16 GB, in 12.4 s); `/workspace` wrote at about 500 MB/s and read at about 750 MB/s. A full rebuild after a pod restart took 5 min 41 s (cache seed about 60 s, monitoring 16 s, vLLM 194 s, embedding server 53 s). During a live workshop Pods stay running; `terminate` is used only at the end.
 
 ### 7.7 GPU catalogue and prices (MCP-LIVE)
 
@@ -1467,7 +1467,7 @@ MCP-LIVE (`list-data-centers`, 2026-10-14). "Global networking" = supports Runpo
 - No Docker or Compose inside Pods, so the containerization block runs on participants' laptops; on the pods the image itself is the deployment unit.
 - Monitoring is pod-native (Prometheus, Grafana and an NVML exporter as plain processes); dcgm-exporter is used in the reference compose stack only.
 - Proxy URLs and exposed TCP ports are public: bind vLLM to 127.0.0.1, require `--api-key`, and reach it over SSH tunnels.
-- Port mapping changes on Pod restart: users and keys are persisted under `/workspace` and recreated at boot; SSH host keys are persisted so clients do not see host-key changes.
+- Port mapping changes on Pod restart (measured: 22290 to 22235), and the container disk is wiped: accounts and keys are recreated from `infra/participants.yaml` on the trainer's laptop by `infra/deploy-to-pod.sh`; participants get the new port and see a new host key. `/workspace` holds only the model download cache (no permission enforcement, 7.6).
 - Stopped Pods can return with zero GPUs; during a live workshop keep Pods running and use `terminate` only at the end.
 - Spend control: per-second billing, check `list-billing` before and after each session, delete Pods immediately after each scripted session.
 - These items are the research notes' own compiled list; each rests on the facts in 7.3 to 7.6 above.
@@ -2327,7 +2327,7 @@ Source-access note: the GitHub MCP connector was unavailable in the research ses
 
 **Source facts** ([vLLM security guide](https://docs.vllm.ai/en/latest/usage/security/) unless stated)
 
-- Default bind: `--host` default is `None`; in source `sock_addr = (args.host or "", args.port)` and the printed listen address falls back to `"0.0.0.0"`, i.e. all interfaces unless `--host` is set. Cross-origin browser access is off by default (`--allowed-origins` default `[]`). `--disable-fastapi-docs` hides Swagger/ReDoc. ([launcher.py](https://github.com/vllm-project/vllm/blob/main/vllm/entrypoints/launchers/launcher.py); [vllm serve CLI](https://docs.vllm.ai/en/latest/cli/serve/))
+- Default bind: `--host` default is `None`; in source `sock_addr = (args.host or "", args.port)` and the printed listen address falls back to `"0.0.0.0"`, i.e. all interfaces unless `--host` is set. `--allowed-origins` defaults to `["*"]` (read in `vllm/entrypoints/launchers/cli_args.py` of the installed v0.31.0 package on a live pod; an earlier reading of the CLI documentation as `[]` was wrong), so a browser page can call a reachable server cross-origin. `--disable-fastapi-docs` hides Swagger/ReDoc. ([launcher.py](https://github.com/vllm-project/vllm/blob/main/vllm/entrypoints/launchers/launcher.py); [vllm serve CLI](https://docs.vllm.ai/en/latest/cli/serve/))
 - `--api-key` / `VLLM_API_KEY` authenticates only the `/v1`, `/v2`, `/inference` and `/cohere` prefixes. Unauthenticated endpoints include `/invocations`, `/pooling`, `/classify`, `/score`, `/rerank`, `/metrics`, `/tokenize`, `/detokenize`, `/health`, `/version`, `/load`. Operational controls such as `/pause`, `/abort_requests`, `/update_weights`, `/scale_elastic_ep` are unauthenticated when generation is supported. Recommended: a reverse proxy that allowlists endpoints and adds authentication, rate limiting and logging.
 - Caution: the premise "vLLM has no built-in TLS" is wrong. The API server supports `--ssl-keyfile`, `--ssl-certfile`, `--ssl-ca-certs`, `--ssl-cert-reqs` (default 0), `--enable-ssl-refresh`, `--ssl-ciphers` ("TLS 1.2 and below only"). What is missing is mutual TLS between internal nodes (PyTorch Distributed, KV transfer). ([vllm serve CLI](https://docs.vllm.ai/en/latest/cli/serve/))
 - Inter-node traffic is "insecure by default and must be protected by placing the nodes on an isolated network". PyTorch Distributed has unencrypted messages, no authorization protocol and accepts connections from anywhere; `TCPStore` "listens on all network interfaces" by default. Set `VLLM_HOST_IP`, `--kv-ip/--kv-port`, `data_parallel_master_ip/port`. Cache contents load without integrity checks, including formats allowing arbitrary code execution. Ray: the whole cluster is one trust domain.

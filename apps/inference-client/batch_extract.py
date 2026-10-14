@@ -30,9 +30,22 @@ from infbench.corpus import SENTENCES  # noqa: E402
 from openai import AsyncOpenAI  # noqa: E402
 
 PROMPT = (
-    "Extract every deadline, monetary amount and responsible role from the document. "
+    "Extract the most important deadlines, monetary amounts and responsible roles from the document, "
+    "at most five of each. "
     'Reply with JSON: {"deadlines": [...], "amounts": [...], "roles": [...]}.\n\nDocument:\n'
 )
+# Constrained decoding makes every reply valid JSON, and bounded lists keep it short. Without the bounds a
+# measured first version asked for "every" item: 43 of 48 replies ran into max_tokens and were cut off mid-list,
+# and a batch of 2 million documents would have paid for all of those tokens.
+SCHEMA = {
+    "type": "object",
+    "properties": {
+        key: {"type": "array", "items": {"type": "string", "maxLength": 60}, "maxItems": 5}
+        for key in ("deadlines", "amounts", "roles")
+    },
+    "required": ["deadlines", "amounts", "roles"],
+    "additionalProperties": False,
+}
 
 
 def make_docs(n: int, sentences: int, seed: int) -> list[str]:
@@ -44,7 +57,7 @@ async def run(docs: list[str], concurrency: int, model: str, max_tokens: int) ->
     key = os.environ.get("OPENAI_API_KEY") or os.environ.get("VLLM_API_KEY") or "not-set"
     client = AsyncOpenAI(base_url=base_url(), api_key=key, timeout=600.0, max_retries=0)
     gate = asyncio.Semaphore(concurrency)
-    totals = {"prompt": 0, "completion": 0, "ok": 0, "bad_json": 0, "failed": 0}
+    totals = {"prompt": 0, "completion": 0, "ok": 0, "bad_json": 0, "truncated": 0, "failed": 0}
 
     async def one(doc: str) -> None:
         async with gate:
@@ -54,6 +67,10 @@ async def run(docs: list[str], concurrency: int, model: str, max_tokens: int) ->
                     messages=[{"role": "user", "content": PROMPT + doc}],
                     temperature=0,
                     max_tokens=max_tokens,
+                    response_format={
+                        "type": "json_schema",
+                        "json_schema": {"name": "extraction", "schema": SCHEMA, "strict": True},
+                    },
                     extra_body={"chat_template_kwargs": {"enable_thinking": False}},
                 )
             except Exception as exc:  # noqa: BLE001 - report and continue; one failure must not stop a batch
@@ -64,6 +81,8 @@ async def run(docs: list[str], concurrency: int, model: str, max_tokens: int) ->
             totals["completion"] += r.usage.completion_tokens
             totals["ok"] += 1
             text = r.choices[0].message.content or ""
+            if r.choices[0].finish_reason == "length":
+                totals["truncated"] += 1  # cut off by max_tokens: the JSON is incomplete
             try:
                 json.loads(text[text.index("{") : text.rindex("}") + 1])
             except ValueError:
@@ -84,7 +103,7 @@ def main() -> int:
         "--sentences", type=int, default=60, help="sentences per document (about 1.3k tokens)"
     )
     ap.add_argument("--concurrency", type=int, default=8)
-    ap.add_argument("--max-tokens", type=int, default=200)
+    ap.add_argument("--max-tokens", type=int, default=300)
     ap.add_argument("--model", default=model_name())
     ap.add_argument("--seed", type=int, default=1)
     a = ap.parse_args()
@@ -94,7 +113,7 @@ def main() -> int:
     )
     sec = t["seconds"]
     print(
-        f"docs ok={t['ok']} failed={t['failed']} bad_json={t['bad_json']}  "
+        f"docs ok={t['ok']} failed={t['failed']} truncated={t['truncated']} bad_json={t['bad_json']}  "
         f"concurrency={a.concurrency}  wall={sec:.1f}s\n"
         f"input {t['prompt'] / sec:,.0f} tok/s  output {t['completion'] / sec:,.0f} tok/s  "
         f"{t['ok'] / sec:.2f} docs/s  ->  {3600 * t['ok'] / sec:,.0f} docs/hour on this GPU"

@@ -190,7 +190,7 @@ Use this as a review list. Items are facts or direct recommendations from the so
 - [ ] Set `--host` explicitly. The default is `None`, which binds all interfaces (RESEARCH 13.2).
 - [ ] Bind loopback or a private interface. In a container, listen on all interfaces of the container and publish the port on `127.0.0.1` only (`-p 127.0.0.1:8000:8000`).
 - [ ] Do not publish the port through a public proxy URL. Runpod proxy URLs are public and have no platform authentication (RESEARCH 7.5).
-- [ ] Set `--allowed-origins` explicitly. RESEARCH 13.2 reads the default as `[]` (cross-origin access off) from the CLI documentation, while RESEARCH 3.7 reads `["*"]` from the `v0.31.0` source. The two sources disagree and the question is not resolved here.
+- [ ] Set `--allowed-origins` explicitly. The default is `["*"]` (verified in the installed v0.31.0 source), so any web page in a browser can make cross-origin requests to a server it can reach, for example to the unauthenticated endpoints of an SSH-tunnelled port on a participant's laptop.
 - [ ] Add `--disable-fastapi-docs` to hide Swagger and ReDoc.
 - [ ] Do not set the toggles in the table below.
 
@@ -658,8 +658,6 @@ Honest list of what the workshop does not do, so nobody mistakes the pods for a 
 - No API key rotation script; one shared key per group, readable by participants.
 - No egress filtering on the pods.
 - The MCP demo implements the `2025-06-18` handshake, not the current revision (section 6.6).
-- The `--allowed-origins` default is read differently by RESEARCH 3.7 and 13.2 (section 3.1).
-- RESEARCH 7.4 and 7.11 still describe accounts and SSH host keys persisted on `/workspace`. The scripts do not do that, by design.
 
 ## 10. Where the facts live
 

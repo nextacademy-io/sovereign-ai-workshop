@@ -32,11 +32,11 @@ Your scenario (the trainer assigns one per group):
 1. **Requirements.** Write the workload and the SLO in the template's YAML. Estimate concurrency from the facts (concurrency is arrival rate times time in the system).
 2. **Capacity.** Use your measurements: how many requests per second does one GPU deliver at the SLO? How many GPUs, then? State the bottleneck you expect (compute, memory bandwidth, KV cache, queueing).
 3. **Model, precision, GPU, engine, context.** Justify each against the scenario, and say what you would measure to confirm it.
-4. **Architecture.** Gateway, authentication, replicas and routing, observability (which three dashboards panels would page you), scaling strategy, cold-start time (use what you measured: 1 to 3 minutes per server), failure behaviour.
+4. **Architecture.** Gateway, authentication, replicas and routing, observability (which three dashboards panels would page you), scaling strategy, cold-start time (use what you measured: about 40 seconds for a restart with warm caches, about 3 minutes for the first start on a new machine; `benchmark/results/reference/startup/`), failure behaviour.
 5. **Security and sovereignty.** Draw the data flows (prompts, responses, logs, embeddings, weights, telemetry) and mark where each goes. Name your boundary and one attack you defend against at the infrastructure layer and one at the application layer. If agents or RAG are part of the design, count their extra model calls.
 6. **Cost.** Estimate cost per useful workload (per ticket, per thousand documents, per developer per month) from GPU price and throughput. Say what "useful" means.
 7. **Answer the 15 questions** at the end of the template, one line each.
-8. **Prepare five minutes.** Another group will question your design.
+8. **Prepare five minutes**: about three to present and two for the questions another group will ask.
 
 ## Expected Result
 

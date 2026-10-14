@@ -1,0 +1,4 @@
+extends: baseline
+description: "Two-GPU pod only: a second copy of the baseline server for GPU 1 on port 8001 (tensor-parallel experiment, replica case)."
+port: 8001
+experiment: tensor-parallel

@@ -15,7 +15,7 @@ There is no universally fastest configuration; there is only one that fits a wor
 ## Starting Point
 
 - The baseline measurements of Task 03 are in your report (or in `benchmark/results/reference/` after `./scripts/reset.sh lab-04`).
-- Your group's server runs `baseline`. **You are the only group on your machine**, so you may restart the server, but tell your group first: a restart takes one to three minutes and the model is offline meanwhile. If a profile fails to start, the previous one is restored automatically.
+- Your group's server runs `baseline`. **You are the only group on your machine**, so you may restart the server, but tell your group first: a restart takes from about 40 seconds (`baseline`) to about two and a half minutes (the first `fp8` start: 143 s in the reference session), and the model is offline meanwhile. If a profile fails to start, the previous one is restored automatically.
 
 ## Instructions
 

@@ -41,7 +41,7 @@
       "request_rate": null
     }
   },
-  "derived_from": "configuration copied from baseline/single-stream/c001.json; this file was written by experiments/runner.py",
+  "derived_from": "configuration copied from baseline/single-stream/c001.json; this file was written by experiments/runner.py or run-session.sh",
   "kv_bytes_per_token": 147456,
   "available_kv_gib": 58.14,
   "predicted_tokens": 423363,

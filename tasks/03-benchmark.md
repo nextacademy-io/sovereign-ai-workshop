@@ -33,15 +33,15 @@ You have a working vLLM deployment. Before anyone optimizes it, you need a **bas
    It prints a table and writes JSON to `benchmark/results/mine/<time>-baseline/`. The harness uses fresh prompts on every run; do not pass `--seed`.
 4. **Record.** Everyone copies the table into the *Baseline* section of your report: TTFT p50 and p95, latency p50 and p95, output tokens per second per request, aggregate tokens per second, GPU utilization, VRAM.
 5. **Contention round.** Now two members run `./scripts/benchmark.sh --concurrency 8 --label contention` **at the same time**. Compare each with the concurrency-8 row of the first run. What did sharing the server do?
-6. **Answer the five questions** in your report: when does throughput stop scaling; when does latency deteriorate; what resource looks saturated; which configuration would you deploy; why.
+6. **Answer the four questions** in your report (they are under the table): when does throughput stop scaling; when does latency deteriorate; what resource looks saturated; which configuration would you deploy, and why.
 
 ## Expected Result
 
-- Aggregate tokens per second grows with concurrency, less than linearly, then flattens.
-- The speed one user sees (tokens per second per request) falls only slowly at first: eight requests together cost little more per token than one. This is why batching works.
-- Time to first token grows with concurrency because prompts are prefilled together and queue.
-- GPU utilization reads about 100 % at every level, including concurrency 1. It does not tell you how well the GPU is used; power draw and throughput do.
-- Your numbers will differ from `benchmark/results/reference/` by a few percent. The shape should be the same.
+- Aggregate tokens per second grows with concurrency, but every doubling adds less. In the reference run (`benchmark/results/reference/concurrency/`): about 84 at concurrency 1, 551 at 8, 900 at 16. Up to 16 it does not flatten on this GPU; the trainer's longer sweep (up to 64) shows the gain per doubling shrinking from ×1.9 to ×1.3.
+- The speed one user sees (tokens per second per request) falls only slowly at first: eight requests together cost little more per token than one (86 down to 79), then faster (69 at 16). This is why batching works.
+- Time to first token grows with concurrency because prompts are prefilled together and queue: p95 about 73 ms at 1, 416 ms at 8, 821 ms at 16.
+- GPU utilization reads about 100 % at every level, including concurrency 1. It does not tell you how well the GPU is used; power draw (about 360 W at 1, 425 W at 16) and throughput do.
+- Your numbers will differ from the reference by a few percent. The shape should be the same.
 
 ## Validation
 

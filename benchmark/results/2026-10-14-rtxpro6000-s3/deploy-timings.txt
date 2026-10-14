@@ -1,0 +1,37 @@
+# S3 dry run: step timings (seconds since the start of machine-setup)
+
+First deployment on a freshly created pod (create-pod at 15:04:22Z; sshd listening 19 s later; image already cached on the host):
+[  0s] Preconditions
+[  0s] System packages
+[  4s] Environment facts (PATH, vllm binary, CUDA runtime)
+[  7s] Install tools (wsctl, wsmon, ws-user, helpers)
+[  7s] SSH daemon configuration
+[  7s] Shared API key and group access
+[  8s] Participant accounts (restored from the registry if this container already had them)
+[  8s] Models (workshop): seed from the download cache, fetch what is missing, save back
+[ 50s] Monitoring (Prometheus, Grafana, GPU exporter)
+[ 67s] Start the shared vLLM server (profile: baseline) and the embedding server
+[319s] Saving the models to the download cache in the background (log: /var/log/workshop/persist.log)
+[319s] Done
+[alpha] anna -> <pod>
+[alpha] ben -> <pod>
+  50 passed, 0 warnings, 0 failed
+real 329.13
+
+Second deployment on the populated pod (idempotent rerun):
+[  0s] Preconditions
+[  0s] System packages
+[  0s] Environment facts (PATH, vllm binary, CUDA runtime)
+[  1s] Install tools (wsctl, wsmon, ws-user, helpers)
+[  1s] SSH daemon configuration
+[  1s] Shared API key and group access
+[  1s] Participant accounts (restored from the registry if this container already had them)
+[  1s] Models (workshop): seed from the download cache, fetch what is missing, save back
+[  2s] Monitoring (Prometheus, Grafana, GPU exporter)
+[  2s] Start the shared vLLM server (profile: baseline) and the embedding server
+[ 83s] Saving the models to the download cache in the background (log: /var/log/workshop/persist.log)
+[ 83s] Done
+[alpha] anna -> 81.27.69.178:31917
+[alpha] ben -> 81.27.69.178:31917
+  50 passed, 0 warnings, 0 failed
+real 96.34

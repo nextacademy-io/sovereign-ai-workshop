@@ -54,6 +54,7 @@ const layer = useLayer()
 .body {
   display: flex;
   flex-direction: column;
+  margin-top: 14px;
 }
 .artifact {
   display: flex;

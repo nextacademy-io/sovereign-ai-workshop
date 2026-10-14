@@ -1,0 +1,37 @@
+NOTE: this restarts the main server for everyone on this pod.
+stopping main server (pid 46479)...
+starting main server: profile 'oom-demo' on 127.0.0.1:8000
+waiting for the server to become ready..............
+starting main server: profile 'baseline' on 127.0.0.1:8000
+waiting for the server to become ready...................
+{"profile": "baseline", "startup_seconds": 39.3, "model_memory_gib": 15.27, "model_load_seconds": 3.541802, "weights_seconds": 1.75, "kv_cache_memory_gib": 58.64, "graph_capture_seconds": 6.0, "graph_capture_gib": 0.21, "engine_init_seconds": 14.27, "kv_cache_tokens": 426992, "kv_cache_max_model_len": 32768, "kv_cache_max_concurrency": 13.03, "timeline_seconds": {"engine_core_started": 9.0, "weights_loaded": 14.0, "kv_cache_sized": 21.0, "engine_ready": 29.0}, "memory_accounting_gib": {"device_total": 94.97, "device_free_at_start": 86.58, "gpu_memory_utilization": 0.8, "budget": 75.98, "weights_and_non_torch": 16.14, "peak_activation": 1.2, "cuda_graphs": 0.21}}
+ready in 39 s. vLLM 0.31.0, profile 'baseline'.
+
+--- the server exited during startup; last log lines:
+    return cls(
+           ^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/async_llm.py", line 180, in __init__
+    self.engine_core = EngineCoreClient.make_async_mp_client(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/tracing/otel.py", line 175, in sync_wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core_client.py", line 167, in make_async_mp_client
+    return AsyncMPClient(
+           ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/tracing/otel.py", line 175, in sync_wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core_client.py", line 1100, in __init__
+    super().__init__(
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core_client.py", line 674, in __init__
+    with launch_core_engines(
+  File "/usr/lib/python3.12/contextlib.py", line 144, in __exit__
+    next(self.gen)
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/utils.py", line 1268, in launch_core_engines
+    wait_for_engine_startup(
+  File "/usr/local/lib/python3.12/dist-packages/vllm/v1/engine/utils.py", line 1348, in wait_for_engine_startup
+    raise RuntimeError(
+RuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}
+wsctl: startup failed (full log: /var/log/workshop/vllm-main.log)
+wsctl: rolling back to the previous profile 'baseline'

@@ -120,7 +120,10 @@ def main() -> int:
     )
     ap.add_argument("--overhead-gib", type=float, default=DEFAULT_OVERHEAD_GIB)
     ap.add_argument(
-        "--gpu-gib", type=float, default=96.0, help="GPU memory (96 for the workshop GPU)"
+        "--gpu-gib",
+        type=float,
+        default=94.97,
+        help="usable GPU memory in GiB (94.97 is what vLLM reports on the workshop GPU, a '96 GB' card)",
     )
     ap.add_argument("--utilization", type=float, default=0.80, help="vLLM --gpu-memory-utilization")
     a = ap.parse_args()

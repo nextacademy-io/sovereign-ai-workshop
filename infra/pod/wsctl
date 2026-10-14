@@ -110,10 +110,11 @@ start_role() { # role profile [--set k=v ...]
   local log
   log=$(logfile "$role")
   [[ -f $log ]] && mv "$log" "$LOGS/vllm-$role-$(date -u +%Y%m%dT%H%M%SZ).log"
-  # Keep the ten most recent archived logs per role.
+  # Keep the forty most recent archived logs per role: an experiment session restarts the server many times and
+  # the logs are evidence.
   # `|| true`: with no archived logs yet, ls fails and pipefail would abort the whole start.
   # shellcheck disable=SC2012
-  { ls -1t "$LOGS"/vllm-"$role"-2*.log 2>/dev/null | tail -n +11 | xargs -r rm -f; } || true
+  { ls -1t "$LOGS"/vllm-"$role"-2*.log 2>/dev/null | tail -n +41 | xargs -r rm -f; } || true
 
   local started
   started=$(date +%s.%N)
@@ -139,7 +140,11 @@ start_role() { # role profile [--set k=v ...]
   for ((i = 0; i < READY_TIMEOUT; i += 2)); do
     if ! kill -0 "$pid" 2>/dev/null; then
       echo
-      echo "--- the server exited during startup; last log lines:" >&2
+      # The root cause is usually NOT in the last lines (those are the traceback of the engine's shutdown), so
+      # print the lines that name it first.
+      echo "--- the server exited during startup. What vLLM says went wrong:" >&2
+      { grep -E "ValueError|Error:|ERROR " "$log" | grep -vE "^\s+File |Traceback" | cut -c1-600 | awk '!seen[$0]++' | head -5; } >&2 || true
+      echo "--- last log lines:" >&2
       tail -n 25 "$log" >&2
       rm -f "$(pidfile "$role")"
       echo "wsctl: startup failed (full log: $log)" >&2

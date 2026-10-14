@@ -1,0 +1,125 @@
+{
+  "configuration": {
+    "hardware": {
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "gpu_count": 1,
+      "vram_gb": 95.6,
+      "driver_version": "595.91.07",
+      "cpu_count": 256,
+      "os": "Linux 6.8.0-138-generic"
+    },
+    "model": "Qwen/Qwen3-8B",
+    "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "engine": "vllm",
+    "engine_version": "0.31.0",
+    "vllm_version": "0.31.0",
+    "cuda_version": "13.0",
+    "cuda_details": {
+      "runtime": "13.0",
+      "driver_max": "13.2"
+    },
+    "server_args": "--host 127.0.0.1 --port 8000 --dtype bfloat16 --max-model-len 32768 --gpu-memory-utilization 0.8 --generation-config vllm --enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3 --enable-mfu-metrics --structured-outputs-config '{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}' --model Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --served-model-name Qwen/Qwen3-8B",
+    "server_profile": "baseline",
+    "date": "2026-10-14T15:18:01+00:00",
+    "note": null,
+    "workload": {
+      "name": "custom",
+      "description": "",
+      "input_tokens": 1000,
+      "output_tokens": 350,
+      "shared_prefix_tokens": 0,
+      "style": "chat",
+      "prompt_mode": "auto",
+      "prompts_file": "/var/lib/workshop/results/s2d/demos/copy-prompts.jsonl",
+      "seed": 1745280519
+    },
+    "harness_version": "0.1.0",
+    "endpoint_type": "completions",
+    "load": {
+      "mode": "closed",
+      "concurrency": 1,
+      "request_rate": null
+    }
+  },
+  "derived_from": "configuration copied from demos/spec-baseline-c001/c001.json; this file was written by experiments/runner.py or run-session.sh",
+  "prefix-cache": {
+    "ok": true,
+    "details": {
+      "baseline": {
+        "vllm:prefix_cache_queries_total": 233200.0,
+        "vllm:prefix_cache_hits_total": 208016.0,
+        "vllm:prompt_tokens_total": 233200.0,
+        "vllm:prompt_tokens_cached_total": 208016.0
+      },
+      "no-prefix-cache": {
+        "vllm:prefix_cache_queries_total": 0.0,
+        "vllm:prefix_cache_hits_total": 0.0,
+        "vllm:prompt_tokens_total": 233200.0,
+        "vllm:prompt_tokens_cached_total": 0.0
+      }
+    },
+    "seconds": 392
+  },
+  "quantization": {
+    "ok": true,
+    "details": {
+      "comparisons": {
+        "fp8": {
+          "items": 240,
+          "reference": {
+            "label": "baseline",
+            "accuracy": 0.7958333333333333,
+            "ci95": [
+              0.7403636423953006,
+              0.8419816178064039
+            ]
+          },
+          "other": {
+            "label": "fp8",
+            "accuracy": 0.7708333333333334,
+            "ci95": [
+              0.7136398864226179,
+              0.8194930982690836
+            ]
+          },
+          "accuracy_difference_points": -2.5,
+          "reference_right_other_wrong": 12,
+          "other_right_reference_wrong": 6,
+          "greedy_completions_identical": 0.03125,
+          "mean_matching_prefix_fraction": 0.43325483158225814
+        },
+        "kv-fp8": {
+          "items": 240,
+          "reference": {
+            "label": "baseline",
+            "accuracy": 0.7958333333333333,
+            "ci95": [
+              0.7403636423953006,
+              0.8419816178064039
+            ]
+          },
+          "other": {
+            "label": "kv-fp8",
+            "accuracy": 0.7875,
+            "ci95": [
+              0.7314251575172396,
+              0.8345160108477973
+            ]
+          },
+          "accuracy_difference_points": -0.8333333333333334,
+          "reference_right_other_wrong": 5,
+          "other_right_reference_wrong": 3,
+          "greedy_completions_identical": 0.28125,
+          "mean_matching_prefix_fraction": 0.5192621338995841
+        }
+      },
+      "failed": []
+    },
+    "seconds": 745
+  },
+  "demos": {
+    "ok": true,
+    "details": {},
+    "seconds": 1212
+  }
+}

@@ -156,6 +156,11 @@ def render(
     merged = apply_overrides(load_profile(name, directory), sets or [])
     validate(merged, name)
     config = {k: v for k, v in merged.items() if k not in META_KEYS}
+    # vLLM's --config loader silently drops `some-flag: false` (measured with `enable-prefix-caching: false`:
+    # prefix caching stayed on and no error was shown). The explicit negative flag works: `no-some-flag: true`.
+    for key in [k for k, v in config.items() if v is False]:
+        del config[key]
+        config[f"no-{key}"] = True
     if container:
         # Inside a container "127.0.0.1" is unreachable from outside the container's network
         # namespace, so the server must listen on all of ITS interfaces. The security boundary

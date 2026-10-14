@@ -163,11 +163,13 @@ def compare(reference: dict, other: dict) -> dict:
     }
 
 
-def _chat(base: str, key: str, model: str, prompt: str, max_tokens: int) -> str:
+def _chat(
+    base: str, key: str, model: str, prompt: str, max_tokens: int, system: bool = True
+) -> str:
     body = {
         "model": model,
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]
-        if max_tokens <= 16
+        if system
         else [{"role": "user", "content": prompt}],
         "temperature": 0,
         "max_tokens": max_tokens,
@@ -185,8 +187,20 @@ def _chat(base: str, key: str, model: str, prompt: str, max_tokens: int) -> str:
 def run(label: str, n: int, base: str, key: str, model: str, workers: int = 8) -> dict:
     items = make_items(n)
     with ThreadPoolExecutor(workers) as pool:
-        replies = list(pool.map(lambda it: _chat(base, key, model, it["prompt"], 16), items))
-        open_replies = list(pool.map(lambda p: _chat(base, key, model, p, 96), OPEN_PROMPTS * 4))
+        # Room for a short line of working on the arithmetic items: with 16 tokens the model's habit of writing
+        # the equation first ("548 - 105 + 131 = 5...") was cut off mid-number and scored as wrong, which pushed
+        # that category to the floor where it could not show any difference between deployments.
+        replies = list(
+            pool.map(
+                lambda it: _chat(
+                    base, key, model, it["prompt"], 48 if it["kind"] == "arith" else 16
+                ),
+                items,
+            )
+        )
+        open_replies = list(
+            pool.map(lambda p: _chat(base, key, model, p, 96, system=False), OPEN_PROMPTS * 4)
+        )
     correct = [is_correct(it, r) for it, r in zip(items, replies, strict=True)]
     by_kind = {
         k: [c for it, c in zip(items, correct, strict=True) if it["kind"] == k]

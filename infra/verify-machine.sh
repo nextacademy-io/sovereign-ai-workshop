@@ -210,6 +210,14 @@ check "Prometheus is ready" curl -fsS --max-time 5 http://127.0.0.1:9090/-/ready
 check "Prometheus scrapes vLLM (target up)" bash -c "curl -fsS --max-time 5 'http://127.0.0.1:9090/api/v1/query?query=up%7Bjob%3D%22vllm%22%7D' | grep -q '\"1\"\]'"
 check "Grafana is healthy" curl -fsS --max-time 5 http://127.0.0.1:3000/api/health
 check "Grafana dashboard provisioned" bash -c "curl -fsS --max-time 5 'http://127.0.0.1:3000/api/search?query=KI' | grep -qi 'dashboard'"
+# admin:admin is Grafana's factory login. The pod is shared with the participants, so it must not work. Anonymous
+# viewing is on purpose, and a failed login falls back to it, so ask an ADMIN-ONLY endpoint (a viewer gets 403).
+# One attempt counts toward Grafana's brute-force lockout, which clears after a few minutes.
+code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -u admin:admin http://127.0.0.1:3000/api/admin/settings 2>/dev/null || true)
+if [[ $code == 401 || $code == 403 ]]; then pass "Grafana rejects the factory admin:admin login"; else fail "Grafana answered HTTP $code to admin:admin (the admin password was not replaced)"; fi
+for port in 8001 9090 3000 9400; do
+  if ss -ltn 2>/dev/null | grep -qE "(0\\.0\\.0\\.0|\\*|\\[::\\]):${port}\\b"; then fail "port $port is bound to ALL interfaces (must be 127.0.0.1)"; elif ss -ltn 2>/dev/null | grep -qE ":${port}\\b"; then pass "port $port is bound to loopback only"; fi
+done
 
 section "Result"
 printf '  %d passed, %d warnings, %d failed\n' "$PASS" "$WARN" "$FAIL"

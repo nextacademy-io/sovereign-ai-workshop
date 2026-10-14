@@ -13,6 +13,7 @@ fails fast instead of silently fetching something else.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -28,6 +29,10 @@ DEFAULT_PATTERNS = [
     "*.tiktoken",
     "LICENSE*",
 ]
+
+
+# Set before huggingface_hub is imported: no usage telemetry from the pods.
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
 
 def select(models: dict, which: str) -> dict:

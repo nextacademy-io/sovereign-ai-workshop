@@ -14,3 +14,9 @@ regexes = [
   '''wk-change-me''',
   '''ssh-ed25519 AAAA[A-Za-z0-9+/]*EXAMPLE''',
 ]
+
+[[allowlists]]
+description = "Grafana's well-known factory login, shown on purpose where we check that it does NOT work"
+regexes = [
+  '''^admin:admin$''',
+]

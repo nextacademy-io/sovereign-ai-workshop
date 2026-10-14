@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "configuration": {
+    "hardware": {
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "gpu_count": 1,
+      "vram_gb": 95.6,
+      "driver_version": "595.91.07",
+      "cpu_count": 256,
+      "os": "Linux 6.8.0-138-generic"
+    },
+    "model": "Qwen/Qwen3-8B",
+    "model_revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "engine": "vllm",
+    "engine_version": "0.31.0",
+    "vllm_version": "0.31.0",
+    "cuda_version": "13.0",
+    "cuda_details": {
+      "runtime": "13.0",
+      "driver_max": "13.2"
+    },
+    "server_args": "--host 127.0.0.1 --port 8000 --dtype bfloat16 --max-model-len 32768 --gpu-memory-utilization 0.8 --generation-config vllm --enable-auto-tool-choice --tool-call-parser hermes --reasoning-parser qwen3 --enable-mfu-metrics --structured-outputs-config '{\"backend\":\"xgrammar\",\"disable_any_whitespace\":true}' --model Qwen/Qwen3-8B --revision b968826d9c46dd6066d109eabc6255188de91218 --served-model-name Qwen/Qwen3-8B",
+    "server_profile": "baseline",
+    "date": "2026-10-14T14:55:09+00:00",
+    "note": null,
+    "workload": {
+      "name": "custom",
+      "description": "",
+      "input_tokens": 8192,
+      "output_tokens": 128,
+      "shared_prefix_tokens": 0,
+      "style": "chat",
+      "prompt_mode": "auto",
+      "prompts_file": null,
+      "seed": 46892004
+    },
+    "harness_version": "0.1.0",
+    "endpoint_type": "completions",
+    "load": {
+      "mode": "closed",
+      "concurrency": 8,
+      "request_rate": null
+    }
+  },
+  "requests": 24,
+  "requests_failed": 0,
+  "concurrency": 8,
+  "request_rate_target": null,
+  "load_mode": "closed",
+  "duration_s": 16.262,
+  "ttft_ms": {
+    "count": 24,
+    "mean": 1597.816,
+    "min": 462.706,
+    "p50": 1601.426,
+    "p90": 2728.068,
+    "p95": 3190.826,
+    "p99": 3269.262,
+    "max": 3274.588
+  },
+  "itl_ms": {
+    "count": 3048,
+    "mean": 29.952,
+    "min": 10.635,
+    "p50": 17.639,
+    "p90": 18.044,
+    "p95": 22.361,
+    "p99": 401.667,
+    "max": 408.288
+  },
+  "tpot_ms": {
+    "count": 24,
+    "mean": 29.964,
+    "min": 17.419,
+    "p50": 29.796,
+    "p90": 36.928,
+    "p95": 38.649,
+    "p99": 38.722,
+    "max": 38.744
+  },
+  "latency_ms": {
+    "count": 24,
+    "mean": 5403.207,
+    "min": 3442.12,
+    "p50": 5385.643,
+    "p90": 6505.963,
+    "p95": 6967.949,
+    "p99": 7335.712,
+    "max": 7427.668
+  },
+  "output_tps": 34.85,
+  "output_tps_per_request": {
+    "count": 24,
+    "mean": 34.85,
+    "min": 25.81,
+    "p1": 25.82,
+    "p5": 25.87,
+    "p50": 33.56,
+    "p90": 46.67,
+    "p95": 55.8,
+    "p99": 57.33,
+    "max": 57.41
+  },
+  "aggregate_tps": 188.91,
+  "input_tps": 12089.96,
+  "total_tps": 12278.87,
+  "request_throughput_rps": 1.4758,
+  "tokens": {
+    "prompt_total": 196608,
+    "completion_total": 3072,
+    "prompt_mean": 8192.0,
+    "completion_mean": 128.0
+  },
+  "gpu": {
+    "note": "utilization.gpu = share of time any kernel was running, not efficiency",
+    "interval_s": 1.0,
+    "samples": 17,
+    "gpus": 1,
+    "utilization_pct": {
+      "count": 17,
+      "mean": 100.0,
+      "min": 100.0,
+      "p50": 100.0,
+      "p90": 100.0,
+      "p95": 100.0,
+      "p99": 100.0,
+      "max": 100.0
+    },
+    "memory_used_mib": {
+      "count": 17,
+      "mean": 86838.0,
+      "min": 86838.0,
+      "p50": 86838.0,
+      "p90": 86838.0,
+      "p95": 86838.0,
+      "p99": 86838.0,
+      "max": 86838.0
+    },
+    "power_w": {
+      "count": 17,
+      "mean": 501.9,
+      "min": 369.2,
+      "p50": 527.6,
+      "p90": 601.2,
+      "p95": 602.1,
+      "p99": 604.1,
+      "max": 604.6
+    },
+    "temperature_c": {
+      "count": 17,
+      "mean": 63.0,
+      "min": 55.0,
+      "p50": 66.0,
+      "p90": 68.0,
+      "p95": 68.0,
+      "p99": 69.0,
+      "max": 69.0
+    },
+    "sm_clock_mhz": {
+      "count": 17,
+      "mean": 2334.0,
+      "min": 2250.0,
+      "p50": 2295.0,
+      "p90": 2422.0,
+      "p95": 2422.0,
+      "p99": 2422.0,
+      "max": 2422.0
+    }
+  },
+  "server": {
+    "interval_s": 1.0,
+    "samples": 17,
+    "gauges": {
+      "num_requests_running": {
+        "mean": 6.471,
+        "max": 8.0
+      },
+      "num_requests_waiting": {
+        "mean": 0.471,
+        "max": 5.0
+      },
+      "kv_cache_usage_perc": {
+        "mean": 0.125,
+        "max": 0.15584950910589823
+      }
+    },
+    "counters_delta": {
+      "prompt_tokens": 196608.0,
+      "generation_tokens": 3072.0,
+      "prefix_cache_queries": 196608.0,
+      "prefix_cache_hits": 0.0,
+      "preemptions": 0.0,
+      "requests_success": 24.0
+    },
+    "prefix_cache_hit_rate": 0.0
+  }
+}

@@ -217,6 +217,16 @@ if (workshop?.days && existsSync(abs("docs/CURRICULUM.md"))) {
   }
 }
 
+// README.md and FACILITATOR.md carry agenda tables generated from workshop.yaml (scripts/gen-agenda.mjs).
+if (workshop?.days) {
+  const { applyRegions } = await import("./agenda-tables.mjs");
+  for (const file of ["README.md", "FACILITATOR.md"]) {
+    if (!existsSync(abs(file))) continue;
+    const { changed } = applyRegions(read(abs(file)), workshop);
+    if (changed) guard(file, "agenda tables differ from config/workshop.yaml: run `node scripts/gen-agenda.mjs`");
+  }
+}
+
 // ---------------------------------------------------------------- 3. tasks
 const taskFiles = walk(abs("tasks"), (p) => /\/\d\d-[a-z0-9-]+\.md$/.test(p.split("\\").join("/")));
 const taskIds = new Map(); // id -> timebox minutes read from the task file
