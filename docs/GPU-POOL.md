@@ -51,14 +51,14 @@ Measured on live pods. Source files: `benchmark/results/reference/startup/*.json
 
 ## 4. What the validation cost
 
-Prices at $2.49 per GPU-hour, per-second billing. The provider's billing read lags by up to an hour; the figures below are the runtime of each pod times the price, cross-checked against `list-billing` for the hours that were final when read.
+Prices at $2.49 per GPU-hour, per-second billing. The total is what `list-billing` reported for the day after both pods were deleted; the split between the pods is the runtime of each times the price.
 
 | Pod | Created | Deleted | Used for | Cost |
 | --- | --- | --- | --- | --- |
-| First pod, one GPU | first session | after the last experiment | infrastructure validation, all experiments (including four reruns that fixed profile and harness defects) | about $8.7, of which about $1.9 was an idle tail |
-| Second pod, one GPU, a different host | during the experiments | after the dry run | build from scratch, tasks 02 to 04 and the Day 3 demos as a participant, resets, revocation, cleanup | about $4.1 |
+| First pod, one GPU | first session | after the last experiment | infrastructure validation, all experiments (including four reruns that fixed profile and harness defects) | about $8.4, of which about $1.9 was an idle tail |
+| Second pod, one GPU, a different host | during the experiments | after the dry run | build from scratch, tasks 02 to 04 and the Day 3 demos as a participant, resets, revocation, cleanup | about $3.9 |
 | Two-GPU pod | never created (no stock) | | | $0 |
-| Total | | | | about $12.8 of the $20 budget (the account already showed $0.06 before the work) |
+| Total | | | | $12.43 for the day as read from `list-billing` ($12.29 GPU time, $0.14 disk), of the $20 budget; $0.06 of it was on the account before the work |
 
 Lessons about spending, learnt the expensive way:
 
