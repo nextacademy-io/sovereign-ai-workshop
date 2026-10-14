@@ -1,0 +1,16 @@
+title = "ki-ohne-cloud gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Placeholders in documentation and example files"
+paths = [
+  '''\.env\.example$''',
+  '''participants\.example\.yaml$''',
+]
+regexes = [
+  '''hf_x{10,}''',
+  '''wk-change-me''',
+  '''ssh-ed25519 AAAA[A-Za-z0-9+/]*EXAMPLE''',
+]

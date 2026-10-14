@@ -1,0 +1,32 @@
+{
+  "name": "ki-ohne-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KI ohne Cloud — Running and Operating Open Models on Your Own Infrastructure. A three-day hands-on inference engineering workshop.",
+  "author": "Paweł Sawicki",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter slides dev",
+    "build": "pnpm --filter slides build",
+    "slides": "pnpm --filter slides dev",
+    "export": "pnpm --filter slides export",
+    "lint": "pnpm lint:md && pnpm lint:sh && pnpm lint:py",
+    "lint:md": "markdownlint-cli2",
+    "lint:sh": "bash scripts/lint-shell.sh",
+    "lint:py": "uv run --extra dev ruff check . && uv run --extra dev ruff format --check .",
+    "check": "node scripts/check-repo.mjs",
+    "check:release": "node scripts/check-repo.mjs --release",
+    "test": "uv run --extra dev pytest",
+    "ci": "pnpm check && pnpm lint && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@slidev/parser": "53.0.0",
+    "markdownlint-cli2": "0.23.3",
+    "yaml": "2.8.1"
+  }
+}

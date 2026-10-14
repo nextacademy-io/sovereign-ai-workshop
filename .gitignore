@@ -1,0 +1,37 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_*
+!id_*.pub.example
+participants.yaml
+infra/.state/
+infra/keys/
+
+# Node / Slidev
+node_modules/
+slides/dist/
+slides/.slidev/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Benchmark scratch (curated results under benchmark/results/ ARE committed)
+benchmark/results/_scratch/
+benchmark/.cache/
+
+# Participant work
+workshop-artifacts/local/
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp

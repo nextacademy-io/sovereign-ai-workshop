@@ -1,0 +1,15 @@
+# Link checking. CI runs this offline on pull requests (fast, no flakiness) and
+# against the network on a weekly schedule.
+max_concurrency = 8
+max_retries = 2
+timeout = 20
+accept = ["200..=299", "403", "429"]
+exclude_path = ["node_modules", "slides/dist", "LICENSE"]
+exclude = [
+  '^http://localhost',
+  '^http://127\.0\.0\.1',
+  '^http://0\.0\.0\.0',
+  '^https://\{podId\}',
+  '^https://example\.',
+  '^https://.*\.proxy\.runpod\.net',
+]

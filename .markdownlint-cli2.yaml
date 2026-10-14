@@ -1,0 +1,21 @@
+config:
+  default: true
+  MD013: false # line length: prose and tables are not hard-wrapped
+  MD024:
+    siblings_only: true # repeated headings are fine in different sections
+  MD033: false # inline HTML is used in Slidev slides and READMEs
+  MD036: false # bold-as-heading is used for speaker-note labels
+  MD041: false # Slidev slides do not start with an H1
+  MD046: false # fenced and indented code mixing is not an issue here
+  MD060: false # table column style
+
+globs:
+  - "**/*.md"
+
+ignores:
+  - "node_modules/**"
+  - "**/node_modules/**"
+  - "slides/dist/**"
+  - "slides/sections/**" # Slidev sources contain frontmatter separators, validated by the build
+  - "slides/slides.md"
+  - "LICENSE"
