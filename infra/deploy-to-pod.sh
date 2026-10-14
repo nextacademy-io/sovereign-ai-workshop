@@ -4,7 +4,8 @@
 #   infra/deploy-to-pod.sh --host 203.0.113.10 --port 40022 --group alpha
 #   infra/deploy-to-pod.sh --host H --port P --group alpha --models workshop --no-participants
 #
-# 1. copies this repository to /workspace/repo on the pod (without slides, .git or secrets)
+# 1. copies this repository to /opt/workshop/repo on the pod: what git tracks plus untracked files that
+#    .gitignore does not exclude (so nothing ignored, such as .env or input/, leaves your laptop)
 # 2. runs infra/machine-setup.sh there: tools, SSH policy, models, monitoring, vLLM servers
 # 3. creates the participant accounts of this group from infra/participants.yaml
 # 4. runs infra/verify-machine.sh
@@ -33,11 +34,11 @@ info "checking SSH access to $POD_HOST:$POD_PORT"
 # shellcheck disable=SC2016  # the command substitutions must run on the pod
 ssh_pod 'echo connected as $(whoami) on $(hostname)' || die "cannot log in as root; is your key registered with Runpod and the pod's sshd running?"
 
-info "copying the repository to /workspace/repo"
-push_dir "$REPO_DIR" /workspace/repo .git node_modules ./slides .venv ./infra/.state ./infra/participants.yaml .env .pytest_cache .ruff_cache __pycache__ ./benchmark/results/_scratch
+info "copying the repository to /opt/workshop/repo"
+push_repo /opt/workshop/repo
 
 info "running machine-setup.sh (this downloads models and starts vLLM; the first run takes several minutes)"
-ssh_pod "bash /workspace/repo/infra/machine-setup.sh --group '$group' --models '$models' ${setup_args[*]+${setup_args[*]}}"
+ssh_pod "bash /opt/workshop/repo/infra/machine-setup.sh --group '$group' --models '$models' ${setup_args[*]+${setup_args[*]}}"
 
 if [ "$sync" -eq 1 ] && [ -f "$INFRA_DIR/participants.yaml" ]; then
   info "creating participant accounts for group $group"

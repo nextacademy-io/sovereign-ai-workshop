@@ -45,12 +45,18 @@ ssh_pod() {
   ssh "${opts[@]}" "$POD_USER@$POD_HOST" "$@"
 }
 
-# Stream a local directory to the pod without rsync on the laptop side being required to match.
-push_dir() { # local_dir remote_dir [exclude...]
-  local src=$1 dst=$2
-  shift 2
-  local excludes=()
-  local e
-  for e in "$@"; do excludes+=(--exclude="$e"); done
-  tar -C "$src" -cf - "${excludes[@]}" . | ssh_pod "mkdir -p '$dst' && tar -C '$dst' -xf -"
+# Copy the repository to the pod. What leaves this laptop is decided by git: tracked files plus
+# untracked files that .gitignore does not exclude. Anything ignored (.env, participants.yaml, input/,
+# node_modules, results scratch) therefore never reaches a rented machine. The slides are not needed there.
+push_repo() { # remote_dir
+  local dst=$1
+  local tarflags=()
+  # macOS bsdtar would add AppleDouble (._*) files and extended attributes that GNU tar cannot digest.
+  if tar --version 2>/dev/null | grep -qi bsdtar; then tarflags=(--no-xattrs --no-mac-metadata); fi
+  [ -d "$REPO_DIR/.git" ] || die "$REPO_DIR is not a git checkout; push_repo relies on git to decide what may be copied"
+  (
+    cd "$REPO_DIR" || exit 1
+    git ls-files -z --cached --others --exclude-standard | grep -zv -e '^slides/' -e '^\.github/' |
+      COPYFILE_DISABLE=1 tar "${tarflags[@]+"${tarflags[@]}"}" --null -T - -cf -
+  ) | ssh_pod "mkdir -p '$dst' && tar --no-same-owner --warning=no-unknown-keyword -C '$dst' -xf -"
 }

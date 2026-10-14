@@ -19,7 +19,7 @@ import httpx
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SERVER_INFO = Path("/workspace/state/server.json")
+DEFAULT_SERVER_INFO = Path("/var/lib/workshop/server.json")
 
 
 def utc_now() -> str:

@@ -8,14 +8,16 @@
 #   wsmon stop        stop all three
 #   wsmon status      show what runs and whether it answers
 #
-# Config comes from /workspace/repo/monitoring; versions and checksums from infra/versions.env.
+# Config comes from the repository copy (monitoring/); versions and checksums from infra/versions.env.
+# Binaries and data live on the container disk: the shared volume does not enforce permissions.
 set -euo pipefail
 
-WS=/workspace
-MON=$WS/monitoring
-STATE=$WS/state
-LOGS=$WS/logs
-REPO=$WS/repo
+# shellcheck source=paths.sh
+source "${WS_PATHS:-/usr/local/lib/workshop/paths.sh}"
+MON=$WS_MON
+STATE=$WS_STATE
+LOGS=$WS_LOGS
+REPO=$WS_REPO
 [[ -f /etc/workshop-path ]] && PATH=$(</etc/workshop-path) && export PATH
 
 die() { echo "wsmon: $*" >&2; exit 1; }

@@ -5,7 +5,8 @@
 # infra/machine-setup.sh, so that a rebuilt pod and a restarted pod take the same path.
 #
 #   1. install sshd (the image has none) and a few tools
-#   2. keep the SSH host keys on the persistent volume, so a restart does not change the host key
+#   2. generate fresh SSH host keys. They are deliberately NOT kept on /workspace: that volume does not
+#      enforce permissions, so any participant could read a private key stored there
 #   3. install the registered public key(s) for root (from the PUBLIC_KEY variable Runpod injects)
 #   4. record the container's environment (PATH to vllm and python, CUDA variables) for SSH sessions,
 #      which do not inherit it; secrets are excluded
@@ -13,20 +14,14 @@
 set -eu
 export DEBIAN_FRONTEND=noninteractive
 
-WS=${WORKSPACE_DIR:-/workspace}
-mkdir -p /run/sshd "$WS/state/ssh-host-keys" /root/.ssh
+mkdir -p /run/sshd /root/.ssh
 
 if ! command -v sshd >/dev/null 2>&1; then
   apt-get update -qq
   apt-get install -y -qq openssh-server rsync tmux htop jq less sudo curl >/dev/null
 fi
 
-if ls "$WS"/state/ssh-host-keys/ssh_host_* >/dev/null 2>&1; then
-  cp -p "$WS"/state/ssh-host-keys/ssh_host_* /etc/ssh/
-else
-  ssh-keygen -A
-  cp -p /etc/ssh/ssh_host_* "$WS/state/ssh-host-keys/"
-fi
+ssh-keygen -A
 
 printf '%s\n' "${PUBLIC_KEY:-}" >/root/.ssh/authorized_keys
 chmod 700 /root/.ssh

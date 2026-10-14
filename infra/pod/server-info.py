@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the server provenance file (/workspace/state/server.json) from a vLLM startup log.
+"""Write the server provenance file (/var/lib/workshop/server.json) from a vLLM startup log.
 
 The benchmark harness reads this file to attach engine version, CUDA version, server
 arguments and KV-cache capacity to every result. Log formats are those of vLLM v0.31.0

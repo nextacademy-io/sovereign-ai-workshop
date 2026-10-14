@@ -16,11 +16,12 @@
 # `--set` allowlist are validated by render-profile.py; participants cannot pass arbitrary flags.
 set -euo pipefail
 
-WS=/workspace
-STATE=$WS/state
-LOGS=$WS/logs
-PROFILES=$WS/repo/config/vllm-profiles
-LIB=/usr/local/lib/workshop
+# shellcheck source=paths.sh
+source "${WS_PATHS:-/usr/local/lib/workshop/paths.sh}"
+STATE=$WS_STATE
+LOGS=$WS_LOGS
+PROFILES=$WS_REPO/config/vllm-profiles
+LIB=$WS_LIB
 READY_TIMEOUT=${WSCTL_READY_TIMEOUT:-900}
 ACTOR=${SUDO_USER:-root}
 
@@ -28,7 +29,7 @@ die() { echo "wsctl: $*" >&2; exit 1; }
 log() { mkdir -p "$LOGS"; printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ACTOR" "$*" >>"$LOGS/wsctl.log"; }
 
 [[ $EUID -eq 0 ]] || die "run with sudo: sudo wsctl $*"
-mkdir -p "$STATE" "$LOGS"
+mkdir -p "$STATE" "$LOGS" "$WS_CACHE/vllm"
 # sudo resets PATH; machine-setup.sh records the PATH that finds vllm and python3.
 if [[ -f /etc/workshop-path ]]; then PATH=$(</etc/workshop-path); export PATH; fi
 
@@ -121,12 +122,12 @@ start_role() { # role profile [--set k=v ...]
   # shellcheck disable=SC2016  # the script is single-quoted on purpose; $1/$2 are its own arguments
   setsid bash -c '
     echo $$ > "$1"
-    export HOME=/root HF_HOME=/workspace/hf-cache HF_HUB_OFFLINE=1 VLLM_CACHE_ROOT=/workspace/vllm-cache
+    export HOME=/root HF_HOME="$3" HF_HUB_OFFLINE=1 VLLM_CACHE_ROOT="$4"
     export VLLM_NO_USAGE_STATS=1 DO_NOT_TRACK=1 PYTHONUNBUFFERED=1
-    VLLM_API_KEY=$(cat /workspace/state/api-key)
+    VLLM_API_KEY=$(cat "$5")
     export VLLM_API_KEY
     exec vllm serve --config "$2"
-  ' _ "$(pidfile "$role")" "$cfg" >"$log" 2>&1 </dev/null &
+  ' _ "$(pidfile "$role")" "$cfg" "$WS_HF" "$WS_CACHE/vllm" "$STATE/api-key" >"$log" 2>&1 </dev/null &
   sleep 1
 
   local pid i
@@ -149,7 +150,7 @@ start_role() { # role profile [--set k=v ...]
   local ready version cuda gpu
   ready=$(date +%s.%N)
   version=$(curl -fsS "http://127.0.0.1:$port/version" | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])' 2>/dev/null || true)
-  cuda=$(python3 -c 'import json; print(json.load(open("/workspace/state/env.json")).get("torch_cuda",""))' 2>/dev/null || true)
+  cuda=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("torch_cuda",""))' "$STATE/env.json" 2>/dev/null || true)
   gpu=$(nvidia-smi --query-gpu=name --format=csv,noheader | sort -u | paste -sd+ - || true)
   python3 "$LIB/server-info.py" --log "$log" --summary "$summary" --out "$STATE/server-$role.json" \
     --started-epoch "$started" --ready-epoch "$ready" --engine-version "$version" \
@@ -243,7 +244,7 @@ main() {
       local profile
       profile=$(<"$STATE/active-profile")
       local sets=() o
-      while read -r o; do [[ -n $o ]] && sets+=(--set "$o"); done < <(python3 -c 'import json; [print(o) for o in json.load(open("/workspace/state/server-main.json"))["overrides"]]')
+      while read -r o; do [[ -n $o ]] && sets+=(--set "$o"); done < <(python3 -c 'import json,sys; [print(o) for o in json.load(open(sys.argv[1]))["overrides"]]' "$STATE/server-main.json")
       start_role main "$profile" "${sets[@]}"
       ;;
     stop) acquire_lock && stop_role main ;;

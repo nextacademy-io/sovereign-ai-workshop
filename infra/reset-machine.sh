@@ -7,7 +7,7 @@
 #   infra/reset-machine.sh --host H --port P participants     fresh copies for everyone
 #   infra/reset-machine.sh --host H --port P all
 #
-# Replaced directories are archived under /workspace/backups on the pod, never deleted.
+# Replaced directories are archived under /var/backups/workshop on the pod, never deleted.
 set -euo pipefail
 # shellcheck source=lib/common.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"

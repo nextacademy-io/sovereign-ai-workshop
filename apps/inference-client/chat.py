@@ -59,7 +59,11 @@ def main() -> int:
         if not event.choices:
             continue
         delta = event.choices[0].delta
-        text = (delta.content or "") + (getattr(delta, "reasoning_content", None) or "")
+        # vLLM 0.31 streams thinking as `reasoning`; older versions used `reasoning_content`.
+        reasoning = (
+            getattr(delta, "reasoning", None) or getattr(delta, "reasoning_content", None) or ""
+        )
+        text = (delta.content or "") + reasoning
         if text:
             now = time.perf_counter()
             first = first or now

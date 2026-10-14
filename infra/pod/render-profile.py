@@ -9,7 +9,7 @@ Profiles live in config/vllm-profiles/*.yaml and may `extends:` one another. Thi
 
 Runs on the pod with the Python from the vLLM image (PyYAML is a vLLM dependency).
 
-    render-profile.py baseline --dir /workspace/repo/config/vllm-profiles --out /tmp/active.yaml
+    render-profile.py baseline --dir /opt/workshop/repo/config/vllm-profiles --out /tmp/active.yaml
     render-profile.py baseline --dir ... --set max-num-seqs=8 --set enable-prefix-caching=false
 """
 

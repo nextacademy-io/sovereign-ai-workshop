@@ -8,15 +8,17 @@
 #   ws-reset participants       fresh repository copy for everyone
 #   ws-reset all                servers, then participants
 #
-# Nothing here deletes data: replaced directories are archived under /workspace/backups first.
+# Nothing here deletes data: replaced directories are archived under /var/backups/workshop first.
 set -euo pipefail
 
+# shellcheck source=paths.sh
+source "${WS_PATHS:-/usr/local/lib/workshop/paths.sh}"
 DEFAULT_PROFILE=${WS_DEFAULT_PROFILE:-baseline}
 die() { echo "ws-reset: $*" >&2; exit 1; }
 [[ $EUID -eq 0 ]] || die "run as root"
 
 reset_servers() {
-  if [[ -f /workspace/state/active-profile ]]; then
+  if [[ -f $WS_STATE/active-profile ]]; then
     wsctl restart
   else
     wsctl start "$DEFAULT_PROFILE"
@@ -32,7 +34,7 @@ reset_participants() {
   while IFS=$'\t' read -r user _; do
     [[ -n $user ]] || continue
     if id "$user" >/dev/null 2>&1; then ws-user reset-home "$user"; fi
-  done </workspace/state/users.tsv
+  done <"$WS_STATE/users.tsv"
 }
 
 case "${1:-}" in

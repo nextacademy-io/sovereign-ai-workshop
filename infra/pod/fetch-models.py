@@ -52,7 +52,7 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument("--models", default="workshop")
-    ap.add_argument("--config", type=Path, default=Path("/workspace/repo/config/models.yaml"))
+    ap.add_argument("--config", type=Path, default=Path("/opt/workshop/repo/config/models.yaml"))
     a = ap.parse_args()
 
     models = yaml.safe_load(a.config.read_text())["models"]

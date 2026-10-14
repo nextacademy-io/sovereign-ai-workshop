@@ -123,7 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument(
         "--server-info",
         type=Path,
-        help="JSON written by the supervisor (default /workspace/state/server.json)",
+        help="JSON written by the supervisor (default /var/lib/workshop/server.json)",
     )
     g.add_argument("--model-revision")
     g.add_argument(

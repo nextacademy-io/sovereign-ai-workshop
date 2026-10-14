@@ -6,24 +6,28 @@
 #                                    remove every key, end the user's sessions; optionally lock
 #                                    the account or delete it (the home directory is archived)
 #   ws-user revoke-all [--delete]    revoke every participant account
-#   ws-user restore                  recreate accounts after a pod restart (the container disk
-#                                    is wiped on restart, /workspace is not)
+#   ws-user restore                  recreate accounts from the registry (same UIDs) after
+#                                    machine-setup was re-run in the same container
 #   ws-user reset-home <user> [--hard]
 #                                    give the user a fresh copy of the repository. The old one is
 #                                    archived first; workshop-artifacts/ is carried over unless --hard
 #   ws-user list                     users, UIDs and key fingerprints
 #
-# Why a registry? A pod's container disk (including /etc/passwd) is lost on restart, while
-# /workspace persists. Fixed UIDs plus stored keys let `restore` rebuild identical accounts, so
-# file ownership under /workspace stays correct and participants keep working with the same key.
+# Why a registry? `restore` recreates accounts with the same UIDs after machine-setup is re-run on the
+# same container. After a pod RESTART the container disk (accounts, registry, homes) is gone; the trainer
+# rebuilds with infra/deploy-to-pod.sh and the accounts come back from infra/participants.yaml on the
+# trainer's laptop, which is the source of truth. Nothing identity-related is kept on the shared volume,
+# because that volume does not enforce permissions.
 set -euo pipefail
 
-STATE=/workspace/state
+# shellcheck source=paths.sh
+source "${WS_PATHS:-/usr/local/lib/workshop/paths.sh}"
+STATE=$WS_STATE
 KEYS="$STATE/keys"
 REGISTRY="$STATE/users.tsv"
-AUDIT=/workspace/logs/access.log
-HOME_BASE=/workspace/home
-ARCHIVE=/workspace/backups/removed-users
+AUDIT=$WS_LOGS/access.log
+HOME_BASE=$WS_HOMES
+ARCHIVE=$WS_BACKUPS/removed-users
 GROUP=workshop
 GID=2000
 FIRST_UID=2001
@@ -44,8 +48,8 @@ audit() { # action user detail
 }
 
 ensure_dirs() {
-  mkdir -p "$KEYS" "$HOME_BASE" "$ARCHIVE" "$(dirname "$AUDIT")"
-  chmod 700 "$KEYS"
+  mkdir -p "$KEYS" "$ARCHIVE" "$(dirname "$AUDIT")"
+  chmod 700 "$STATE" "$KEYS"
   touch "$REGISTRY"
   getent group "$GROUP" >/dev/null || groupadd -g "$GID" "$GROUP"
 }
@@ -90,9 +94,9 @@ create_account() { # user uid
 # Each participant works in their own copy of the repository (never overwritten once it exists).
 init_home() { # user
   local user=$1 dest="$HOME_BASE/$1/ki-ohne-cloud"
-  [[ -d /workspace/repo && ! -d $dest ]] || return 0
+  [[ -d $WS_REPO && ! -d $dest ]] || return 0
   mkdir -p "$dest"
-  tar -C /workspace/repo --exclude=.git --exclude=node_modules --exclude=./slides --exclude=.venv \
+  tar -C "$WS_REPO" --exclude=.git --exclude=node_modules --exclude=./slides --exclude=.venv \
     --exclude=./infra --exclude=participants.yaml --exclude=.env -cf - . | tar -C "$dest" -xf -
   chown -R "$user:$GROUP" "$dest"
 }
@@ -173,7 +177,6 @@ cmd_restore() {
     init_home "$user"
     echo "restored $user (uid $uid)"
   done <"$REGISTRY"
-  chown root:"$GROUP" "$HOME_BASE" && chmod 755 "$HOME_BASE"
 }
 
 cmd_reset_home() {
@@ -184,7 +187,7 @@ cmd_reset_home() {
   [[ -z "$mode" || "$mode" == --hard ]] || die "unknown option '$mode'"
   local dest="$HOME_BASE/$user/ki-ohne-cloud" stamp backup
   stamp=$(date -u +%Y%m%dT%H%M%SZ)
-  backup="/workspace/backups/home-$user-$stamp-$$"
+  backup="$WS_BACKUPS/home-$user-$stamp-$$"
   mkdir -p "$backup"
   if [[ -d $dest ]]; then
     end_sessions_quiet "$user"

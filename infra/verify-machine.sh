@@ -58,17 +58,20 @@ check() { # description command...
   if "$@" >/dev/null 2>&1; then pass "$desc"; else fail "$desc"; fi
 }
 
-WS=/workspace
-STATE=$WS/state
+# shellcheck source=/dev/null
+[[ -f /etc/workshop-container-env ]] && . /etc/workshop-container-env
 [[ -f /etc/workshop-path ]] && PATH=$(</etc/workshop-path) && export PATH
+# shellcheck source=/dev/null
+. /usr/local/lib/workshop/paths.sh 2>/dev/null || { echo "paths.sh missing: run infra/machine-setup.sh first" >&2; exit 2; }
+STATE=$WS_STATE
 KEY=""
 [[ -r $STATE/api-key ]] && KEY=$(<"$STATE/api-key")
 api() { curl -fsS --max-time 20 -H "Authorization: Bearer $KEY" "$@"; }
 
 section "Host"
 check "running as root" test "$EUID" -eq 0
-free_gb=$(df -BG --output=avail "$WS" 2>/dev/null | tail -1 | tr -dc '0-9')
-if [[ ${free_gb:-0} -ge 40 ]]; then pass "$WS has ${free_gb} GB free"; else fail "$WS has only ${free_gb:-?} GB free (need 40+)"; fi
+free_gb=$(df -BG --output=avail "$WS_OPT" 2>/dev/null | tail -1 | tr -dc '0-9')
+if [[ ${free_gb:-0} -ge 5 ]]; then pass "container disk has ${free_gb} GB free"; else fail "container disk has only ${free_gb:-?} GB free"; fi
 
 if [[ $NO_GPU -eq 0 ]]; then
   section "GPU"
@@ -96,11 +99,11 @@ if [[ -r $STATE/users.tsv && -s $STATE/users.tsv ]]; then
     [[ -n $user ]] || continue
     n=$((n + 1))
     if ! id "$user" >/dev/null 2>&1; then fail "account $user is missing (run: ws-user restore)"; continue; fi
-    ak=$WS/home/$user/.ssh/authorized_keys
+    ak=$WS_HOMES/$user/.ssh/authorized_keys
     if [[ -s $ak ]]; then pass "$user: account (uid $uid) and key present"; else warn "$user: account exists but has no key (revoked?)"; fi
-    mode=$(stat -c %a "$WS/home/$user" 2>/dev/null)
+    mode=$(stat -c %a "$WS_HOMES/$user" 2>/dev/null)
     if [[ $mode == 700 ]]; then pass "$user: home is private (700)"; else fail "$user: home mode is $mode, expected 700"; fi
-    if [[ ! -d $WS/home/$user/ki-ohne-cloud ]]; then warn "$user: no repository copy (ws-user reset-home $user)"; fi
+    if [[ ! -d $WS_HOMES/$user/ki-ohne-cloud ]]; then warn "$user: no repository copy (ws-user reset-home $user)"; fi
   done <"$STATE/users.tsv"
   [[ $n -gt 0 ]] && pass "$n participant account(s) registered"
 else
@@ -108,9 +111,21 @@ else
 fi
 mapfile -t first_two < <(cut -f1 "$STATE/users.tsv" 2>/dev/null | head -2)
 if [[ ${#first_two[@]} -eq 2 ]] && id "${first_two[0]}" >/dev/null 2>&1 && id "${first_two[1]}" >/dev/null 2>&1; then
-  if runuser -u "${first_two[0]}" -- ls "$WS/home/${first_two[1]}" >/dev/null 2>&1; then fail "isolation: ${first_two[0]} can read ${first_two[1]}'s home"; else pass "isolation: participants cannot read each other's home"; fi
+  if runuser -u "${first_two[0]}" -- ls "$WS_HOMES/${first_two[1]}" >/dev/null 2>&1; then fail "isolation: ${first_two[0]} can read ${first_two[1]}'s home"; else pass "isolation: participants cannot read each other's home"; fi
   if runuser -u "${first_two[0]}" -- sudo -n /usr/local/bin/wsctl profiles >/dev/null 2>&1; then pass "participants may run sudo wsctl"; else fail "participant cannot run 'sudo wsctl'"; fi
   if runuser -u "${first_two[0]}" -- sudo -n cat /etc/shadow >/dev/null 2>&1; then fail "participant has unrestricted sudo"; else pass "participant sudo is limited to wsctl"; fi
+fi
+if [[ ${#first_two[@]} -ge 1 ]] && id "${first_two[0]}" >/dev/null 2>&1; then
+  # Participants must not be able to change anything root runs or loads.
+  for target in "$WS_REPO/config/vllm-profiles" "$WS_HF" "$WS_LIB" /usr/local/bin/wsctl "$WS_STATE"; do
+    if runuser -u "${first_two[0]}" -- test -w "$target"; then fail "integrity: ${first_two[0]} can write to $target"; else pass "integrity: $target is not writable by participants"; fi
+  done
+  if runuser -u "${first_two[0]}" -- test -r "$STATE/keys"; then fail "participants can list $STATE/keys"; else pass "account registry and public keys are not readable by participants"; fi
+fi
+if [[ -d $WS_PERSIST ]] && grep -rIl --max-count=1 -e "$KEY" "$WS_PERSIST" >/dev/null 2>&1 && [[ -n $KEY ]]; then
+  fail "the API key was found under $WS_PERSIST, which does not enforce permissions"
+else
+  pass "no secrets under $WS_PERSIST (the volume does not enforce permissions)"
 fi
 if [[ -r $STATE/api-key ]]; then
   mode=$(stat -c '%a %U:%G' "$STATE/api-key")
@@ -127,12 +142,12 @@ if [[ $NO_GPU -eq 1 ]]; then
 fi
 
 section "Models"
-HUB=$WS/hf-cache/hub
-if [[ -f $WS/repo/config/models.yaml ]]; then
+HUB=$WS_HF/hub
+if [[ -f $WS_REPO/config/models.yaml ]]; then
   while IFS=' ' read -r role repo rev; do
     dir="$HUB/models--${repo//\//--}/snapshots/$rev"
     if [[ -d $dir ]]; then pass "$role: $repo cached at pinned revision ${rev:0:12}"; else fail "$role: $repo @ ${rev:0:12} is not in the cache"; fi
-  done < <(python3 - "$WS/repo/config/models.yaml" <<'PY'
+  done < <(python3 - "$WS_REPO/config/models.yaml" <<'PY'
 import sys, yaml
 for role, m in yaml.safe_load(open(sys.argv[1]))["models"].items():
     if m.get("workshop") is True:
@@ -140,7 +155,7 @@ for role, m in yaml.safe_load(open(sys.argv[1]))["models"].items():
 PY
 )
 else
-  fail "$WS/repo/config/models.yaml missing"
+  fail "$WS_REPO/config/models.yaml missing"
 fi
 
 section "Inference servers"
@@ -170,7 +185,7 @@ else
   warn "embedding server (port 8001) is not running; the RAG demo needs it (sudo wsctl embed start)"
 fi
 if [[ -f $STATE/server.json ]]; then
-  pass "provenance file: $(python3 -c 'import json; d=json.load(open("/workspace/state/server.json")); print("vLLM", d["engine_version"], "profile", d["profile"], "started in", d["startup_seconds"], "s")' 2>/dev/null)"
+  pass "provenance file: $(python3 -c 'import json; d=json.load(open("/var/lib/workshop/server.json")); print("vLLM", d["engine_version"], "profile", d["profile"], "started in", d["startup_seconds"], "s")' 2>/dev/null)"
 else
   warn "no $STATE/server.json (benchmark results will lack server provenance)"
 fi
