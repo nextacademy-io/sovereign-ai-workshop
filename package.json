@@ -21,8 +21,9 @@
     "lint:py": "uv run --extra dev ruff check . && uv run --extra dev ruff format --check .",
     "check": "node scripts/check-repo.mjs",
     "check:release": "node scripts/check-repo.mjs --release",
+    "check:states": "uv run --extra dev python scripts/build_workshop_states.py --check",
     "test": "uv run --extra dev pytest",
-    "ci": "pnpm check && pnpm lint && pnpm test && pnpm build"
+    "ci": "pnpm check:release && pnpm check:states && pnpm lint && pnpm test && pnpm build"
   },
   "devDependencies": {
     "@slidev/parser": "53.0.0",

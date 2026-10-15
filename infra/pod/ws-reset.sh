@@ -25,7 +25,7 @@ reset_servers() {
   fi
   wsctl embed status >/dev/null 2>&1 || true
   if ! wsctl status | grep -q '^embed .*running'; then wsctl embed start; fi
-  wsmon status | grep -q stopped && wsmon start || true
+  if wsmon status | grep -q stopped; then wsmon start || true; fi
   wsctl status
 }
 

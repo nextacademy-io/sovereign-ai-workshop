@@ -18,6 +18,8 @@ apt-get update -qq >/dev/null 2>&1
 apt-get install -y -qq openssh-server python3 python3-yaml procps curl sudo git openssh-client >/dev/null 2>&1
 ssh-keygen -A >/dev/null
 mkdir -p /opt/workshop/repo
+# the repository is mounted read-only and owned by the host user (a CI runner uid): git refuses it without this
+git config --global --add safe.directory /src
 cd /src && git ls-files -z --cached --others --exclude-standard | grep -zv "^slides/" | tar --null -T - -cf - | tar -C /opt/workshop/repo -xf -
 cp /src/infra/tests/fake_vllm.py /usr/local/bin/vllm && chmod +x /usr/local/bin/vllm
 sed -i "1s|.*|#!/usr/bin/env python3|" /usr/local/bin/vllm

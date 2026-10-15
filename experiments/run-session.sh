@@ -61,4 +61,4 @@ ssh_pod "cp /var/lib/workshop/server.json /tmp/s.json 2>/dev/null; cat /var/lib/
 # from the same session, so every JSON under benchmark/results/ is attributable (pnpm check enforces it).
 python3 "$REPO_DIR/benchmark/scripts/promote_reference.py" --normalize "$local_out" || echo "warning: could not add provenance to auxiliary files" >&2
 info "done: $(find "$local_out" -name '*.json' | wc -l | tr -d ' ') JSON files in $local_out"
-[ -f "$local_out/session-summary.json" ] && cat "$local_out/session-summary.json" | head -30
+if [ -f "$local_out/session-summary.json" ]; then head -30 "$local_out/session-summary.json"; fi

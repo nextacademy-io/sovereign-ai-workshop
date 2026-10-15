@@ -62,7 +62,7 @@ jobs:
       - run: pnpm build
       - name: Render every slide in a browser and fail on content outside the slide area
         run: |
-          pnpm --filter slides exec playwright-chromium install --with-deps chromium
+          pnpm --filter slides exec playwright install --with-deps chromium
           node scripts/check-slides-layout.mjs
       - name: PDF export (the handout and the offline fallback)
         run: pnpm export

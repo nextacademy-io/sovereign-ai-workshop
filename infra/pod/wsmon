@@ -100,7 +100,7 @@ cmd_stop() {
   for name in grafana prometheus gpu-exporter; do
     if [[ -f $STATE/mon-$name.pid ]]; then
       pid=$(<"$STATE/mon-$name.pid")
-      kill -TERM "$pid" 2>/dev/null && echo "stopped $name" || true
+      if kill -TERM "$pid" 2>/dev/null; then echo "stopped $name"; fi
       rm -f "$STATE/mon-$name.pid"
     fi
   done

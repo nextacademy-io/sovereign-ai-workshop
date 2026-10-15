@@ -152,7 +152,7 @@ cmd_revoke() {
       if [[ -d "$HOME_BASE/$user" ]]; then
         mv "$HOME_BASE/$user" "$ARCHIVE/$user-$(date -u +%Y%m%dT%H%M%SZ)"
       fi
-      id "$user" >/dev/null 2>&1 && userdel "$user" 2>/dev/null || true
+      if id "$user" >/dev/null 2>&1; then userdel "$user" 2>/dev/null || true; fi
       sed -i "/^$user\t/d" "$REGISTRY"
       ;;
     --lock | "") ;;

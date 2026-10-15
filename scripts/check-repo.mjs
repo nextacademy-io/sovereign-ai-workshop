@@ -13,8 +13,9 @@
 //   4. benchmark/results/**/*.json carry full provenance (hardware, model revision, versions, config, date)
 //   5. slides: speaker notes, dividers match the module path, lab slides name their task, every metric component declares its source
 //   6. teaching content contains no calendar dates, no day numbers and no clock times (content must stay reusable)
-//   7. repo paths mentioned in inline code or links exist
+//   7. repo paths mentioned in inline code or links exist (or are gitignored runtime paths such as infra/participants.yaml)
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -352,6 +353,21 @@ for (const f of contentFiles) {
 const TOP = "(?:scripts|infra|benchmark|experiments|apps|monitoring|config|docs|tasks|workshop-states|workshop-artifacts|deploy|slides)";
 const pathRe = new RegExp(`^(?:\\./)?${TOP}/[A-Za-z0-9_./-]+$`);
 const placeholderRe = /(NN|YYYY|<|>|\*|\{|\}|\$|\.\.\.)/;
+// Docs may name files that only exist on a machine that ran the workshop (the participant list, build output):
+// a path that .gitignore covers counts as present, so a clean checkout gives the same result as this laptop.
+// A directory pattern such as "infra/.state/" only matches with a trailing slash when the directory is missing.
+const isGitIgnored = (p) => {
+  if (!existsSync(abs(".git"))) return false;
+  const bare = p.replace(/\/+$/, "");
+  return [bare, `${bare}/`].some((candidate) => {
+    try {
+      execFileSync("git", ["check-ignore", "-q", "--", candidate], { cwd: ROOT, stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+};
 const mdFiles = walk(ROOT, (p) => p.endsWith(".md") && !p.endsWith("/LICENSE"));
 for (const f of mdFiles) {
   const text = read(f).replace(/```[\s\S]*?```/g, ""); // fenced code shows commands, not links
@@ -363,7 +379,8 @@ for (const f of mdFiles) {
   for (const c of candidates) {
     if (typeof c === "string") {
       if (!pathRe.test(c) || placeholderRe.test(c)) continue;
-      if (!existsSync(abs(c.replace(/^\.\//, "")))) guard(rel(f), `references '${c}' which does not exist`);
+      const target = c.replace(/^\.\//, "");
+      if (!existsSync(abs(target)) && !isGitIgnored(target)) guard(rel(f), `references '${c}' which does not exist`);
     } else if (!existsSync(resolve(dirname(f), c.link))) {
       guard(rel(f), `links to '${c.link}' which does not exist`);
     }

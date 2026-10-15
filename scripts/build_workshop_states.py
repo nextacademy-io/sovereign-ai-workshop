@@ -65,13 +65,13 @@ def hit_rate(result: dict) -> str:
 
 # ------------------------------------------------------------------------------------------ section bodies
 def section_selected_model() -> str:
-    return """_Lab 1. Model, precision, why this one, which alternatives you rejected and why. Licence and commercial implications._
+    return """_Lab 1. Model, precision, why this one, which alternatives you rejected and why. License and commercial implications._
 
 | | |
 | --- | --- |
 | Model and revision | `Qwen/Qwen3-8B` at `b968826d9c46dd6066d109eabc6255188de91218` (the workshop's primary model; replace with your own choice for your scenario) |
 | Precision | BF16 (FP8 is the quantization experiment) |
-| Licence (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the licence and attribution notices |
+| License (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the license and attribution notices |
 | Why it is the smallest model that does the task | Reference answer for the workshop workload only: a dense 8B model with tool calling and structured output that fits one GPU with room for a large KV cache. For your scenario, argue it from your own eval. |
 | Rejected alternatives | `Qwen/Qwen3-1.7B` (smaller, would need an eval on your items); `Qwen/Qwen3-30B-A3B-FP8` (mixture of experts: all 30.5 B weights must be resident) |
 """

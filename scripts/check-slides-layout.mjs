@@ -8,7 +8,7 @@
 //   node scripts/check-slides-layout.mjs --entry preview-<name>.md --dist dist-<name> --range 1-30 --shots /tmp/shots
 //
 // Browser: set CHROME_PATH to a Chrome/Chromium binary, or install Playwright's with
-//   pnpm --filter slides exec playwright-chromium install chromium
+//   pnpm --filter slides exec playwright install chromium
 // Exit code 1 when any slide overflows. --shots writes one PNG per slide (final click state).
 import { createRequire } from "node:module";
 import http from "node:http";

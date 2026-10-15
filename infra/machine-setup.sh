@@ -251,5 +251,5 @@ fi
 
 step "Done"
 echo "Time to ready: $(($(date +%s) - T0)) s"
-[[ $SKIP_SERVERS -eq 0 ]] && wsctl status || true
+if [[ $SKIP_SERVERS -eq 0 ]]; then wsctl status || true; fi
 echo "Next: infra/sync-participants.sh --group $GROUP_NAME, then infra/verify-machine.sh"
