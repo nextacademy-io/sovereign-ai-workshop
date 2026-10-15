@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "slidev --open",
     "build": "slidev build",
-    "export": "slidev export --per-slide --output dist/ki-ohne-cloud.pdf"
+    "export": "slidev export --output dist/ki-ohne-cloud.pdf"
   },
   "dependencies": {
     "@fontsource/inter": "5.3.0",
