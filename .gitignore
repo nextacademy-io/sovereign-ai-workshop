@@ -40,3 +40,5 @@ workshop-artifacts/local/
 .idea/
 *.swp
 input
+# Vercel project link
+.vercel

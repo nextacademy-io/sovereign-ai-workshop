@@ -1,0 +1,12 @@
+# Guard for `vercel deploy` from a laptop: never upload these. (Git-based deploys clone the repository and ignore this file.)
+# The deck build needs benchmark/results and config, so those are NOT listed here.
+input
+.venv
+node_modules
+infra/.state
+infra/keys
+.env
+.env.*
+**/__pycache__
+.pytest_cache
+.ruff_cache
