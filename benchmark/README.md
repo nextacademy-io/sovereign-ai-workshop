@@ -52,7 +52,7 @@ rejected by `pnpm check` in this repository: a number without its provenance is 
 
 - **Prefix caching flatters repeated runs.** vLLM caches the KV of prompts it has seen. Sending the same prompts
   twice makes the second run's time to first token look several times better (measured on the workshop GPU: p50
-  391 ms, then 51 ms). Each run therefore uses a fresh random seed (stored in the result), and the harness warns if
+  359 ms, then 50 ms). Each run therefore uses a fresh random seed (stored in the result), and the harness warns if
   the server's cache hit rate during a run shows that earlier prompts were reused. Use `--seed` only on purpose.
 - **GPU utilization is not efficiency.** The `gpu` block reports `nvidia-smi` utilization, memory and power. The
   utilization figure is the share of time any kernel ran; read power draw and the server's own numbers next to it.

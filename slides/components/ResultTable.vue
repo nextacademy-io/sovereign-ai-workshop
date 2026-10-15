@@ -26,13 +26,13 @@ const table = computed(() => {
     return { illustrative: true, headers: props.headers ?? [], rows: (props.rows ?? []).map((r) => r.map(String)), text: '' }
   const cols = props.columns ?? []
   const docs = measuredDocs(src.path, props.match)
-  const labelled = !!(props.labelBy || props.labels)
+  const labeled = !!(props.labelBy || props.labels)
   const head = props.headers ?? cols.map((c) => LABELS[c] ?? c)
   return {
     illustrative: false,
-    headers: labelled ? [props.labelHeader ?? '', ...head] : head,
+    headers: labeled ? [props.labelHeader ?? '', ...head] : head,
     rows: docs.map(({ doc }, i) => [
-      ...(labelled ? [props.labels?.[i] ?? String(pick(doc, props.labelBy ?? '') ?? '')] : []),
+      ...(labeled ? [props.labels?.[i] ?? String(pick(doc, props.labelBy ?? '') ?? '')] : []),
       ...cols.map((c) => fmt(pick(doc, c), props.digits?.[c] ?? (c.includes('tps') || c.includes('rps') ? 1 : 0))),
     ]),
     text: docs.length ? provenance(docs[0].doc) : '',

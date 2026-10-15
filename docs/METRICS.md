@@ -1,27 +1,28 @@
 # Metrics
 
-What to measure when you run a language model yourself, and how to read what you measured. The definitions here are the ones the benchmark harness (`benchmark/infbench/`) and the Grafana dashboard (`monitoring/grafana/`) use. External facts (other tools, vLLM internals, GPU specifications) are sourced in [RESEARCH.md](RESEARCH.md), sections 6, 9 and 10. The block that teaches this material is `d2-02-measuring`; the labs that use it are Lab 3 and Lab 4 (see [CURRICULUM.md](CURRICULUM.md)).
+What to measure when you run a language model yourself, and how to read what you measured. The definitions here are the ones the benchmark harness (`benchmark/infbench/`) and the Grafana dashboard (`monitoring/grafana/`) use. External facts (other tools, vLLM internals, GPU specifications) are sourced in [RESEARCH.md](RESEARCH.md), sections 6, 9 and 10. The modules that teach this material are `11-measuring` and `21-observability`; the labs that use it are Lab 3 and Lab 4 (see [CURRICULUM.md](CURRICULUM.md)).
 
 ## 1. How to read the numbers in this document
 
-- **Indicative smoke run.** A number taken from the first runs on one pod, made to check that the harness and the pod work. It is not an experiment result. The setup is in the table below.
+- **Reference run.** A result committed under `benchmark/results/reference/` with its provenance: hardware, model revision, engine version, server arguments, date. Use these to check your own numbers.
+- **Smoke run.** A number taken from the first runs on one pod, made to check that the harness and the pod work. It is indicative only: it is not committed as a result file and it is not an experiment result. The few that remain are marked.
 - **Derived.** Arithmetic from stated inputs. The arithmetic is shown, so you can redo it.
 - **ILLUSTRATIVE EXAMPLE.** A constructed case that shows how a formula works. It is not a measurement.
 - **Dense.** Every TFLOPS figure is a dense BF16 rate, never a sparse one (RESEARCH 6.1).
 - **Final numbers** live in `benchmark/results/` and in each experiment's `RESULTS.md`. If a number here disagrees with a result file, the result file wins.
 
-Measurements used in this document (RTX PRO 6000 Blackwell Server Edition, 96 GB; vLLM 0.31.0; Qwen3-8B; workload of 1,200 input and 180 output tokens unless the row says otherwise). Rows marked *reference* are in `benchmark/results/reference/`; rows marked *smoke run* come from the first sessions on a pod and are not committed as result files:
+Measurements used in this document (RTX PRO 6000 Blackwell Server Edition, 96 GB; vLLM 0.31.0; Qwen3-8B; workload of 1,200 input and 180 output tokens unless the row says otherwise). Rows marked *reference run* are in `benchmark/results/reference/`; rows marked *smoke run* come from the first sessions on a pod and are not committed as result files:
 
 | Item | Measurement |
 | --- | --- |
-| BF16, concurrency 1 (reference) | TTFT p50 69 ms; ITL p50 11.6 ms (86.2 tokens/s per request); aggregate 83.9 tokens/s |
-| BF16, concurrency 8 (reference) | TTFT p50 356 ms; ITL p50 12.3 ms; aggregate 551 tokens/s (6.6 × concurrency 1); GPU-Util 100 % |
-| FP8 weights, concurrency 1 (reference) | ITL p50 7.3 ms (138.2 tokens/s per request, 1.6 × BF16) |
-| FP8 weights, concurrency 16 (reference) | aggregate 1,323 tokens/s (BF16: 897) |
+| BF16, concurrency 1 (reference run) | TTFT p50 69 ms; ITL p50 11.6 ms (86.2 tokens/s per request); aggregate 83.9 tokens/s |
+| BF16, concurrency 8 (reference run) | TTFT p50 356 ms; ITL p50 12.3 ms; aggregate 551 tokens/s (6.6 × concurrency 1); GPU-Util 100 % |
+| FP8 weights, concurrency 1 (reference run) | ITL p50 7.3 ms (138.2 tokens/s per request, 1.6 × BF16) |
+| FP8 weights, concurrency 16 (reference run) | aggregate 1,323 tokens/s (BF16 in the same session: 897) |
 | 12 concurrent requests, BF16 (smoke run) | KV cache 3.9 % used; estimated MFU 6.6 %; estimated MBU about 28 % to 60 % depending on the averaging window; 358 W; GPU-Util 100 % |
 | Harness against `vllm bench serve` (smoke run; concurrency 8, 64 requests, fresh seeds) | throughput within 0.4 %; TTFT within 3 to 4 %; mean ITL and TPOT within 0.2 %; end-to-end latency within 0.4 %; ITL p99 differed by 29 % |
-| Same prompts sent twice (reference) | TTFT p50 359 ms, then 50 ms; aggregate 550, then 639 tokens/s; with a new seed TTFT p50 back to 360 ms |
-| vLLM start-up (reference and dry run) | first start in a fresh container 176 to 198 s (three measurements); start with warm caches 55 to 67 s; restart 29 to 41 s; the first start of the FP8 checkpoint about 143 s; rebuild of the whole pod after a restart 5 min 41 s |
+| Same prompts sent twice (reference run) | TTFT p50 359 ms, then 50 ms; aggregate 550, then 639 tokens/s; with a new seed TTFT p50 back to 360 ms |
+| vLLM start-up (reference runs; 198 s and 138 s are from the dry run on a second pod) | cold start (first start in a fresh container): 176 s to ready in the engine log, about 198 s as `wsctl start` measures wall time (188 to 198 s were seen); warm start (compile and kernel caches exist): 55 s in the log, 67.4 s by `wsctl`; restart of the same profile: 29 s in the log, 39.3 s by `wsctl`; first start of the FP8 checkpoint: 138 to 143 s (143 s in the reference session, 138 s on the dry-run machine); rebuild of the whole pod after a restart: 5 min 41 s |
 | Pod price | $2.49 per hour |
 
 ## 2. The user's view and the operator's view
@@ -45,10 +46,11 @@ Most mistakes in benchmarking come from answering one side's question with the o
 | Are we paying for an idle or inefficient GPU? | operator | estimated MFU and MBU, power, VRAM | server estimates, GPU exporter |
 | What does a token cost? | operator | price per hour ÷ tokens per hour | derived from aggregate TPS |
 
-Cost per million output tokens at one load is `price per hour ÷ (aggregate TPS × 3,600) × 1,000,000`. With the indicative smoke runs at concurrency 8 and the pod price from section 1 (derived, ignores input tokens and idle time):
+Cost per million output tokens at one load is `price per hour ÷ (aggregate TPS × 3,600) × 1,000,000`. With the reference runs and the pod price from section 1 (derived, ignores input tokens and idle time):
 
-- BF16: $2.49 ÷ (549 × 3,600) × 1,000,000 ≈ $1.26 per million output tokens.
-- FP8: $2.49 ÷ (838 × 3,600) × 1,000,000 ≈ $0.83 per million output tokens.
+- BF16 at concurrency 8: $2.49 ÷ (551 × 3,600) × 1,000,000 ≈ $1.26 per million output tokens.
+- BF16 at concurrency 16, the load of the quantization experiment: $2.49 ÷ (897 × 3,600) × 1,000,000 ≈ $0.77.
+- FP8 at concurrency 16, same session: $2.49 ÷ (1,323 × 3,600) × 1,000,000 ≈ $0.52.
 
 The FP8 figure says nothing about quality. Pair every cost number with the quality check (section 14).
 
@@ -100,7 +102,7 @@ The words are shared. The quantities are not. The comparison below comes from RE
 | Quantity | This repository | `vllm bench serve` | Other tools |
 | --- | --- | --- | --- |
 | TTFT | scheduled arrival (open loop) or send time (closed loop) to the first text chunk | request submission to the first token | AIPerf: first non-empty content chunk; reasoning tokens are not excluded (a separate metric skips them) |
-| TPOT | `(latency − TTFT) ÷ (N − 1)` | same; set to 0 for goodput when the output has one token or less | NIM calls this quantity ITL. GuideLLM's TPOT includes the first token, which is a different number. MLPerf: average interval between tokens, normalisation not stated in the text read. |
+| TPOT | `(latency − TTFT) ÷ (N − 1)` | same; set to 0 for goodput when the output has one token or less | NIM calls this quantity ITL. GuideLLM's TPOT includes the first token, which is a different number. MLPerf: average interval between tokens, normalization not stated in the text read. |
 | ITL | gaps between text chunks, pooled over all requests | gaps between chunks, pooled over all requests (weighted by tokens) | AIPerf's ITL is per request `(latency − TTFT) ÷ (OSL − 1)`, which is vLLM's TPOT. GuideLLM: average gap between consecutive tokens, first token excluded. |
 | End-to-end latency | clock start to end of stream | not printed by default (see below) | AIPerf: start to the last content chunk, without the final usage-only chunk |
 | Output throughput | `Σ N ÷ duration` | `total_output_tokens ÷ duration` | AIPerf and NIM: same shape; AIPerf counts reasoning tokens |
@@ -152,7 +154,7 @@ ILLUSTRATIVE EXAMPLE (constructed, not measured). 100 requests: 94 with a TTFT o
 
 ### The p99 from few samples caveat
 
-A percentile rests on the samples beyond it. The harness interpolates between neighbouring samples, so with few samples p99 is nearly the maximum.
+A percentile rests on the samples beyond it. The harness interpolates between neighboring samples, so with few samples p99 is nearly the maximum.
 
 | Requests in the run | Expected samples above p95 | Expected samples above p99 | p99 is interpolated between |
 | --- | --- | --- | --- |
@@ -169,7 +171,7 @@ Rule of thumb used in this repository: have at least 10 samples beyond the perce
 More traps:
 
 - **Percentiles do not average and do not add.** The mean of two p95 values is not the p95 of the combined traffic. Do not average p99 values of several small runs. Run once with more requests.
-- **ITL has many samples but they are not independent.** Pooling gaps over 64 requests of 180 tokens gives about 11,000 samples. One slow engine step delays every running request at once, so the effective sample count is much smaller (inference). In the indicative cross-check, ITL p99 differed by 29 % between two tools while the mean ITL differed by 0.2 %. Tails are noisy.
+- **ITL has many samples but they are not independent.** Pooling gaps over 64 requests of 180 tokens gives about 11,000 samples. One slow engine step delays every running request at once, so the effective sample count is much smaller (inference). In the smoke-run cross-check (section 9), ITL p99 differed by 29 % between two tools while the mean ITL differed by 0.2 %. Tails are noisy.
 - **Repeat the run.** Quote the spread between at least three runs for any number that goes into a decision.
 
 ## 7. Load generation: closed loop, open loop, warm-up and run size
@@ -196,28 +198,28 @@ The harness avoids it in open loop by measuring from the scheduled arrival. If t
 
 Average requests in the system = arrival rate × average time in the system. In a closed loop the left side is the concurrency. The numbers of one run must agree with each other.
 
-Derived from the indicative smoke run at concurrency 8, 180 output tokens per request:
+Derived from the reference run at concurrency 8 (`concurrency/baseline-c008`), 180 output tokens per request:
 
-- Request rate: 549 ÷ 180 ≈ 3.05 requests/s.
-- Average time in the system: 8 ÷ 3.05 ≈ 2.62 s.
-- From the medians: TTFT 0.356 s + 179 × ITL 0.0124 s ≈ 2.58 s.
+- Request rate: 551 ÷ 180 ≈ 3.06 requests/s.
+- Average time in the system: 8 ÷ 3.06 ≈ 2.61 s.
+- From the medians: TTFT 0.356 s + 179 × ITL 0.01234 s ≈ 2.57 s.
 
 The two agree within 2 %. If yours do not, something is wrong with the run or with the definitions.
 
 ### Warm-up
 
-The first requests after a start can be slower than later ones (caches, lazy initialisation). NVIDIA's own benchmarking guidance says to warm up before timing (RESEARCH 6.11). The harness sends warm-up requests first, at the run's concurrency, and excludes them from the results. The default is the concurrency, but at least 2 and at most 8 requests. `--warmup` overrides it. Warm-up prompts differ from the measured prompts, so warm-up cannot fill the prefix cache for the measurement (section 8).
+The first requests after a start can be slower than later ones (caches, lazy initialization). NVIDIA's own benchmarking guidance says to warm up before timing (RESEARCH 6.11). The harness sends warm-up requests first, at the run's concurrency, and excludes them from the results. The default is the concurrency, but at least 2 and at most 8 requests. `--warmup` overrides it. Warm-up prompts differ from the measured prompts, so warm-up cannot fill the prefix cache for the measurement (section 8).
 
 ### Run size and first-wave artifacts
 
-In a closed loop at concurrency N, N requests are sent at the same moment. Their prefills compete for the same engine steps. The last of them waits for the others. That is real behaviour for a burst. It is not what steady arrivals look like.
+In a closed loop at concurrency N, N requests are sent at the same moment. Their prefills compete for the same engine steps. The last of them waits for the others. That is real behavior for a burst. It is not what steady arrivals look like.
 
-Indicative smoke run: the median TTFT was 67 ms at concurrency 1 and 356 ms at concurrency 8, where eight prompts of 1,200 tokens were prefilled together. Part of that increase is the first wave. The data cannot say how much.
+Reference runs: the median TTFT was 69 ms at concurrency 1 and 356 ms at concurrency 8, where eight prompts of 1,200 tokens were prefilled together. Part of that increase is the first wave. The data cannot say how much.
 
 What this does to small runs:
 
 - **The first wave is a fixed share of the samples.** At the default run size the first wave is 12.5 % of the requests for every concurrency of 4 or more (4 of 32, 8 of 64, 16 of 128). That is more than the 5 % that defines p95. If the first wave has the slowest TTFT, the top 12.5 % of the samples are first-wave requests, and p90, p95 and p99 are first-wave numbers (inference from the arithmetic).
-- **Waves can stay in step.** With every request pinned to the same output length, workers that started together tend to finish together and send their next request together. Arrivals stay bunched for longer than you would expect (inference, not measured here). Open-loop Poisson arrivals remove the synchronisation.
+- **Waves can stay in step.** With every request pinned to the same output length, workers that started together tend to finish together and send their next request together. Arrivals stay bunched for longer than you would expect (inference, not measured here). Open-loop Poisson arrivals remove the synchronization.
 - **Ramp-up and drain depress aggregate TPS.** The duration includes the start, when the queue is filling, and the end, when workers run out of prompts. A short run at high concurrency pays for both.
 - **A fixed output length is comparable but not realistic.** Real outputs end early and vary.
 
@@ -227,15 +229,15 @@ What to do: raise `--requests` for the run you quote (section 6), prefer open lo
 
 vLLM caches the KV blocks of prompt prefixes and reuses them when a later prompt starts with the same tokens (RESEARCH 3.9). A prompt that is mostly cached needs almost no prefill, so its TTFT collapses. For a benchmark that is a trap.
 
-What happened on the pod (indicative smoke run). The same benchmark command was run twice with a fixed default seed, so both runs sent identical prompts:
+What happened on the pod (reference run, `benchmark/results/reference/prefix-cache/pitfall-*`). The same benchmark command was run twice with the same seed, so both runs sent identical prompts (concurrency 8, 64 requests each):
 
-| Run | TTFT p50 | Aggregate |
-| --- | --- | --- |
-| First | 391 ms | 550 tokens/s |
-| Second, same prompts | 51 ms | 636 tokens/s |
-| Third, new seed | 357 ms | |
+| Run | TTFT p50 | Aggregate | Prefix-cache hit rate of the run |
+| --- | --- | --- | --- |
+| First | 359 ms | 550 tokens/s | 0 % |
+| Second, same prompts | 50 ms | 639 tokens/s | 98.7 % |
+| Third, new seed | 360 ms | 550 tokens/s | 0 % |
 
-The server's prefix-cache hit rate over the session was 36 %. Nothing was wrong with the server. The benchmark had measured the cache.
+Nothing was wrong with the server. The benchmark had measured the cache.
 
 How the harness guards against it:
 
@@ -264,7 +266,7 @@ The script runs `benchmark/run.sh` and `vllm bench serve` against the same serve
 
 The seed matters for the tool itself. `vllm bench serve` defaults to `--seed 0`, so a second invocation sends the same prompts and meets the same prefix-cache flattery as section 8.
 
-Indicative smoke run (same shape, concurrency 8, 64 requests, fresh seeds): throughput within 0.4 %, TTFT within 3 to 4 %, mean ITL and TPOT within 0.2 %, end-to-end latency within 0.4 %, ITL p99 29 % apart.
+Smoke run (same shape, concurrency 8, 64 requests, fresh seeds; not committed as a result file): throughput within 0.4 %, TTFT within 3 to 4 %, mean ITL and TPOT within 0.2 %, end-to-end latency within 0.4 %, ITL p99 29 % apart.
 
 The comparison script flags pairs that differ by more than 10 %, and tail percentiles at three times that. If a gap is larger, look for:
 
@@ -279,7 +281,7 @@ Then compare the harness's `/metrics` scrape (stored under `server` in each resu
 
 ### What is recorded
 
-- **By the harness**, once per second through `nvidia-smi`: `utilization.gpu`, `memory.used`, `power.draw`, `temperature.gpu` and `clocks.sm`. Each result stores a summary under `gpu` and the table shows the mean utilisation and the maximum VRAM.
+- **By the harness**, once per second through `nvidia-smi`: `utilization.gpu`, `memory.used`, `power.draw`, `temperature.gpu` and `clocks.sm`. Each result stores a summary under `gpu` and the table shows the mean utilization and the maximum VRAM.
 - **By the pod's GPU exporter** (`monitoring/gpu-exporter/exporter.py`), through NVML, under DCGM names: `DCGM_FI_DEV_GPU_UTIL`, `DCGM_FI_DEV_MEM_COPY_UTIL`, `DCGM_FI_DEV_FB_USED`, `DCGM_FI_DEV_FB_FREE`, `DCGM_FI_DEV_POWER_USAGE`, `DCGM_FI_DEV_GPU_TEMP`, `DCGM_FI_DEV_SM_CLOCK`, `DCGM_FI_DEV_MEM_CLOCK`. The same panels work with NVIDIA's `dcgm-exporter` on your own server.
 - **Not available on the pods:** the profiling fields (`DCGM_FI_PROF_DRAM_ACTIVE`, `DCGM_FI_PROF_PIPE_TENSOR_ACTIVE`, `DCGM_FI_PROF_SM_ACTIVE`). They need the `SYS_ADMIN` capability, which a rented container probably does not grant (RESEARCH 6.9, unverified for these pods). On your own hardware they are the best hardware-side view of decode.
 
@@ -287,21 +289,21 @@ Then compare the harness's `/metrics` scrape (stored under `server` in each resu
 
 `utilization.gpu` is the share of the sampling period in which at least one kernel was running (RESEARCH 6.7). It does not say how many of the 188 SMs were busy, how many Tensor Cores were active or how much of the memory bandwidth was used. A kernel that occupies one SM can read 100 %.
 
-Indicative smoke run, BF16, same workload:
+Reference runs, BF16, same workload (`concurrency/baseline-c001`, `concurrency/baseline-c008`):
 
 | | Concurrency 1 | Concurrency 8 |
 | --- | --- | --- |
-| GPU-Util | 100 % | 100 % |
-| Aggregate throughput | 84 tokens/s | 549 tokens/s |
-| ITL p50 | 11.6 ms | 12.4 ms |
+| GPU-Util (mean) | 99 % | 100 % |
+| Aggregate throughput | 84 tokens/s | 551 tokens/s |
+| ITL p50 | 11.6 ms | 12.3 ms |
 
-The gauge is flat while the useful work differs by 6.5 ×. At concurrency 1 the GPU reads about 16 GB of weights to emit one token per step. At concurrency 8 it reads the same weights and emits eight. Both keep a kernel resident all the time.
+The gauge is flat while the useful work differs by 6.6 ×. At concurrency 1 the GPU reads about 16 GB of weights to emit one token per step. At concurrency 8 it reads the same weights and emits eight. Both keep a kernel resident all the time.
 
 What to look at instead:
 
 - tokens per second against the bandwidth bound (section 12);
 - running requests and KV-cache usage (are there enough sequences in the batch);
-- power draw, which follows real work more closely than utilisation does (358 W in the indicative smoke run with 12 concurrent requests);
+- power draw, which follows real work more closely than utilization does (mean 362 W at concurrency 1, 393 W at 8, 425 W at 16 in the reference runs);
 - estimated MFU and MBU, with the cautions in section 11;
 - on your own hardware, DRAM-active and Tensor-active.
 
@@ -309,12 +311,12 @@ What to look at instead:
 
 - **VRAM used is flat.** vLLM reserves its memory budget at start-up (`--gpu-memory-utilization`, the workshop profile uses 0.80, vLLM's default is 0.92) and fills it with KV blocks. `memory.used` therefore says nothing about load. The KV-cache usage panel does.
 - **Clocks and power change results.** The Server Edition card is passively cooled with a configurable power limit. A lower SM clock or a power cap lowers throughput. Compare runs only within one session on one pod, and report the SM clock and power next to every throughput number (RESEARCH 6.11).
-- **MIG hides utilisation.** On MIG-enabled GPUs the utilisation queries are not supported.
+- **MIG hides utilization.** On MIG-enabled GPUs the utilization queries are not supported.
 
 ## 11. Estimated MFU and MBU
 
-- **MFU** (model FLOPs utilisation) = FLOP per second achieved ÷ peak FLOP per second.
-- **MBU** (memory bandwidth utilisation) = bytes per second moved ÷ peak bytes per second.
+- **MFU** (model FLOPs utilization) = FLOP per second achieved ÷ peak FLOP per second.
+- **MBU** (memory bandwidth utilization) = bytes per second moved ÷ peak bytes per second.
 
 vLLM computes both from counters (`vllm:estimated_flops_per_gpu_total`, `vllm:estimated_read_bytes_per_gpu_total`, `vllm:estimated_write_bytes_per_gpu_total`) when started with `--enable-mfu-metrics`. The dashboard divides their rate by the peaks held in two dashboard variables: 504 TFLOPS dense BF16 and 1,597 GB/s.
 
@@ -323,10 +325,10 @@ What they are not:
 - **Not hardware counters.** They come from an analytic model of the work the scheduler issued for the model's shape. They do not see kernel stalls, cache hits in L2 or idle SMs.
 - **Only as exact as the peak.** NVIDIA does not publish a dense BF16 peak for the Server Edition. 504 TFLOPS is the Workstation-clock figure. The plausible range is about 468 to 504 (RESEARCH 6.3), so the MFU scale is uncertain by several percent. The 1,597 GB/s bandwidth is published.
 - **Tied to one precision.** The dashboard uses the BF16 peak. FP8 Tensor Cores have about twice that rate, so an FP8 model measured against the BF16 peak reads about twice as high as against its own peak (derived from RESEARCH 6.2).
-- **Sensitive to the averaging window.** In the indicative smoke run, estimated MBU ranged from about 28 % to 60 % depending on the window. Load is bursty and prefill and decode steps differ. Compare numbers only over the same window.
+- **Sensitive to the averaging window.** In the smoke run, estimated MBU ranged from about 28 % to 60 % depending on the window. Load is bursty and prefill and decode steps differ. Compare numbers only over the same window.
 - **Single-GPU.** The panels assume one GPU. With tensor parallelism, check the series labels before trusting them.
 
-How to use them. They are relative signals, not grades. A rule of thumb helps. At batch B with BF16 weights, a decode step that runs exactly at the bandwidth bound has an MFU of B ÷ ops:byte, which is about B ÷ 315 (derived from section 12). At 12 concurrent requests that is 3.8 %. The indicative smoke run showed an estimated MFU of 6.6 % with KV usage at 3.9 %: the GPU was nowhere near compute-bound and had room for far more concurrent sequences. The estimate also contains prefill steps and attention work, so do not read it as the pure decode figure.
+How to use them. They are relative signals, not grades. A rule of thumb helps. At batch B with BF16 weights, a decode step that runs exactly at the bandwidth bound has an MFU of B ÷ ops:byte, which is about B ÷ 315 (derived from section 12). At 12 concurrent requests that is 3.8 %. The smoke run showed an estimated MFU of 6.6 % with KV usage at 3.9 %: the GPU was nowhere near compute-bound and had room for far more concurrent sequences. The estimate also contains prefill steps and attention work, so do not read it as the pure decode figure.
 
 ## 12. The roofline in ten lines
 
@@ -338,19 +340,19 @@ How to use them. They are relative signals, not grades. A rule of thumb helps. A
 6. Prefill pushes the whole prompt through at once. A 1,200-token prompt is a batch of 1,200, above the ridge point, so prefill is compute-bound.
 7. Lower bound for one decode step: `t ≥ (weight bytes + KV bytes read) ÷ memory bandwidth`. One step emits one token per sequence.
 8. Qwen3-8B in BF16: 16.38 GB ÷ 1,597 GB/s = **10.3 ms** per step, at most 97.5 tokens/s for one sequence. KV reads at about 1,300 tokens of context add 147,456 B × 1,300 ≈ 0.19 GB, so 10.4 ms.
-9. Indicative smoke run: measured ITL p50 was **11.6 ms**, 13 % above the bound. That gap is attention, sampling, launch and scheduler overhead.
-10. Batching shares one weight read between all sequences, so step time barely moves while throughput scales. Indicative smoke run: ITL 11.6 ms at concurrency 1, 12.4 ms at concurrency 8, aggregate throughput 6.5 ×. That is why concurrency, KV capacity and quantization are the levers, and why 1,597 GB/s (not the Workstation card's 1,792) is the number to remember.
+9. Reference run: measured ITL p50 was **11.6 ms**, 13 % above the bound. That gap is attention, sampling, launch and scheduler overhead.
+10. Batching shares one weight read between all sequences, so step time barely moves while throughput scales. Reference runs: ITL 11.6 ms at concurrency 1, 12.3 ms at concurrency 8, aggregate throughput 6.6 ×. That is why concurrency, KV capacity and quantization are the levers, and why 1,597 GB/s (not the Workstation card's 1,792) is the number to remember.
 
 The bound against the measurement, with FP8 for comparison:
 
-| | Bytes read per step | Bound per step | Bound as tokens/s | Measured ITL p50 (indicative smoke run) | Measured above bound |
+| | Bytes read per step | Bound per step | Bound as tokens/s | Measured ITL p50 (reference runs) | Measured above bound |
 | --- | --- | --- | --- | --- | --- |
 | BF16 weights | 16.38 GB | 10.3 ms | 97.5 | 11.6 ms | 13 % |
-| FP8 weights | 9.50 GB (8.85 GiB reported by the server) | 5.95 ms | 168 | 7.3 ms | 23 % |
+| FP8 weights | 9.50 GB (8.85 GiB reported by the server) | 5.95 ms | 168 | 7.25 ms | 22 % |
 
 FP8 weights are not half of BF16, because embeddings and the output head stay in BF16. The measured speed-up (1.6 ×) is close to the byte ratio (1.72 ×). Both bounds are derived.
 
-The compute side, derived with the 2N rule (a model of N parameters needs about 2N FLOP per token, RESEARCH 6.10): prefilling 1,200 tokens needs about 2 × 8.19e9 × 1,200 ≈ 1.97e13 FLOP, which takes about 39 ms at 504 TFLOPS. The measured TTFT p50 at concurrency 1 was 67 ms. That figure also holds scheduling and the first decode step of about 10 ms.
+The compute side, derived with the 2N rule (a model of N parameters needs about 2N FLOP per token, RESEARCH 6.10): prefilling 1,200 tokens needs about 2 × 8.19e9 × 1,200 ≈ 1.97e13 FLOP, which takes about 39 ms at 504 TFLOPS. The measured TTFT p50 at concurrency 1 was 69 ms. That figure also holds scheduling and the first decode step of about 10 ms.
 
 How to use the bound. It is a sanity check, not a forecast. A measurement above the bound means the byte count or the bandwidth you used is wrong, for example weights are quantized or you took the Workstation card's figure. A measurement far below it means look at clocks, power and overhead before you blame the engine. Measured results always override the datasheet and the bound.
 
@@ -387,13 +389,13 @@ The dashboard "KI ohne Cloud: inference" is generated by `monitoring/grafana/bui
 | --- | --- | --- | --- |
 | GPU utilization | `avg(DCGM_FI_DEV_GPU_UTIL)` | Is a kernel running? | Not efficiency (section 10). |
 | VRAM used | `DCGM_FI_DEV_FB_USED`, `DCGM_FI_DEV_FB_FREE` | How much memory is reserved? | Flat after start-up because vLLM reserves its budget. |
-| Power | `sum(DCGM_FI_DEV_POWER_USAGE)` | Is real work happening, or is the card throttled? | Follows work better than utilisation. Compare with clocks. |
+| Power | `sum(DCGM_FI_DEV_POWER_USAGE)` | Is real work happening, or is the card throttled? | Follows work better than utilization. Compare with clocks. |
 | Estimated compute use (MFU) | `rate(vllm:estimated_flops_per_gpu_total) ÷ (peak_tflops × 1e12)` | How much of the compute peak is used? | An estimate against a variable peak (section 11). |
 | Estimated memory traffic (MBU) | `(rate(read bytes) + rate(write bytes)) ÷ (peak_bw_gbs × 1e9)` | How much of the bandwidth peak is used? | An estimate. Decode is usually limited here, prefill by compute. |
 
 ### Reading the panels together
 
-A reading guide for the Day 3 investigation (inference from what each metric measures, not a rule):
+A reading guide for the incident investigation of the observability module (inference from what each metric measures, not a rule):
 
 | What you see | Likely reading |
 | --- | --- |
@@ -428,24 +430,24 @@ The SLO as written mixes a percentile target (TTFT p95) with a per-request targe
 - **Availability.** 99.9 % allows 0.1 % of requests to fail. As time, that is 43.2 minutes in a 30-day month (30 × 24 × 60 × 0.001) or 8.76 hours in a year.
 - **Quality.** The quality probe reports each deployment's accuracy with a 95 % Wilson interval, and the difference between two deployments in percentage points. At its default of 240 items one item is 0.42 points, so 2 points are about 5 items. The probe can flag a large drop. It cannot prove that two deployments are within 2 %. State whether you read 2 % as points or as a relative drop.
 
-The availability budget against the restart times (indicative smoke run, measured while building the pods; one replica, so every restart is downtime): the budget is 2,592 s per 30-day month.
+The availability budget against the start-up times (reference runs of the baseline start-up experiment; one replica, so every restart is downtime): the budget is 2,592 s per 30-day month. The primary basis is the engine log, the seconds from the first log line to "ready"; the wall time as `wsctl` measures it is longer and is given in parentheses. A rebuild has no engine-log figure: it is wall time.
 
-| Event | Duration | Share of the monthly budget |
+| Event | Duration, engine log (`wsctl` wall time) | Share of the monthly budget |
 | --- | --- | --- |
-| Restart of vLLM with warm caches | 39 s | 1.5 % |
-| Cold start of vLLM | 198 s | 7.6 % |
-| Rebuild of the whole pod after a restart | 341 s | 13.2 % |
+| Restart of vLLM with warm caches | 29 s (39 s) | 1.1 % (1.5 %) |
+| Cold start of vLLM | 176 s (198 s) | 6.8 % (7.6 %) |
+| Rebuild of the whole pod after a restart | 341 s (wall time) | 13.2 % |
 
-Three cold starts in a month use almost a quarter of the budget on their own (594 s of 2,592 s). That is an argument for a second replica and for rolling restarts (`d3-04-scaling`).
+Three cold starts in a month use about a fifth of the budget on their own (528 s of 2,592 s; 594 s, 23 %, by wall time). That is an argument for a second replica and for rolling restarts (`22-scaling`).
 
-### What the indicative smoke runs can and cannot say
+### What the reference runs can and cannot say
 
-| SLO term | What the smoke runs show | Verdict |
+| SLO term | What the reference runs show (`concurrency/`) | Verdict |
 | --- | --- | --- |
-| TTFT p95 ≤ 800 ms | Only the p50 was recorded: 67 ms at concurrency 1, 356 ms at concurrency 8. | Cannot say. The p95 is exactly what first-wave effects distort (section 7). |
-| ≥ 25 tokens/s per request | ITL p50 11.6 and 12.4 ms, that is about 86 and 81 tokens/s (derived). | The median is about 3 × above the target. The p5 was not recorded. |
-| Aggregate 500 tokens/s for 20 users | 549 tokens/s at concurrency 8. | Consistent with enough capacity. Concurrency 20 was not run. The sweep in `benchmark/results/` decides. |
-| Quality ≤ 2 % | Not measured here. | Run the probe for every deployment you recommend. |
+| TTFT p95 ≤ 800 ms | p95 of 73 ms at concurrency 1, 416 ms at 8 and 821 ms at 16 (48 to 96 requests per run). | Met at 8, missed by 21 ms at 16. The p95 rests on a few requests and is what first-wave effects distort (section 7). Concurrency 20 was not run. |
+| ≥ 25 tokens/s per request | Per-request speed p5 of 70.7 tokens/s at concurrency 8, 58.6 at 16 and 28.3 at 64 (p50: 79.4, 68.7 and 32.4). | Met at every tested level, about 3 × above the target at 8. The TTFT target breaks first. |
+| Aggregate 500 tokens/s for 20 users | 551 tokens/s at concurrency 8, 900 at 16. | Enough capacity on throughput alone. The TTFT target decides, not the throughput. |
+| Quality ≤ 2 % | Not part of the concurrency sweep. | Run the probe for every deployment you recommend (`experiments/quantization/RESULTS.md` shows it for FP8). |
 
 ### A goodput computation
 
@@ -493,11 +495,11 @@ To turn one load into a capacity statement, repeat at several rates or concurren
 
 | Topic | Evidence | Teaching |
 | --- | --- | --- |
-| Tool definitions, goodput, closed and open loop | RESEARCH 10.1 to 10.6 | `d2-02-measuring` |
-| vLLM metric names, buckets, deprecated names | RESEARCH 9.1 to 9.5 | `d3-03-observability` |
-| GPU specifications, ops:byte, roofline | RESEARCH 6.2 to 6.4, 6.10 | `d1-05-gpu-fundamentals`, `d1-07-inference-mechanics` |
-| `nvidia-smi`, NVML, DCGM, power and clocks | RESEARCH 6.7, 6.9, 6.11 | `d1-05-gpu-fundamentals`, `d3-03-observability` |
-| Scheduler, prefix cache, preemption | RESEARCH 3.8, 3.9 | `d2-04-continuous-batching`, `d2-05-kv-cache` |
-| Harness behaviour | `benchmark/infbench/` | `d2-03-lab-benchmark` |
-| Dashboard | `monitoring/grafana/build_dashboard.py` | `d3-03-observability` |
+| Tool definitions, goodput, closed and open loop | RESEARCH 10.1 to 10.6 | `11-measuring` |
+| vLLM metric names, buckets, deprecated names | RESEARCH 9.1 to 9.5 | `21-observability` |
+| GPU specifications, ops:byte, roofline | RESEARCH 6.2 to 6.4, 6.10 | `03-gpu-fundamentals`, `05-inference-mechanics` |
+| `nvidia-smi`, NVML, DCGM, power and clocks | RESEARCH 6.7, 6.9, 6.11 | `03-gpu-fundamentals`, `21-observability` |
+| Scheduler, prefix cache, preemption | RESEARCH 3.8, 3.9 | `13-continuous-batching`, `14-kv-cache` |
+| Harness behavior | `benchmark/infbench/` | `12-lab-benchmark` |
+| Dashboard | `monitoring/grafana/build_dashboard.py` | `21-observability` |
 | Terms | [GLOSSARY.md](GLOSSARY.md) | all |

@@ -1,24 +1,24 @@
 # Model selection
 
-How to choose a model for a task. This is a procedure, not a catalogue: a catalogue of models is out of date within weeks, a procedure is not.
+How to choose a model for a task. This is a procedure, not a catalog: a catalog of models is out of date within weeks, a procedure is not.
 
 One rule drives everything: **choose the smallest model that reliably satisfies the task.** "Smallest" is counted in what you pay for: VRAM, latency, GPU hours, operational risk. "Reliably" is counted on your own task, at the precision you will serve, under the load you expect.
 
-The document supports Lab 1 ([`tasks/01-model-selection.md`](../tasks/01-model-selection.md)); your answers go into `workshop-artifacts/model-selection.md`. Evidence for the statements about models, engines and licences is in [`RESEARCH.md`](RESEARCH.md), sections 4, 5, 8 and 11. Numbers marked "measured" come from the workshop GPU (NVIDIA RTX PRO 6000 Blackwell Server Edition, 96 GB) with vLLM 0.31.0. Numbers marked "computed" come from `scripts/sizing.py` or from simple arithmetic on repository values. Nothing here is legal advice.
+The document supports Lab 1 ([`tasks/01-model-selection.md`](../tasks/01-model-selection.md)); your answers go into `workshop-artifacts/model-selection.md`. Evidence for the statements about models, engines and licenses is in [`RESEARCH.md`](RESEARCH.md), sections 4, 5, 8 and 11. Numbers marked "measured" come from the workshop GPU (NVIDIA RTX PRO 6000 Blackwell Server Edition, 96 GB) with vLLM 0.31.0. Numbers marked "computed" come from `scripts/sizing.py` or from simple arithmetic on repository values. Nothing here is legal advice.
 
 ## 1. The workflow
 
 ```text
-TASK + EVAL → SHORTLIST → LICENCE → FIT → MEASURE → DECIDE
+TASK + EVAL → SHORTLIST → License → FIT → MEASURE → DECIDE
 ```
 
-The order is deliberate: cheap checks come first. A licence veto costs ten minutes. A measurement costs GPU time. A wrong decision costs a deployment.
+The order is deliberate: cheap checks come first. A license veto costs ten minutes. A measurement costs GPU time. A wrong decision costs a deployment.
 
 | Step | Question | Tool in this repository | Output |
 | --- | --- | --- | --- |
 | 1. Task and eval | What must the model do, and how will I know that it did? | Section 3; `experiments/quality_probe.py` as a pattern | A one-paragraph task description, a pass criterion, 30 items with checks |
 | 2. Shortlist | Which three to five models could plausibly do it? | Model cards, `config/models.yaml`, RESEARCH 5.3 | A list with size, active parameters, context, modalities |
-| 3. Licence | May I use each one for this purpose, at my scale? | Section 5; the `LICENSE` file at the pinned revision | One row of the six-column table per candidate |
+| 3. License | May I use each one for this purpose, at my scale? | Section 5; the `LICENSE` file at the pinned revision | One row of the six-column table per candidate |
 | 4. Fit | Do weights and KV cache for my context and concurrency fit, with headroom? | `python3 scripts/sizing.py` | Fits or does not; KV capacity in tokens |
 | 5. Measure | Does it pass my eval? Does it meet latency and throughput at my load? | Your eval runner; `benchmark/run.sh` (`./scripts/benchmark.sh` on the pods) | Pass rate per slice with an interval; TTFT, ITL and tokens per second at the expected concurrency |
 | 6. Decide | Which is the smallest that passes, and what did I give up? | The decision record below | Model, revision, precision, flags, context, evidence, trade-offs |
@@ -29,38 +29,38 @@ The order is deliberate: cheap checks come first. A licence veto costs ten minut
 - Put one model on the list that is smaller than you expect to need. Lab 1 asks "which smaller model did you consider, and why did you reject it?" The answer must be a measurement.
 - Several sizes of one family give the cheapest size curve. The workshop has `small` (Qwen3-1.7B) and `primary` (Qwen3-8B) for that reason.
 - Drop a candidate at once if: its architecture is not in the engine at the pinned version; it needs `trust_remote_code` (workshop profiles refuse it, see section 7); it lacks a modality you need; its language list does not name German when you need German.
-- A model that is not in `config/models.yaml` has no pinned revision here. Check its current licence text before you recommend it (`alternatives_discussed` says so).
+- A model that is not in `config/models.yaml` has no pinned revision here. Check its current license text before you recommend it (`alternatives_discussed` says so).
 
 ### The decision record
 
 Write this down for the model you choose, and for the smaller one you rejected:
 
 - Task, eval version and the date it was run.
-- Repository, full 40-character revision, licence row.
+- Repository, full 40-character revision, license row.
 - Precision of weights and of the KV cache, engine and version, the profile or flags.
 - Context length served; thinking on or off.
 - Eval result per slice with an interval; latency and throughput at the expected load, with the benchmark provenance.
 - The rejected smaller model and the measurement that rejected it.
 - What you gave up.
-- What makes you decide again: a new release of the family, a licence change, traffic that grows, a quality bound that moves.
+- What makes you decide again: a new release of the family, a license change, traffic that grows, a quality bound that moves.
 
 The last item matters. The open-model ecosystem moves fast. The header of `config/models.yaml` asks for a re-check, a re-pin and a re-run of the baseline experiment before each delivery. Section 4 and section 5 of this document must then be updated with the new numbers.
 
 ## 2. The criteria checklist
 
-Use the tables at steps 2 to 5. Each row says what to look at and the mistake people make most often. First separate **hard requirements** from **trade-offs**. A missing hard requirement (the licence forbids the use, the architecture is unsupported, German is not covered, the model does not fit) removes the candidate without any measurement. Trade-offs (quality, latency, cost) are weighed on measured values.
+Use the tables at steps 2 to 5. Each row says what to look at and the mistake people make most often. First separate **hard requirements** from **trade-offs**. A missing hard requirement (the license forbids the use, the architecture is unsupported, German is not covered, the model does not fit) removes the candidate without any measurement. Trade-offs (quality, latency, cost) are weighed on measured values.
 
 ### Task fit
 
 | Criterion | What to look at | Common mistake |
 | --- | --- | --- |
 | Task quality | Pass rate on your own eval, split by slice (language, document type, difficulty), with an interval. Compare with the threshold you set in step 1. | Choosing by public benchmark rank, or by an average that hides the slice that matters to you. |
-| Reasoning behaviour | Whether thinking is on by default (Qwen3: on; Gemma 4: off), how to switch it per request (`chat_template_kwargs`, `enable_thinking`), which reasoning parser the engine needs, and how many extra output tokens thinking costs on your items. | Evaluating with thinking on and deploying with it off, or the reverse. Leaving thinking on for a classification task and paying its tokens on every request. |
+| Reasoning behavior | Whether thinking is on by default (Qwen3: on; Gemma 4: off), how to switch it per request (`chat_template_kwargs`, `enable_thinking`), which reasoning parser the engine needs, and how many extra output tokens thinking costs on your items. | Evaluating with thinking on and deploying with it off, or the reverse. Leaving thinking on for a classification task and paying its tokens on every request. |
 | Multilingual, including German | The vendor's language list (a claim, not a measurement). Then German items of your own: formal register, compound words, umlauts, German-English mixes, your domain terms. The token count of a real German document on this tokenizer (`/tokenize` on the live server). | Reading "supports 100+ languages" as "good German". Testing in English only. Ignoring that the same content can cost more tokens in German, which costs context and latency. For some models no language list was found (RESEARCH 5.3). |
 | Coding | Your languages and frameworks, the kind of task (completion, chat, edit, agent), tests that run from your own code base, the context the repository needs. Whether a dedicated coder variant exists and which tool-call parser it needs. | Using a generic coding benchmark as a proxy for your repository. Judging code by reading it instead of running tests. |
 | Structured output | Whether the engine constrains decoding to a JSON schema (vLLM: `response_format` or `structured_outputs`; the workshop profiles use the xgrammar backend). Whether the model fills the fields correctly when constrained. The first-use grammar compile time. | Believing that constrained decoding makes the content right. It enforces syntax only. Measured: a schema with four required fields and a prompt that named none ended in 5,469 blank characters and truncated JSON; with the fields named, the reply took 34 tokens. |
 | Tool calling | The tool-call format the model was trained on and the vLLM parser for it. The server needs both `--enable-auto-tool-choice` and `--tool-call-parser`. A smoke test with your own tools, over several turns, with wrong arguments. How many model calls one user request causes. | Copying the parser name from a model card. Testing one successful call. Forgetting that agents multiply load: the demo agent needed 3 model calls and 1,519 prompt tokens, where the first call alone had 454 (3.3 times). The tool-call reliability of Qwen3-1.7B is unverified. |
-| Multimodality | The input types you need (image, audio, video) and what they cost: encoder weights, profiling memory. Whether the engine can run the model text-only (Qwen3.5 has `--language-model-only`). Whether the licence differs for the multimodal variant. | Choosing a multimodal model for a text task. Missing a licence clause: the Llama 4 acceptable-use policy withholds rights for multimodal models from EU-domiciled individuals and companies (RESEARCH 11.3). |
+| Multimodality | The input types you need (image, audio, video) and what they cost: encoder weights, profiling memory. Whether the engine can run the model text-only (Qwen3.5 has `--language-model-only`). Whether the license differs for the multimodal variant. | Choosing a multimodal model for a text task. Missing a license clause: the Llama 4 acceptable-use policy withholds rights for multimodal models from EU-domiciled individuals and companies (RESEARCH 11.3). |
 
 ### Size and architecture
 
@@ -75,7 +75,7 @@ Use the tables at steps 2 to 5. Each row says what to look at and the mistake pe
 
 | Criterion | What to look at | Common mistake |
 | --- | --- | --- |
-| Fine-tuning support | Whether you need it at all: try the prompt, few-shot examples, retrieval, a longer context and constrained output first. If you do: base and instruct checkpoints, adapter support in the engine, a licence that allows derivatives, the effort to repeat it when the base model changes. | Fine-tuning to fix what a better prompt or retrieval fixes. Forgetting that a fine-tune belongs to one base revision. Curriculum outcome 2: justify either "no fine-tuning needed" or "fine-tune". |
+| Fine-tuning support | Whether you need it at all: try the prompt, few-shot examples, retrieval, a longer context and constrained output first. If you do: base and instruct checkpoints, adapter support in the engine, a license that allows derivatives, the effort to repeat it when the base model changes. | Fine-tuning to fix what a better prompt or retrieval fixes. Forgetting that a fine-tune belongs to one base revision. Curriculum outcome 2: justify either "no fine-tuning needed" or "fine-tune". |
 | Quantization support | Which formats the publisher ships (Qwen3-8B-FP8 comes from Qwen itself), which formats the engine has kernels for on your GPU generation, the quality on your eval, and what really shrinks (the weights; the KV cache only with `kv-cache-dtype`). | Expecting half the memory from FP8: the 8B checkpoint goes from 16.38 GB to 9.44 GB, because embeddings and the output head stay in BF16. Trusting vLLM's hardware table: it has no Blackwell column, so "not listed" does not mean "unsupported"; run the model. Assuming a third-party 4-bit build loads on this GPU: unverified (RESEARCH 8.4, 8.5). |
 | Engine compatibility | The architecture is in the engine's supported list at the pinned version (vLLM v0.31.0). Required flags, parsers and chat template. Whether it needs `trust_remote_code`. Notes for your GPU generation. Every flag from a model card checked against `vllm serve --help` of the pinned image. | "It is on Hugging Face, so it runs." Copying card flags: several Qwen3 cards still print `--enable-reasoning` (removed) and `--task` (replaced by `--runner`), see RESEARCH 5.4. |
 
@@ -84,14 +84,14 @@ Use the tables at steps 2 to 5. Each row says what to look at and the mistake pe
 | Criterion | What to look at | Common mistake |
 | --- | --- | --- |
 | VRAM | Weights plus KV cache (context times concurrency) plus overhead, against the budget: 94.97 GiB (usable) times 0.80 is 75.98 GiB here. Run `scripts/sizing.py`, then compare with the server's `GPU KV cache size` line. | Counting only the weights. Forgetting a second model on the same GPU (the embedding server takes 0.08 of it). Using the maximum context for every request. |
-| Throughput | Aggregate output tokens per second at the concurrency you expect, measured with the shape of your workload (`benchmark/run.sh`, workloads in `benchmark/workloads/`). | Quoting single-request tokens per second. Using a vendor figure from other hardware. Repeating identical prompts so that the prefix cache flatters the result (measured: TTFT p50 391 ms, then 51 ms). |
+| Throughput | Aggregate output tokens per second at the concurrency you expect, measured with the shape of your workload (`benchmark/run.sh`, workloads in `benchmark/workloads/`). | Quoting single-request tokens per second. Using a vendor figure from other hardware. Repeating identical prompts so that the prefix cache flatters the result (measured: TTFT p50 359 ms, then 50 ms; `benchmark/results/reference/prefix-cache/`). |
 | Latency | TTFT and inter-token latency at p95, at the expected concurrency, including queueing and the tokens spent on thinking. The curriculum's example SLO: TTFT p95 800 ms and 25 output tokens per second per request. | Using averages. Testing at concurrency 1 only. Not counting thinking tokens as time. |
 
 ### Legal
 
 | Criterion | What to look at | Common mistake |
 | --- | --- | --- |
-| Licence and commercial restrictions | The `LICENSE` file at the pinned revision, the licence tag on the card, and any separate policy file. Thresholds and what they are measured on, naming duties, territorial limits, gating. Section 5. | Trusting the family name ("Qwen is Apache"). The licence belongs to a repository and a version, not to a family. Reading the card summary instead of the file. |
+| License and commercial restrictions | The `LICENSE` file at the pinned revision, the license tag on the card, and any separate policy file. Thresholds and what they are measured on, naming duties, territorial limits, gating. Section 5. | Trusting the family name ("Qwen is Apache"). The license belongs to a repository and a version, not to a family. Reading the card summary instead of the file. |
 
 ## 3. Why leaderboards are not enough, and a 30-item eval
 
@@ -101,16 +101,16 @@ Use the tables at steps 2 to 5. Each row says what to look at and the mistake pe
 - They average. A good mean can hide a bad slice: German, long documents, tool calls.
 - The settings differ: thinking on or off, sampling, prompt format, precision. The checkpoint you serve (FP8, a third-party quantization) is rarely the checkpoint that was scored.
 - Public test sets can leak into training data. You cannot check.
-- A score contains no latency, memory, throughput, licence or operability. A model can top a chart and still not fit your GPU or your legal position.
+- A score contains no latency, memory, throughput, license or operability. A model can top a chart and still not fit your GPU or your legal position.
 - They age. New releases and renamed models arrive within weeks.
 
 Use leaderboards to shortlist. Decide on your own eval.
 
-### A 30-item task eval in an afternoon
+### A 30-item task eval, step by step
 
-About three and a half hours, one person, no framework.
+A recipe for a real project, for one person and no framework. The effort column is a rough guide for that project (about three and a half hours in all). It is not a budget for Lab 1.
 
-| Time | Step | Result |
+| Effort | Step | Result |
 | --- | --- | --- |
 | 30 min | Write the task in one paragraph: input, output, what a good answer is, what a wrong answer costs. Set the pass criterion, for example "at least 90 % of items, no failure in the critical slice". | `task.md` |
 | 60 min | Collect 30 real items from tickets, documents, code or chats: 20 typical, 6 hard or odd, 4 that must be refused or answered with "not in the documents". Anonymise them. Take German items from real German text. Tag each item with a slice. | `items.jsonl` |
@@ -163,7 +163,7 @@ python3 experiments/quality_probe.py run --label bf16 --out bf16.json
 python3 experiments/quality_probe.py compare bf16.json fp8.json
 ```
 
-It exists so that the quantization experiment has a quality number (curriculum block `d2-06-quantization`).
+It exists so that the quantization experiment has a quality number (the quantization module, `15-quantization`).
 
 Its limits, read from the code:
 
@@ -226,11 +226,13 @@ Reading the result:
 | --- | --- | --- | --- |
 | Checkpoint on disk | 16.38 GB | 9.44 GB | `config/models.yaml` |
 | Weights in memory | 15.27 GiB | 8.85 GiB | measured |
-| Available KV memory | 58.14 GiB | 64.56 GiB | measured |
-| KV capacity | 423,328 tokens | 470,096 tokens | measured |
+| Available KV memory | 58.64 GiB | 65.00 GiB | measured |
+| KV capacity | 426,992 tokens | 473,312 tokens | measured |
 
-- What FP8 frees (15.27 - 8.85 = 6.42 GiB) goes into the KV pool one for one (58.14 + 6.42 = 64.56 GiB). Capacity rises by 46,768 tokens, 11 %.
-- Weights are a minor part of a 96 GiB card. FP8 weights buy decode speed, not capacity. Indicative smoke runs at concurrency 1 gave an ITL p50 of 11.6 ms (BF16) and 7.3 ms (FP8). Aggregate throughput at concurrency 8 was 549 and 838 tokens per second.
+The BF16 and FP8 columns are two starts of the same session (`benchmark/results/reference/quantization/startup.json`). Example 1 uses the baseline start of an earlier session, which reported 423,328 tokens: two sessions started the baseline separately, and the profiled peak activation differed by 0.50 GiB (1.70 against 1.20 GiB), which moves the KV pool by the same amount.
+
+- What FP8 frees (15.27 - 8.85 = 6.42 GiB) goes into the KV pool almost one for one: 58.64 + 6.42 = 65.06 GiB expected, 65.00 GiB reported, because the FP8 start set aside 0.06 GiB more for peak activations and CUDA graphs. Capacity rises by 46,320 tokens (473,312 - 426,992), 11 %.
+- Weights are a minor part of a 96 GiB card. FP8 weights buy decode speed, not capacity. In the reference runs at concurrency 1 the ITL p50 was 11.6 ms (BF16) and 7.3 ms (FP8). Aggregate throughput at concurrency 16 was 897 and 1,323 tokens per second (+48 %).
 - The `sizing.py` estimate for FP8 takes 8.2 B times 1 byte (7.64 GiB) and is therefore slightly optimistic. The tool prints a note: the checkpoint is 8.79 GiB. Use the checkpoint size as the weights term.
 
 ### Example 3: FP8 KV cache and a constrained budget
@@ -279,86 +281,86 @@ Weights that are half the size decode faster. That is why precision belongs in a
 
 Use `sizing.py` to reject candidates early. Use the server's `GPU KV cache size` line to confirm.
 
-## 5. Licences
+## 5. Licenses
 
-Read this section with RESEARCH 11. It records what the licence texts said when they were read (October 2026). The research notes state: this is not legal advice and no counsel reviewed it. For anything beyond internal evaluation, ask counsel.
+Read this section with RESEARCH 11. It records what the license texts said when they were read (October 2026). The research notes state: this is not legal advice and no counsel reviewed it. For anything beyond internal evaluation, ask counsel.
 
-### How to read a licence
+### How to read a license
 
-1. Resolve the full 40-character commit SHA and write it down. A licence can change in a later commit.
-2. Compare three places, because they can differ: the licence tag or card front matter, the `LICENSE` file at that revision, and any separate policy file (acceptable-use policy, `USAGE_POLICY`).
+1. Resolve the full 40-character commit SHA and write it down. A license can change in a later commit.
+2. Compare three places, because they can differ: the license tag or card front matter, the `LICENSE` file at that revision, and any separate policy file (acceptable-use policy, `USAGE_POLICY`).
 3. Find the grant: use, modify, distribute, derivatives, outputs.
 4. Find every threshold and what it is measured on: users, monthly revenue, trailing-twelve-month revenue, or the revenue of your employer.
 5. Find naming duties: display strings, name prefixes, `Notice` files, notice retention.
 6. Find use restrictions and territorial limits.
 7. Check gating (`gated` is `False`, `auto` or `manual`) and whether each participant needs an account. All pinned workshop models are ungated.
-8. For quantized or fine-tuned third-party builds, read that repository's own licence field and the base model's terms.
+8. For quantized or fine-tuned third-party builds, read that repository's own license field and the base model's terms.
 9. Write the commercial implication for your own situation in one sentence, and write down what you could not determine.
 
 ### Open weights and open source
 
-- **Open weights** means that the parameters are published, often under a permissive or custom licence. The training data information and the training code need not be.
+- **Open weights** means that the parameters are published, often under a permissive or custom license. The training data information and the training code need not be.
 - **Open source AI** is the term of the [OSI Open Source AI Definition](https://opensource.org/ai/open-source-ai-definition) (version 1.0). It requires three things together, under OSI-approved terms: information about the training data, the complete code to train and run the system, and the parameters.
 - By that wording, the Qwen, Gemma, Mistral, DeepSeek, gpt-oss and Llama checkpoints are at best open weights, even under Apache-2.0 or MIT. This was not audited model by model.
-- OSI states that models that passed its validation include Pythia, OLMo, Amber, CrystalCoder and T5, and that it analysed Llama 2, Grok, Phi-2 and Mixtral, which did not pass. These are not certifications.
+- OSI states that models that passed its validation include Pythia, OLMo, Amber, CrystalCoder and T5, and that it analyzed Llama 2, Grok, Phi-2 and Mixtral, which did not pass. These are not certifications.
 - The workshop says "open-weight" for every model in this repository. It uses "open source" only where the three elements are met. [`DIGITAL-SOVEREIGNTY.md`](DIGITAL-SOVEREIGNTY.md) uses the same distinction when it asks what a team can reproduce or audit.
-- Separate question: the EU AI Act exempts some providers of general-purpose models under a free and open-source licence from some duties (Art. 53(2)). The test looks at the licence (no scale thresholds, no non-commercial limits), at monetisation, at public weights and architecture information, and at systemic risk. It concerns the provider's obligations, not whether you may run the model. RESEARCH 11.2 has the detail; running or LoRA-fine-tuning a downloaded model in a workshop does not make you a provider.
+- Separate question: the EU AI Act exempts some providers of general-purpose models under a free and open-source license from some duties (Art. 53(2)). The test looks at the license (no scale thresholds, no non-commercial limits), at monetisation, at public weights and architecture information, and at systemic risk. It concerns the provider's obligations, not whether you may run the model. RESEARCH 11.2 has the detail; running or LoRA-fine-tuning a downloaded model in a workshop does not make you a provider.
 
-### Licence drift
+### License drift
 
-The licence belongs to a repository at a revision. It does not belong to a family. Adjacent models of one family can differ. A licence read in a blog post, on a slide, or on an earlier model can be wrong for the checkpoint you pin.
+The license belongs to a repository at a revision. It does not belong to a family. Adjacent models of one family can differ. A license read in a blog post, on a slide, or on an earlier model can be wrong for the checkpoint you pin.
 
 | Family | Earlier | Now (RESEARCH 11.4) |
 | --- | --- | --- |
 | Qwen | Qwen3, 3.5, 3.6 and 3.8-27B: Apache-2.0 | Qwen3.8-2.4T-A95B under the Qwen3.8-Max License, Qwen3.8-Flash-Next under the Qwen Community License 1.0 (August 2026) |
-| Google Gemma | Older Gemma repositories keep the `gemma` licence tag | Gemma 4: Apache-2.0 |
-| Meta | Llama 3.x and 4 community licences | Muse Glimmer 30B: Apache-2.0 plus a separate usage policy |
+| Google Gemma | Older Gemma repositories keep the `gemma` license tag | Gemma 4: Apache-2.0 |
+| Meta | Llama 3.x and 4 community licenses | Muse Glimmer 30B: Apache-2.0 plus a separate usage policy |
 | Mistral | Most models Apache-2.0 | Medium 3.5 and Devstral 2: Modified MIT with a US$20M monthly-revenue ceiling |
 | DeepSeek | V3: DeepSeek License Agreement 1.0 with use-based restrictions | V3-0324, R1 and V4.x: MIT |
-| Moonshot | Kimi K2.x: Modified MIT | Kimi K3: a stricter custom licence |
-| Zhipu | GLM-5.2, 5.1, 4.7-Flash: MIT | GLM-5.3: custom licence with a security-review clause; GLM-5.3-Flash stays MIT |
+| Moonshot | Kimi K2.x: Modified MIT | Kimi K3: a stricter custom license |
+| Zhipu | GLM-5.2, 5.1, 4.7-Flash: MIT | GLM-5.3: custom license with a security-review clause; GLM-5.3-Flash stays MIT |
 
-There is no size pattern: Mistral Large 3 (675 B) is Apache-2.0 while Medium 3.5 (128 B) is Modified MIT. The workshop's own rule is to read the licence from the repository at the pinned revision on the day of pinning, and again when the pin changes.
+There is no size pattern: Mistral Large 3 (675 B) is Apache-2.0 while Medium 3.5 (128 B) is Modified MIT. The workshop's own rule is to read the license from the repository at the pinned revision on the day of pinning, and again when the pin changes.
 
 ### Thresholds and conditions per family
 
-Licences with a scale, revenue or field-of-use condition (RESEARCH 11.3):
+Licenses with a scale, revenue or field-of-use condition (RESEARCH 11.3):
 
 | Family and repositories | Condition that matters | Measured on, and carve-outs |
 | --- | --- | --- |
-| Llama 4 (Scout, Maverick), Llama 4 Community License | Above 700 million monthly active users: a licence request that Meta may grant "in its sole discretion". "Built with Llama" display. Models improved with Llama outputs must start their name with "Llama". A `Notice` file. The acceptable-use policy withholds multimodal rights from EU-domiciled individuals and companies. | Users of the licensee's and its affiliates' products in the month before the release date. The EU sentence does not apply to end users of a product that incorporates the model. |
-| Llama 3.1, 3.3 | Licence clause text was not read in the research notes. | Do not assume it matches Llama 4. |
+| Llama 4 (Scout, Maverick), Llama 4 Community License | Above 700 million monthly active users: a license request that Meta may grant "in its sole discretion". "Built with Llama" display. Models improved with Llama outputs must start their name with "Llama". A `Notice` file. The acceptable-use policy withholds multimodal rights from EU-domiciled individuals and companies. | Users of the licensee's and its affiliates' products in the month before the release date. The EU sentence does not apply to end users of a product that incorporates the model. |
+| Llama 3.1, 3.3 | License clause text was not read in the research notes. | Do not assume it matches Llama 4. |
 | Mistral Medium 3.5, Devstral 2 (Modified MIT) | No rights at all if global consolidated monthly revenue of your company (or your employer) exceeds US$20 million. Covers derivatives and third-party hosting. | The whole employer. No internal-use carve-out in the notes. The strictest case for a workshop. |
 | Kimi K2.x (Modified MIT) | Display the model name in the UI above 100 million monthly active users or US$20 million monthly revenue (an OR). | The commercial product or service. |
 | Kimi K3 | A Model-as-a-Service business above US$20 million over any 12 months needs a separate agreement. Display rule as K2.x. | Licensee and affiliates. Internal use is excepted. |
-| Qwen3.8-2.4T-A95B (Qwen3.8-Max License) | A Model-as-a-Service or AI Work Assistant business above US$50 million in any 12 months needs a separate licence. Display the name above 100 million monthly active users or US$20 million monthly revenue. | Licensee and affiliates. Internal use that exposes nothing to third parties is excepted. |
-| Qwen3.8-Flash-Next (Qwen Community License 1.0) | Any Model-as-a-Service or AI Work Assistant business needs a separate licence, with no revenue floor. Same display rule. | Licensee and affiliates. Same internal-use exception. |
+| Qwen3.8-2.4T-A95B (Qwen3.8-Max License) | A Model-as-a-Service or AI Work Assistant business above US$50 million in any 12 months needs a separate license. Display the name above 100 million monthly active users or US$20 million monthly revenue. | Licensee and affiliates. Internal use that exposes nothing to third parties is excepted. |
+| Qwen3.8-Flash-Next (Qwen Community License 1.0) | Any Model-as-a-Service or AI Work Assistant business needs a separate license, with no revenue floor. Same display rule. | Licensee and affiliates. Same internal-use exception. |
 | GLM-5.3 | A Model-as-a-Service business above US$10 billion over 12 months must pass a security review. | Licensee and affiliates. |
 | DeepSeek-V3 (December 2024) | Use-based restrictions that must be passed on to downstream users. | Per the agreement. |
 | Muse Glimmer 30B, gpt-oss | Apache-2.0 plus a separate usage policy. | Check whether the policy binds you; the notes could not settle it for Muse Glimmer. |
 
-Licences without a scale threshold in the texts read: Qwen3, 3.5, 3.6, 3.8-27B and the Coder, VL and Embedding models (Apache-2.0); Gemma 4 (Apache-2.0); the Mistral Apache set (Ministral 3, Small 3.2 and 4, Devstral Small 2, Large 3); DeepSeek V3-0324, R1 and V4.x (MIT); GLM-5.3-Flash and Phi-4-reasoning-vision (MIT); Granite 4.2, EuroLLM-9B and Apertus (Apache-2.0, Apertus gated with automatic approval); Nemotron 3.5 Lightning (OpenMDW-1.1). "No threshold" does not mean "no duties": read the notice and attribution terms.
+Licenses without a scale threshold in the texts read: Qwen3, 3.5, 3.6, 3.8-27B and the Coder, VL and Embedding models (Apache-2.0); Gemma 4 (Apache-2.0); the Mistral Apache set (Ministral 3, Small 3.2 and 4, Devstral Small 2, Large 3); DeepSeek V3-0324, R1 and V4.x (MIT); GLM-5.3-Flash and Phi-4-reasoning-vision (MIT); Granite 4.2, EuroLLM-9B and Apertus (Apache-2.0, Apertus gated with automatic approval); Nemotron 3.5 Lightning (OpenMDW-1.1). "No threshold" does not mean "no duties": read the notice and attribution terms.
 
 Thresholds measure different things on different entities. Ask for each: whose users, whose revenue, over which period, and is internal use excepted?
 
 ### The checklist row
 
-One row per model, filled before a lab or a project uses it: **Publisher, Model, Revision, License, Commercial implications, Source.** The Revision column makes the row auditable. The Source column should point at the licence file at that revision, not at the card. `workshop-artifacts/model-selection.md` carries the empty table. `config/models.yaml` stores revision, licence, commercial note and source of every pinned model, and `pnpm check` rejects a revision that is not a full SHA.
+One row per model, filled before a lab or a project uses it: **Publisher, Model, Revision, License, Commercial implications, Source.** The Revision column makes the row auditable. The Source column should point at the license file at that revision, not at the card. `workshop-artifacts/model-selection.md` carries the empty table. `config/models.yaml` stores revision, license, commercial note and source of every pinned model, and `pnpm check` rejects a revision that is not a full SHA.
 
 | Publisher | Model | Revision | License | Commercial implications | Source |
 | --- | --- | --- | --- | --- | --- |
 | Qwen | Qwen3-8B | `b968826d9c46dd6066d109eabc6255188de91218` | Apache-2.0 | No scale threshold or naming duty in the text. Notice duties per the Apache-2.0 text. | [LICENSE at the revision](https://huggingface.co/Qwen/Qwen3-8B/blob/b968826d9c46dd6066d109eabc6255188de91218/LICENSE) |
 | Mistral AI | Mistral-Medium-3.5-128B | `22b2b868a15677cfa6061277ed2f653d1349a9ab` | Modified MIT | No rights if the licensee's or employer's monthly revenue exceeds US$20 million; covers derivatives and third-party hosting. | [Medium 3.5 LICENSE](https://huggingface.co/mistralai/Mistral-Medium-3.5-128B/raw/main/LICENSE) |
-| Meta | Llama-4-Scout-17B-16E-Instruct | `92f3b1597a195b523d8d9e5700e57e4fbb8f20d3` | Llama 4 Community License and acceptable-use policy | 700 million monthly-active-user licence request; "Built with Llama"; "Llama" name prefix on derived models; Notice file; EU multimodal clause in the policy; gated, manual approval. | [Llama 4 licence](https://www.llama.com/llama4/license/) |
-| Qwen | Qwen3.8-Flash-Next | `de4b8e4d43b917e7706784d8bb445c9af86a3540` | Qwen Community License 1.0 | Any Model-as-a-Service or AI Work Assistant business needs a separate licence; model-name display above the stated limits. | [Flash-Next LICENSE](https://huggingface.co/Qwen/Qwen3.8-Flash-Next/raw/main/LICENSE) |
+| Meta | Llama-4-Scout-17B-16E-Instruct | `92f3b1597a195b523d8d9e5700e57e4fbb8f20d3` | Llama 4 Community License and acceptable-use policy | 700 million monthly-active-user license request; "Built with Llama"; "Llama" name prefix on derived models; Notice file; EU multimodal clause in the policy; gated, manual approval. | [Llama 4 license](https://www.llama.com/llama4/license/) |
+| Qwen | Qwen3.8-Flash-Next | `de4b8e4d43b917e7706784d8bb445c9af86a3540` | Qwen Community License 1.0 | Any Model-as-a-Service or AI Work Assistant business needs a separate license; model-name display above the stated limits. | [Flash-Next LICENSE](https://huggingface.co/Qwen/Qwen3.8-Flash-Next/raw/main/LICENSE) |
 
-The first row is a pinned workshop model (the other five are in `config/models.yaml`). The other three show how a row reads when the licence is not Apache-2.0. They are licence case studies, not lab defaults.
+The first row is a pinned workshop model (the other five are in `config/models.yaml`). The other three show how a row reads when the license is not Apache-2.0. They are license case studies, not lab defaults.
 
 ## 6. Worksheets for the four Lab 1 scenarios
 
 The numbers come from [`tasks/01-model-selection.md`](../tasks/01-model-selection.md). Fill the block for each scenario in `workshop-artifacts/model-selection.md`: model, precision, hardware, engine, context, reasoning, why, what I gave up. The worksheets below hold questions and trade-offs. They hold no answers. The trainer's reference answers are not in this repository.
 
-For each scenario you should be able to produce: a `sizing.py` run for your choice, the licence row, a sentence on how you would test quality, the smaller model you considered and why you rejected it, and what you gave up.
+For each scenario you should be able to produce: a `sizing.py` run for your choice, the license row, a sentence on how you would test quality, the smaller model you considered and why you rejected it, and what you gave up.
 
 ### Scenario A: internal German-language enterprise assistant
 
@@ -377,10 +379,10 @@ Questions to ask:
 - Does answering from documents need reasoning? What does thinking cost in latency and tokens at 20 concurrent users, and what does it improve on your items?
 - Do you need structured output (citations as JSON) or tool calling? Which parser does the candidate need?
 - What else must run on the GPU: an embedding model for retrieval? How much of the budget does it take?
-- "Must not leave the company": which parts are in scope? Weights, prompts, logs, embeddings, telemetry. Does the licence allow your internal commercial use at your size? Which threshold could apply to your employer?
+- "Must not leave the company": which parts are in scope? Weights, prompts, logs, embeddings, telemetry. Does the license allow your internal commercial use at your size? Which threshold could apply to your employer?
 - When the model is replaced next year, how do you re-run the eval and the benchmark?
 
-Trade-offs in play: quality against latency (thinking); context length against concurrency (KV cache); German quality against model size and licence; one model against a separate retrieval model; precision against headroom; answer freshness against retrieval design.
+Trade-offs in play: quality against latency (thinking); context length against concurrency (KV cache); German quality against model size and license; one model against a separate retrieval model; precision against headroom; answer freshness against retrieval design.
 
 ### Scenario B: customer-service classification and information extraction
 
@@ -394,13 +396,13 @@ Turn the requirement into numbers:
 
 Questions to ask:
 
-- What are the classes and fields? Are there labelled historical tickets to build the eval from? What does a wrong class cost, and does it cost the same for every class?
+- What are the classes and fields? Are there labeled historical tickets to build the eval from? What does a wrong class cost, and does it cost the same for every class?
 - How many items per class do you need to see the error rate you care about? What is the interval on 30 items?
 - Does classification need reasoning? How would you test thinking on and off, and what would the extra tokens cost at 5 requests per second?
 - How small can the model go before the error rate on your items moves? Which smaller models can you actually test here, and what do they score?
 - How do you describe the output? The schema, and also the fields in the prompt. What happens with a ticket that fits no class, or in another language?
 - Do few-shot examples help, and what do they cost in prefill? Do they form a shared prefix that the prefix cache can reuse?
-- Would fine-tuning be justified, or would a better prompt do? If fine-tuning: who owns the labelled data, and does the licence allow derivatives?
+- Would fine-tuning be justified, or would a better prompt do? If fine-tuning: who owns the labeled data, and does the license allow derivatives?
 - Tickets contain personal data. What is logged, where, and for how long?
 - What happens when the peak exceeds capacity: queue, drop, or degrade?
 
@@ -422,9 +424,9 @@ Questions to ask:
 - How would you evaluate: 30 real tasks from your own repository with tests that run? What does a wrong suggestion cost?
 - What does prefill cost for 16,000 to 32,000 tokens, and does a TTFT of 1 s survive at your concurrency? Can the repository context be a shared prefix between requests of the same developer? How would you check?
 - Does thinking improve the results on your tasks, and can you afford its tokens within the latency you promised?
-- Is a dedicated coder model worth it against a general model of the same size, and which tool-call parser, template and licence does it bring?
+- Is a dedicated coder model worth it against a general model of the same size, and which tool-call parser, template and license does it bring?
 - Does the candidate fit one GPU at your concurrency? If not, what do you need: a bigger GPU, quantization, several GPUs? That is a finding, not a failure.
-- Which licence thresholds are measured on your employer, and which on your product?
+- Which license thresholds are measured on your employer, and which on your product?
 - The code is confidential. Which parts of the stack must stay in your control?
 
 Trade-offs in play: context length against concurrency; TTFT against prompt size; model size and quality against the latency promise; thinking against latency; dedicated coder model against a general model; KV precision against quality; one shared server against several replicas.
@@ -447,7 +449,7 @@ Questions to ask:
 - Are the inputs text, or scanned pages and images? Does that change the model class?
 - Does the job need a server with an HTTP API, or is it a batch? How do you retry and resume a 72-hour run when a restart takes 40 s to 3 minutes?
 - How much slack is in 72 hours, and would a slower, cheaper setup still make it?
-- If you process documents for other companies, could a licence's Model-as-a-Service definition apply to you?
+- If you process documents for other companies, could a license's Model-as-a-Service definition apply to you?
 
 Trade-offs in play: cost per document against accuracy; a smaller model plus human review against a larger model; precision against quality; wall-clock time against GPU count; thinking against cost; simplicity of one server against throughput tuning.
 
@@ -468,7 +470,7 @@ A model is more than weights. Replace it and each row below can break or move. T
 | Quantization support | Pre-quantized checkpoints are detected from the model files. Kernels differ per GPU generation. | `quantization` and `kv-cache-dtype` are allowed `--set` overrides (`infra/pod/render-profile.py`) | Smoke-test on the real GPU. Re-run the eval at that precision. |
 | Served model name | Clients pass a model name. A wrong name gives 404. | `served-model-name` in each profile; `WORKSHOP_MODEL` is set to `Qwen/Qwen3-8B` at login | The `fp8` profile keeps the BF16 name. The `small` and `embedding` profiles do not: change `WORKSHOP_MODEL` or pass `--model`. |
 | Embedding model (RAG) | Another embedding model means another vector size (1,024 here) and a different query instruction. | `EMBEDDING_MODEL`; `config/vllm-profiles/embedding.yaml` | Re-embed every document. Never mix vectors of two models. |
-| Revision and licence | A new revision can change files and licence. | `revision` (40 characters, enforced by `render-profile.py` and `pnpm check`), `license`, `commercial_use`, `source` in `config/models.yaml` | Pin the SHA, add the licence row, fetch the model. |
+| Revision and license | A new revision can change files and license. | `revision` (40 characters, enforced by `render-profile.py` and `pnpm check`), `license`, `commercial_use`, `source` in `config/models.yaml` | Pin the SHA, add the license row, fetch the model. |
 | Engine flags | Card flags go stale. Some models need a plugin or `trust_remote_code`. | `FORBIDDEN_KEYS` in `render-profile.py` includes `trust-remote-code` | Check every flag against `vllm serve --help` of the pinned image. A model that needs remote code cannot run on the workshop pods. |
 | Memory budget | Another model needs another split between weights and KV. | `gpu-memory-utilization` (0.80, plus 0.08 for the embedding server) | Re-run `sizing.py` and read the startup log. |
 | Every baseline | TTFT, ITL, KV capacity and quality are all void. | `experiments/`, `benchmark/`, the eval from section 3 | Re-measure, with a fresh seed. The result's `model_revision` and `server_args` say which model produced it. |
@@ -494,7 +496,7 @@ max-model-len: <tokens you need>
 
 Adding a candidate model, in order:
 
-1. Pin it in `config/models.yaml`: full SHA, architecture fields, licence, commercial note, source.
+1. Pin it in `config/models.yaml`: full SHA, architecture fields, license, commercial note, source.
 2. Fetch it on the pod: `fetch-models.py --models <role>` (the trainer does this; the deployment script is idempotent).
 3. Write the profile. Participants cannot do this on the pods: the profiles directory is root-owned and `infra/verify-machine.sh` checks it. A new profile is committed to the repository and deployed by the trainer. Participants try variants of an existing profile with `--set`.
 4. Validate it anywhere: `python3 infra/pod/render-profile.py <name> --dir config/vllm-profiles --out /tmp/check.yaml`.

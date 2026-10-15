@@ -17,7 +17,7 @@ import DiagramFrame from './DiagramFrame.vue'
     <rect x="0" y="150" width="280" height="104" rx="10" class="dg-box dg-teal" />
     <text x="140" y="186" text-anchor="middle" class="dg-title">GPU exporter</text>
     <text x="140" y="214" text-anchor="middle" class="dg-text-muted">NVML, DCGM metric names</text>
-    <text x="140" y="236" text-anchor="middle" class="dg-text-muted">power, VRAM, utilisation</text>
+    <text x="140" y="236" text-anchor="middle" class="dg-text-muted">power, VRAM, utilization</text>
 
     <!-- pipeline -->
     <rect x="380" y="88" width="220" height="104" rx="10" class="dg-box dg-violet" />

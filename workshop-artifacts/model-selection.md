@@ -58,10 +58,10 @@ Why:
 What I gave up:
 ```
 
-## Licences
+## Licenses
 
 For every model you named:
 
-| Publisher | Model | Revision | Licence | Commercial implications | Source |
+| Publisher | Model | Revision | License | Commercial implications | Source |
 | --- | --- | --- | --- | --- | --- |
 | | | | | | |

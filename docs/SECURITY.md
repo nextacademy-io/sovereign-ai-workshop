@@ -6,7 +6,7 @@ Security for self-hosted inference, taught as engineering: what can go wrong, wh
 
 Facts come from [`RESEARCH.md`](RESEARCH.md) (cited by section number, for example "RESEARCH 13.3") and from incidents measured while the workshop pods were built. Everything was verified on 2026-10-14. Advisories, versions and prices move: re-check before every run.
 
-How statements are labelled:
+How statements are labeled:
 
 - **Measured**: observed on a live pod while building this workshop.
 - **Fact**: stated by a source cited in RESEARCH.
@@ -38,13 +38,13 @@ Finding numbers (Finding 1, Finding 2, and so on) refer to the list of measured 
 | Attacker needs | Network reach or code execution | Only a way to put text in front of the model: a web page, a PDF, a ticket, a tool description |
 | Fixed by | Patching, configuration, isolation | Design: limiting what the model can cause, and checking outside the model |
 | Owner | Platform and operations | The team that builds the application |
-| Taught in | Day 3 block `d3-05`, this document sections 2 to 5 | Day 3 blocks `d3-06` and `d3-07`, this document sections 6 and 7 |
+| Taught in | `23-security-sovereignty`, this document sections 2 to 5 | `24-rag` and `25-tools-agents`, this document sections 6 and 7 |
 
 Why the two layers must be kept apart (RESEARCH 13.1, 13.7):
 
 - **Different failure mechanism.** An infrastructure bug is a software defect: it is patched. Prompt injection is a property of how the model works. NIST AI 100-2 E2025 puts it as "GenAI models combine the data and instruction channels". Filtering reduces risk and does not remove it.
 - **Different attacker position.** The infrastructure attacker needs a path to a port. The application attacker needs a path to a document the model will read.
-- **No transfer of protection.** Authenticating the endpoint does not make the model's behaviour safe. A well-filtered prompt does not help if the control plane is reachable. Both layers need an owner.
+- **No transfer of protection.** Authenticating the endpoint does not make the model's behavior safe. A well-filtered prompt does not help if the control plane is reachable. Both layers need an owner.
 
 | Control | What it does | What it does not do |
 | --- | --- | --- |
@@ -251,7 +251,7 @@ This repository: single node, single tenant per pod, loopback. None of these kno
 
 ### 3.5 Patching and advisories
 
-Fact (RESEARCH 13.3, API pull on 2026-10-14): 104 published vLLM advisories, 27 in 2025 and 77 in 2026. 2025: 3 critical, 10 high, 12 medium, 2 low. 2026: 2 critical, 17 high, 54 medium, 4 low. The stream is dominated by four classes: model loading and remote code, multimodal input handling, multi-node serialisation, and cache or tenant isolation.
+Fact (RESEARCH 13.3, API pull on 2026-10-14): 104 published vLLM advisories, 27 in 2025 and 77 in 2026. 2025: 3 critical, 10 high, 12 medium, 2 low. 2026: 2 critical, 17 high, 54 medium, 4 low. The stream is dominated by four classes: model loading and remote code, multimodal input handling, multi-node serialization, and cache or tenant isolation.
 
 - [ ] Subscribe to the project's security advisories. The policy: critical and high issues are fixed in a private fork with pre-notification, and "A CVE is requested when a fix is merged". An advisory without a CVE id (for example GHSA-h3rc-6mm3-gc2m) can already be real.
 - [ ] At every pin, record the date of the advisory check and compare your version with each affected and patched range. Advisory metadata can be ambiguous: CVE-2026-47155 lists "affected `<= 0.22.0`, patched `0.22.0`"; read the advisory page before quoting a fixed version.
@@ -283,7 +283,7 @@ Fact (RESEARCH 13.12):
 | `VLLM_LOGGING_LEVEL` | not stated in the notes | Sets the minimum level; DEBUG turns stdout and log files into a prompt store |
 
 - [ ] Log metadata by default: request id, token counts, latency, status.
-- [ ] Treat prompt and response bodies as personal data when they relate to a person (GDPR Art. 4(1), 5(1)(c), 5(1)(e), 25(2)). Give any body log a purpose, an access list and a retention period. Encrypt it and monitor access to it (EDPB expert report, labelled as the author's view).
+- [ ] Treat prompt and response bodies as personal data when they relate to a person (GDPR Art. 4(1), 5(1)(c), 5(1)(e), 25(2)). Give any body log a purpose, an access list and a retention period. Encrypt it and monitor access to it (EDPB expert report, labeled as the author's view).
 - [ ] Reconcile audit and minimisation on purpose. For high-risk AI systems the AI Act asks for logs kept at least six months unless data-protection law provides otherwise (Art. 12, 19, 26(6); applicable from 2 December 2027 for Annex III and 2 August 2028 for Annex I systems).
 - [ ] Log tool calls (who, which tool, which arguments, result status). MCP asks clients to "Log tool usage for audit purposes".
 - [ ] No official retention period for LLM logs was found (Not verified).
@@ -314,7 +314,7 @@ This repository: Finding 8 is the same lesson. Downloading by commit SHA creates
 
 Goal: for every kind of data, say where it goes, who can read it and how long it stays. Do it for the workshop pods first, then for your own architecture.
 
-Steps (plan 15 to 20 minutes per setup):
+Steps (for each setup):
 
 1. List the data kinds: prompts, responses, logs, embeddings, model weights, telemetry, and identities and keys.
 2. Draw each hop a copy of that data takes. Include disks, caches, memory, tunnels, proxies and backups.
@@ -338,10 +338,10 @@ Steps (plan 15 to 20 minutes per setup):
 
 | Data | Where it goes | Who can read it | Retention |
 | --- | --- | --- | --- |
-| Prompts | Client, API gateway or reverse proxy (TLS ends here), inference replicas. Also application databases (chat history), tracing and APM systems, WAF and gateway access logs | Operators of every hop; anyone with access to those logs and stores; the provider if the hardware is rented | You define it for every hop. Default engine behaviour keeps no prompt log; every system around it may |
+| Prompts | Client, API gateway or reverse proxy (TLS ends here), inference replicas. Also application databases (chat history), tracing and APM systems, WAF and gateway access logs | Operators of every hop; anyone with access to those logs and stores; the provider if the hardware is rented | You define it for every hop. Default engine behavior keeps no prompt log; every system around it may |
 | Responses | The same hops, plus stored conversation history | The same, and the application's users | History is a setting the deployer secures (CNIL Q&A); no official retention period exists for LLM logs |
 | Logs | Gateway, engine, audit logs of tool calls, metrics. Metadata by default, bodies only with a purpose | Log platform operators, auditors | Policy per log class. High-risk systems: at least six months from December 2027 or August 2028, unless data-protection law says otherwise |
-| Embeddings | Vector database, persisted. Derived from documents, so they inherit the documents' classification (Inference) | Whoever can query the store; check retrieval authorisation | Must follow deletion of the source: re-embed or delete vectors when a document goes (Inference) |
+| Embeddings | Vector database, persisted. Derived from documents, so they inherit the documents' classification (Inference) | Whoever can query the store; check retrieval authorization | Must follow deletion of the source: re-embed or delete vectors when a document goes (Inference) |
 | Model weights | Your own registry or object storage, pinned by SHA, copied to hosts. The upstream hub is a dependency, not storage | Operators; integrity matters more than secrecy for public weights | Versioned; old versions kept for reproducibility and rollback |
 | Telemetry | Usage statistics, analytics and update checks disabled per component; monitoring inside your network | Your monitoring team | Per policy; metrics contain no text |
 | Identities and keys | Identity provider, secret store, per-client API keys | Security team | Rotated; revoked on leave |
@@ -366,7 +366,7 @@ You run code and data you did not write. Name each component, pin it, and say ho
 
 | Component | What can go wrong | What to pin and how | In this repository |
 | --- | --- | --- | --- |
-| Model weights | Repository updated or replaced; pickle files; poisoned weights; a licence change | Full 40-character commit SHA, never a branch or a 7-character prefix (RESEARCH 4.1) | `config/models.yaml`; `infra/pod/fetch-models.py` downloads by SHA; `infra/pod/render-profile.py` rejects a profile whose `revision` is not 40 hex characters; `scripts/check-repo.mjs` checks the pins |
+| Model weights | Repository updated or replaced; pickle files; poisoned weights; a license change | Full 40-character commit SHA, never a branch or a 7-character prefix (RESEARCH 4.1) | `config/models.yaml`; `infra/pod/fetch-models.py` downloads by SHA; `infra/pod/render-profile.py` rejects a profile whose `revision` is not 40 hex characters; `scripts/check-repo.mjs` checks the pins |
 | Tokenizer and chat template | Part of the model repository; safetensors does not protect against a malicious tokenizer or template (RESEARCH 4.2, Inference; the strength of the Jinja sandbox was Not verified) | The same SHA. vLLM has separate `--revision`, `--tokenizer-revision` and `--code-revision` settings | The pinned snapshot is the only one in the cache and `refs/main` points to it, so offline lookups by name resolve to it (Inference) |
 | Container image | Mutable tags; no signature, SBOM or attestation found for the official image; a build-time dependency-confusion advisory (CVE-2026-54232, fixed `>= 0.22.1`) | Digest, not tag: "A digest takes the place of the tag when pulling an image" (RESEARCH 13.10) | `infra/versions.env` (`VLLM_IMAGE_DIGEST`). The same digest is also in `deploy/vllm/Dockerfile` and `infra/runpod/pod-spec.example.json`: update all three together |
 | Python packages | Typosquatting, dependency confusion, drift | Exact versions and hashes where you control the install | `apps/inference-client/requirements.txt` pins `openai` and `numpy`; the base image of the client is pinned by digest; `uv.lock` and `pnpm-lock.yaml` pin tooling. The engine's own packages come inside the pinned image |
@@ -380,7 +380,7 @@ A digest pin gives **reproducibility, not provenance**. It freezes what is pulle
 Re-pinning procedure:
 
 1. Resolve the new full SHA or digest. Write the date.
-2. Read the licence file at that SHA, plus any separate policy file (RESEARCH 11.5).
+2. Read the license file at that SHA, plus any separate policy file (RESEARCH 11.5).
 3. Check the advisories for the engine and compare the ranges (section 3.5).
 4. Update every file that holds the pin, run `pnpm check`, and re-run the baseline experiment.
 
@@ -402,7 +402,7 @@ CVE-2026-47155 ("Artifact Pin Decay") shows that `--revision` and `--code-revisi
 
 ### 5.3 Gated models
 
-Fact (RESEARCH 4.4): gating is access control, not a licence. Users "must agree to share their contact information" with the publisher, so a download is also a data flow. Access is granted per user, manual approval takes time, and a gated model can be Apache-2.0. A user token is needed, and a logged-in client sends it on every request unless `HF_HUB_DISABLE_IMPLICIT_TOKEN=1`. This repository pins only ungated models, so participants need no Hugging Face account, and the trainer's token never goes onto a pod.
+Fact (RESEARCH 4.4): gating is access control, not a license. Users "must agree to share their contact information" with the publisher, so a download is also a data flow. Access is granted per user, manual approval takes time, and a gated model can be Apache-2.0. A user token is needed, and a logged-in client sends it on every request unless `HF_HUB_DISABLE_IMPLICIT_TOKEN=1`. This repository pins only ungated models, so participants need no Hugging Face account, and the trainer's token never goes onto a pod.
 
 ## 6. LLM application security
 
@@ -412,7 +412,7 @@ Application security starts from one fact: the model reads data and instructions
 
 Fact (RESEARCH 13.7):
 
-- **Direct**: the user's own input changes the model's behaviour. NIST AI 100-2 E2025 defines it as in-context instructions from the main user "appended to higher-trust instructions" such as the system prompt.
+- **Direct**: the user's own input changes the model's behavior. NIST AI 100-2 E2025 defines it as in-context instructions from the main user "appended to higher-trust instructions" such as the system prompt.
 - **Indirect**: the model reads text from an external source such as a website or file, and that text carries instructions. Primary source: Greshake et al., arXiv 2302.12173 (2023): attackers target an application "by strategically injecting prompts into data likely to be retrieved". NIST describes it as enabled by resource control, mounted by a third party.
 - BSI notes that protective mechanisms such as fine-tuning "often prove insufficient". The controls that hold are privilege limits and human approval (OWASP LLM01).
 
@@ -443,9 +443,9 @@ A tool call is a request that the application decides to run. The model never ex
 - **Tool results are untrusted.** A search result, a web page, a file or another tool's output can carry instructions.
 - **Tool descriptions are untrusted too.** OWASP calls this MCP tool poisoning: "an indirect prompt injection attack" through external tool servers. MCP says clients "MUST consider tool annotations to be untrusted unless they come from trusted servers".
 - **The confused deputy.** The application acts with its own authority. If the user, or text the model read, can steer the application into an action the user is not entitled to, the application has been used as a deputy. MCP's security guidance names this explicitly for proxy servers with a static client ID.
-- **The cure is authorisation downstream, with the end user's identity.** OWASP LLM06: "Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not."
+- **The cure is authorization downstream, with the end user's identity.** OWASP LLM06: "Implement authorization in downstream systems rather than relying on an LLM to decide if an action is allowed or not."
 
-### 6.3 Authorisation and policy enforcement on tool calls
+### 6.3 Authorization and policy enforcement on tool calls
 
 ```text
 model proposes a call
@@ -457,9 +457,9 @@ model proposes a call
   → result goes back to the model as data
 ```
 
-- A prompt is a request, not a control. Policy lives in code: allowlists of tools and arguments, rate and budget limits, per-user authorisation, approval steps.
+- A prompt is a request, not a control. Policy lives in code: allowlists of tools and arguments, rate and budget limits, per-user authorization, approval steps.
 - Keep the capability small. OWASP lists excessive functionality, permissions and autonomy as the root causes of LLM06.
-- This repository: every tool in `apps/tool-calling-demo/tools.py` validates its own input, is read-only and works on fixed in-memory data. `calculate` parses with `ast` and rejects everything except arithmetic, with a length cap and an exponent cap, instead of calling `eval`. The demo has no per-user authorisation because nothing it can do needs one. Extension exercise: add a tool that writes (for example `place_order`) and add the schema check, the per-user policy, the approval step and the audit line.
+- This repository: every tool in `apps/tool-calling-demo/tools.py` validates its own input, is read-only and works on fixed in-memory data. `calculate` parses with `ast` and rejects everything except arithmetic, with a length cap and an exponent cap, instead of calling `eval`. The demo has no per-user authorization because nothing it can do needs one. Extension exercise: add a tool that writes (for example `place_order`) and add the schema check, the per-user policy, the approval step and the audit line.
 - BSI and ANSSI's zero-trust design principles for LLM systems recommend restricting access rights, transparent decision-making and keeping critical decisions under human supervision (RESEARCH 13.6).
 
 ### 6.4 Output validation
@@ -501,7 +501,7 @@ Fact (RESEARCH 13.8): the current MCP revision is 2026-07-28; the previous is 20
 | SSRF during OAuth discovery | Block private ranges and `169.254.0.0/16`; use an egress proxy |
 | Tools | Servers validate all inputs, control access, rate-limit and sanitise outputs. Clients confirm sensitive operations, show inputs, validate results, time out and "Log tool usage for audit purposes". "there SHOULD always be a human in the loop with the ability to deny tool invocations" |
 
-OWASP's MCP Top 10 is labelled beta (RESEARCH 13.6): MCP01 token mismanagement and secret exposure; MCP02 privilege escalation via scope creep; MCP03 tool poisoning; MCP04 supply chain attacks and dependency tampering; MCP05 command injection and execution; MCP06 prompt injection via contextual payloads; MCP07 insufficient authentication and authorization; MCP08 lack of audit and telemetry; MCP09 shadow MCP servers; MCP10 context injection and over-sharing. The demo's MCP server is code in this repository and runs as your own subprocess, so it is trusted. A third-party MCP server is code and text you do not control: allowlist, sandbox and log it.
+OWASP's MCP Top 10 is labeled beta (RESEARCH 13.6): MCP01 token mismanagement and secret exposure; MCP02 privilege escalation via scope creep; MCP03 tool poisoning; MCP04 supply chain attacks and dependency tampering; MCP05 command injection and execution; MCP06 prompt injection via contextual payloads; MCP07 insufficient authentication and authorization; MCP08 lack of audit and telemetry; MCP09 shadow MCP servers; MCP10 context injection and over-sharing. The demo's MCP server is code in this repository and runs as your own subprocess, so it is trusted. A third-party MCP server is code and text you do not control: allowlist, sandbox and log it.
 
 ### 6.7 OWASP Top 10 for LLM Applications 2025 as a checklist
 
@@ -515,12 +515,12 @@ Use the ten identifiers as headings in a design review (RESEARCH 13.5).
 | LLM04:2025 | Data and Model Poisoning | Do we know the provenance of weights, tokenizer, template and retrieval corpus? | Section 5; the retrieval corpus in `apps/rag-demo/handbook` |
 | LLM05:2025 | Improper Output Handling | What consumes model output, and does it validate? | Section 6.4 |
 | LLM06:2025 | Excessive Agency | What can the model's tools do, with whose authority? | Sections 6.2 and 6.3 |
-| LLM07:2025 | System Prompt Leakage | Does the system prompt hold anything that must stay secret? | Treat it as readable by users; keep secrets and authorisation out of it (Inference) |
+| LLM07:2025 | System Prompt Leakage | Does the system prompt hold anything that must stay secret? | Treat it as readable by users; keep secrets and authorization out of it (Inference) |
 | LLM08:2025 | Vector and Embedding Weaknesses | Who can query the index? Do retrieved items respect access rights? | `apps/rag-demo` and the embedding instance on port 8001 |
 | LLM09:2025 | Misinformation | How do we limit wrong or outdated answers? | The handbook holds a superseded policy on purpose (`03-remote-work-v1-archived.md`); `rag.py` asks for citations and "I do not know"; `--no-rag` shows the ungrounded answer |
 | LLM10:2025 | Unbounded Consumption | What caps requests, tokens, steps and concurrency? | Sections 3.3 and 6.5 |
 
-For agents, OWASP's Top 10 for Agentic Applications for 2026 (published 9 December 2025) adds: ASI01 Agent Goal Hijack; ASI02 Tool Misuse; ASI03 Identity and Privilege Abuse; ASI04 Agentic Supply Chain Vulnerabilities; ASI05 Unexpected Code Execution; ASI06 Memory and Context Poisoning; ASI07 Insecure Inter-Agent Communication; ASI08 Cascading Failures; ASI09 Human-Agent Trust Exploitation; ASI10 Rogue Agents. The common control across LLM01, LLM06 and the MCP material is the same: enforce authorisation outside the model and keep a human approval step for high-risk actions (RESEARCH 13.6).
+For agents, OWASP's Top 10 for Agentic Applications for 2026 (published 9 December 2025) adds: ASI01 Agent Goal Hijack; ASI02 Tool Misuse; ASI03 Identity and Privilege Abuse; ASI04 Agentic Supply Chain Vulnerabilities; ASI05 Unexpected Code Execution; ASI06 Memory and Context Poisoning; ASI07 Insecure Inter-Agent Communication; ASI08 Cascading Failures; ASI09 Human-Agent Trust Exploitation; ASI10 Rogue Agents. The common control across LLM01, LLM06 and the MCP material is the same: enforce authorization outside the model and keep a human approval step for high-risk actions (RESEARCH 13.6).
 
 ## 7. An anecdote: a documentation page that talked to AI agents
 
@@ -537,7 +537,7 @@ What the workshop does about it:
 - **Fetched content is data, not instructions.** That is the rule. It is also the rule for `apps/tool-calling-demo`: tool and web results are untrusted input.
 - **Least privilege for the agent's tools.** Give agents the narrowest key you can, and a read-only one where it exists.
 - **Human confirmation for billable or destructive actions.** `infra/provision.md` says to state the hourly price before creating a pod, and to read the pod back afterwards.
-- **Verify what agents tell you.** The research agents' own claims were checked independently before use (Finding 13): the advisory for CVE-2026-48746, the number and dates of the AI Omnibus regulation, and two licence files. All held. Checking is the habit, not a sign of doubt.
+- **Verify what agents tell you.** The research agents' own claims were checked independently before use (Finding 13): the advisory for CVE-2026-48746, the number and dates of the AI Omnibus regulation, and two license files. All held. Checking is the habit, not a sign of doubt.
 
 Discussion questions:
 
@@ -620,7 +620,7 @@ Signs: a process that `wsctl status` lists as a stray, an unexpected account, en
 
 The Runpod key has the permissions of the whole account and no read-only mode (RESEARCH 7.9).
 
-1. [ ] Revoke the credential in the Runpod console, and the MCP authorisation. Replace the SSH key registered with Runpod if it may be exposed.
+1. [ ] Revoke the credential in the Runpod console, and the MCP authorization. Replace the SSH key registered with Runpod if it may be exposed.
 2. [ ] List what exists: `list-pods`, `list-network-volumes`, `list-billing`. Delete resources you did not create.
 3. [ ] Check spend against the expected hourly cost (pods multiplied by the price).
 4. [ ] If an agent acted on injected text: stop it, read its tool-call log, revoke the credentials it used, and add the case to the policy and the tests (section 6).
@@ -637,7 +637,7 @@ Then, with the Runpod MCP or console:
 | --- | --- | --- |
 | No pods | `list-pods` | Empty |
 | No volumes you still pay for | `list-network-volumes` | Empty, or only what you chose to keep. A stopped pod keeps billing for its volume |
-| No spend | `list-billing` for the last day | Zero hourly spend after the delete |
+| No spend | `list-billing` for the most recent day | Zero hourly spend after the delete |
 | No leftover access | Try an old participant key against the old host | Fails or times out |
 | No leftover tokens | Runpod, Hugging Face and any other token created for the workshop | Removed |
 | Local data | `infra/participants.yaml` stays out of git; collected archives and logs under `infra/.state` kept only as long as you need them | Reviewed, then deleted |

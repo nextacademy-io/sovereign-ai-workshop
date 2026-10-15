@@ -29,13 +29,13 @@ quality:
 
 ## Selected Model
 
-_Lab 1. Model, precision, why this one, which alternatives you rejected and why. Licence and commercial implications._
+_Lab 1. Model, precision, why this one, which alternatives you rejected and why. License and commercial implications._
 
 | | |
 | --- | --- |
 | Model and revision | `Qwen/Qwen3-8B` at `b968826d9c46dd6066d109eabc6255188de91218` (the workshop's primary model; replace with your own choice for your scenario) |
-| Precision | BF16 (FP8 is the Day 2 experiment) |
-| Licence (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the licence and attribution notices |
+| Precision | BF16 (FP8 is the quantization experiment) |
+| License (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the license and attribution notices |
 | Why it is the smallest model that does the task | Reference answer for the workshop workload only: a dense 8B model with tool calling and structured output that fits one GPU with room for a large KV cache. For your scenario, argue it from your own eval. |
 | Rejected alternatives | `Qwen/Qwen3-1.7B` (smaller, would need an eval on your items); `Qwen/Qwen3-30B-A3B-FP8` (mixture of experts: all 30.5 B weights must be resident) |
 
@@ -71,30 +71,36 @@ Reference results: `benchmark/results/reference/concurrency/baseline-c001` to `b
 
 ## Experiments
 
-_Lab 4. One hypothesis, one changed variable, measured before and after. Reference results for all four hypotheses (`benchmark/results/reference/`):_
+_Lab 4. One lever, one changed variable, a prediction written before the run, measured before and after. Reference results for all four hypotheses (`benchmark/results/reference/`):_
 
 **A. Quantization** (`quantization/`: `baseline-c*` against `fp8-c*`)
 
 ```text
 Hypothesis: FP8 weights make decode faster and free memory for more KV cache, at some cost in quality
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile fp8 (published FP8 checkpoint of the same model)
 Before: concurrency 1: ITL p50 11.6 ms, 86.2 tokens/s per request; concurrency 16: 897 tokens/s, TTFT p50 616 ms
 After:  concurrency 1: ITL p50 7.3 ms, 138.2 tokens/s per request; concurrency 16: 1,323 tokens/s, TTFT p50 360 ms
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: decode speed, throughput, time to first token
-Metric degraded: the first start of a new checkpoint is slow (about 2.5 minutes in the reference session, 41 s once its compile caches exist, against 39 s for baseline)
+Metric degraded: the first start of a new checkpoint is slow (138 to 143 s on its first start, 41 s once its compile caches exist, against 39 s for baseline)
 Quality impact: 77.1 % against 79.6 % on 240 spot-check items (difference -2.5 points, within the noise of this probe); 3 % of greedy completions are identical to BF16
 Memory impact: weights 15.27 to 8.85 GiB; KV capacity 426,992 to 473,312 tokens
 Operational impact: a second checkpoint to pin and store; a quality check before every model update
 Recommendation: use FP8 for latency and cost when your own quality check passes; do not use it where outputs must stay identical to BF16
 ```
 
+The baseline KV capacity here (426,992 tokens) differs from the Hardware section (423,328 tokens): two sessions started the baseline separately, so the two numbers come from different starts.
+
 **B. Prefix caching** (`prefix-cache/`: `baseline-shared-c008` against `no-prefix-cache-shared-c008`)
 
 ```text
 Hypothesis: a long prompt prefix shared by many requests is prefilled only once
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile no-prefix-cache (prefix caching off)
 Before (cache on):  TTFT p50 106 ms, aggregate 620 tokens/s, prefix hit rate 90.9 %
 After (cache off):  TTFT p50 588 ms, aggregate 444 tokens/s, prefix hit rate 0.0 %
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: time to first token with the cache on
 Metric degraded: nothing at the server; the cache uses KV memory that could hold other requests
 Quality impact: none (same model, same outputs)
@@ -107,9 +113,11 @@ Recommendation: leave it on; design prompts so the shared part comes first
 
 ```text
 Hypothesis: with a small KV budget, long prompts queue
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile kv-constrained (4 GiB KV pool, 16,384-token context limit)
 Before: concurrency 8, 8,192-token prompts: TTFT p50 1,601 ms, aggregate 189 tokens/s, 8 requests running, KV usage up to 16 %
 After:  TTFT p50 5,083 ms, aggregate 129 tokens/s, 3 requests running, 5 waiting, KV usage up to 86 %
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: GPU memory in use (about 30 GiB instead of about 85 GiB)
 Metric degraded: time to first token and throughput: requests wait for KV space
 Quality impact: none
@@ -122,9 +130,11 @@ Recommendation: size the KV pool for the concurrency you promise, or cap the con
 
 ```text
 Hypothesis: capping the batch limits throughput and creates queueing
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile max-seqs-8 (--max-num-seqs 8)
 Before: concurrency 16: aggregate 900 tokens/s, TTFT p50 587 ms, 68.7 tokens/s per request
 After:  aggregate 553 tokens/s, TTFT p50 2,958 ms, 79.8 tokens/s per request, 8 waiting
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: nothing measured here (a cap protects a shared server from overload)
 Metric degraded: throughput and time to first token; the speed of each running request is unchanged
 Quality impact: none
@@ -147,7 +157,7 @@ description: "FP8 weights for the example SLO at 20 concurrent users"
 
 ## Production Architecture
 
-_Lab 5. Link `production-architecture.md` and summarise the decisions in five lines._
+_Lab 5. Link `production-architecture.md` and summarize the decisions in five lines._
 
 ## Security Considerations
 

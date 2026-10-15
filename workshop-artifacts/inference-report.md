@@ -27,13 +27,13 @@ quality:
 
 ## Selected Model
 
-_Lab 1. Model, precision, why this one, which alternatives you rejected and why. Licence and commercial implications._
+_Lab 1. Model, precision, why this one, which alternatives you rejected and why. License and commercial implications._
 
 | | |
 | --- | --- |
 | Model and revision | |
 | Precision | |
-| Licence (and what it means for commercial use) | |
+| License (and what it means for commercial use) | |
 | Why it is the smallest model that does the task | |
 | Rejected alternatives | |
 
@@ -67,13 +67,15 @@ _Lab 3. The same deployment at concurrency 1, 4, 8 and 16. Link the result files
 
 ## Experiments
 
-_Lab 4. One hypothesis, one changed variable, measured before and after._
+_Lab 4. One lever, one changed variable, a prediction written before the run, measured before and after._
 
 ```text
 Hypothesis:
+Prediction (written before the run):
 Change (one variable):
 Before:
 After:
+Prediction versus result (what was wrong):
 Metric improved:
 Metric degraded:
 Quality impact:
@@ -88,7 +90,7 @@ _The configuration you would run now, as a vLLM profile or flag list, with the e
 
 ## Production Architecture
 
-_Lab 5. Link `production-architecture.md` and summarise the decisions in five lines._
+_Lab 5. Link `production-architecture.md` and summarize the decisions in five lines._
 
 ## Security Considerations
 

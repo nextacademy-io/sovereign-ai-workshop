@@ -1,5 +1,5 @@
 extends: base
-description: "Day 1/2 baseline: Qwen3-8B in BF16, all engine defaults except those in base."
+description: "Baseline: Qwen3-8B in BF16, all engine defaults except those in base."
 model: Qwen/Qwen3-8B
 revision: b968826d9c46dd6066d109eabc6255188de91218
 served-model-name: Qwen/Qwen3-8B

@@ -2,7 +2,7 @@
 
 ## Question
 
-Does the memory arithmetic of Day 1 predict what the server reports, and what does a single request cost?
+Does the memory arithmetic of the sizing module predict what the server reports, and what does a single request cost?
 
 ## Hypothesis (a prediction to test, not a result)
 

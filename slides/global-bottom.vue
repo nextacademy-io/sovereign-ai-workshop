@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // The rail at the bottom of every content slide: where in the stack are we?
-// Layer and day come from the nearest section divider; `stage:` narrows the highlight.
+// Layer and module come from the nearest section divider; `stage:` narrows the highlight.
 import { useNav } from '@slidev/client'
 import { computed } from 'vue'
-import { useDay, useLayer, useStages } from './composables/inherit'
+import { useLayer, useModule, useStages } from './composables/inherit'
 import { STAGES } from './composables/stack'
 
 const { currentLayout, currentPage, slides } = useNav()
 const total = computed(() => slides.value.length)
 const layer = useLayer()
-const day = useDay()
+const module_ = useModule()
 const picked = useStages()
 
 const hidden = computed(() => ['cover', 'end', 'section'].includes(currentLayout.value))
@@ -23,7 +23,7 @@ function state(stage: (typeof STAGES)[number]): 'lit' | 'on' | 'off' {
 
 <template>
   <div v-if="!hidden" class="rail" :data-layer="layer" role="presentation">
-    <div class="rail-left">KI ohne Cloud<span v-if="day"> · Day {{ day }}</span></div>
+    <div class="rail-left">KI ohne Cloud<span v-if="module_"> · Module {{ String(module_).padStart(2, '0') }}</span></div>
     <div class="rail-stages">
       <template v-for="(s, i) in STAGES" :key="s.key">
         <span v-if="i" class="rail-arrow">›</span>
@@ -62,9 +62,10 @@ function state(stage: (typeof STAGES)[number]): 'lit' | 'on' | 'off' {
 }
 .rail-left {
   min-width: 190px;
+  letter-spacing: 0.05em;
 }
 .rail-right {
-  min-width: 110px;
+  min-width: 80px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }

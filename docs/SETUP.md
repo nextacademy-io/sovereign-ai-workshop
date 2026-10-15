@@ -1,10 +1,10 @@
 # Participant setup
 
-What to do before the workshop and how to connect on the day. You do **not** need a GPU, a cloud account or a model download: the trainer provides one GPU machine per group and you connect to it over SSH.
+What to do before the workshop and how to connect to your group's machine. You do **not** need a GPU, a cloud account or a model download: the trainer provides one GPU machine per group and you connect to it over SSH.
 
-## 1. Before the workshop (15 minutes)
+## 1. Before the workshop
 
-You need: `git`, `ssh`, `docker`, `python3` (3.11 or newer), `curl`, about 20 GB of free disk for Docker images, and an SSH key.
+You need: `git`, `ssh`, `docker`, `python3` (3.11 or newer), `curl`, about 20 GB of free disk for Docker images, and an SSH key. PyYAML for Python (`python3 -m pip install pyyaml`) is optional: only `scripts/sizing.py --model` needs it, and the preflight warns when it is missing.
 
 ```bash
 git clone <repository-url> ki-ohne-cloud
@@ -12,7 +12,7 @@ cd ki-ohne-cloud
 ./scripts/preflight.sh
 ```
 
-The preflight checks your tools and your SSH key. It downloads nothing and changes nothing. Fix every `FAIL`; a `WARN` for Docker means the daemon is not running (start Docker Desktop before Day 3).
+The preflight checks your tools and your SSH key. It downloads nothing and changes nothing. Fix every `FAIL`; a `WARN` for Docker means the daemon is not running (start Docker Desktop before the container exercise); a `WARN` for PyYAML means `sizing.py --model` will not work until you install it.
 
 ### Your SSH key
 
@@ -34,7 +34,7 @@ The trainer replies with a host, a port and your user name, for example `gpu-01.
 
 It prints the GPU of your group's machine if the login works. If it fails: check the user name and the port (the port changes if the trainer rebuilds the machine), then tell the trainer.
 
-## 2. Connecting on the day
+## 2. Connecting to your machine
 
 ```bash
 ssh -p <port> <your-user>@<host>
@@ -62,7 +62,7 @@ python3 apps/inference-client/chat.py "What is a KV cache? One sentence."
 Your group's model server is a single process that every member uses. That is on purpose: you will see queueing, batching and contention first-hand. It also means:
 
 - `sudo wsctl status` shows what runs. `sudo wsctl profiles` lists the configurations you may start.
-- `./scripts/start-vllm.sh <profile>` **restarts the server for everyone in your group** and takes under a minute for a profile the server has run before and up to about two and a half minutes the first time (measured: 40 seconds for `baseline`, 143 seconds for the first `fp8` start). Tell your group first. If a new profile fails to start, the previous one is restored automatically.
+- `./scripts/start-vllm.sh <profile>` **restarts the server for everyone in your group** and takes under a minute for a profile the server has run before and up to about two and a half minutes the first time (measured: 39 seconds for a restart of `baseline`, 143 seconds for the first `fp8` start). Tell your group first. If a new profile fails to start, the previous one is restored automatically.
 - Start only what the labs ask for. Do not start your own copy of a model: the GPU memory belongs to the shared server.
 
 ## 3. Using the API and the dashboard from your laptop
@@ -95,7 +95,7 @@ Grafana is then at `http://127.0.0.1:3000` (the dashboard *KI ohne Cloud: infere
 
 ## 5. What you will keep
 
-Your work lives in `~/ki-ohne-cloud/workshop-artifacts/` and `benchmark/results/mine/`. **Copy it to your laptop at the end of every day**:
+Your work lives in `~/ki-ohne-cloud/workshop-artifacts/` and `benchmark/results/mine/`. **Copy it to your laptop whenever you finish a lab, and again before the workshop ends**:
 
 ```bash
 scp -P <port> -r <your-user>@<host>:ki-ohne-cloud/workshop-artifacts ./my-artifacts

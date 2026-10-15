@@ -29,13 +29,13 @@ quality:
 
 ## Selected Model
 
-_Lab 1. Model, precision, why this one, which alternatives you rejected and why. Licence and commercial implications._
+_Lab 1. Model, precision, why this one, which alternatives you rejected and why. License and commercial implications._
 
 | | |
 | --- | --- |
 | Model and revision | `Qwen/Qwen3-8B` at `b968826d9c46dd6066d109eabc6255188de91218` (the workshop's primary model; replace with your own choice for your scenario) |
-| Precision | BF16 (FP8 is the Day 2 experiment) |
-| Licence (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the licence and attribution notices |
+| Precision | BF16 (FP8 is the quantization experiment) |
+| License (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the license and attribution notices |
 | Why it is the smallest model that does the task | Reference answer for the workshop workload only: a dense 8B model with tool calling and structured output that fits one GPU with room for a large KV cache. For your scenario, argue it from your own eval. |
 | Rejected alternatives | `Qwen/Qwen3-1.7B` (smaller, would need an eval on your items); `Qwen/Qwen3-30B-A3B-FP8` (mixture of experts: all 30.5 B weights must be resident) |
 
@@ -71,13 +71,15 @@ Reference results: `benchmark/results/reference/concurrency/baseline-c001` to `b
 
 ## Experiments
 
-_Lab 4. One hypothesis, one changed variable, measured before and after._
+_Lab 4. One lever, one changed variable, a prediction written before the run, measured before and after._
 
 ```text
 Hypothesis:
+Prediction (written before the run):
 Change (one variable):
 Before:
 After:
+Prediction versus result (what was wrong):
 Metric improved:
 Metric degraded:
 Quality impact:
@@ -92,7 +94,7 @@ _The configuration you would run now, as a vLLM profile or flag list, with the e
 
 ## Production Architecture
 
-_Lab 5. Link `production-architecture.md` and summarise the decisions in five lines._
+_Lab 5. Link `production-architecture.md` and summarize the decisions in five lines._
 
 ## Security Considerations
 

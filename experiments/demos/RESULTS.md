@@ -1,6 +1,8 @@
 # Results: demos
 
-Raw files: [`benchmark/results/reference/demos/`](../../benchmark/results/reference/demos/). Every file carries hardware, model revision, engine version, server arguments and date. Hypotheses: [`README.md`](README.md). Not run in this validation: the vLLM against Ollama or llama.cpp comparison and the mixture-of-experts demo (`config/models.yaml` role `moe_demo`: the 31 GB checkpoint needs the 100 GB container disk of `infra/provision.md`; the pod of the validation had 50 GB). Both remain trainer demonstrations to prepare.
+Raw files: [`benchmark/results/reference/demos/`](../../benchmark/results/reference/demos/). Every file carries hardware, model revision, engine version, server arguments and date. Hypotheses: [`README.md`](README.md).
+
+**Not run in this validation, and not measured anywhere in this repository:** demo 3 (tensor parallelism, which needs a two-GPU pod; see [`../tensor-parallel/RESULTS.md`](../tensor-parallel/RESULTS.md)), demo 4 (vLLM against Ollama or llama.cpp) and demo 5 (the mixture-of-experts model). They remain trainer demonstrations to prepare; the preparation notes below say what is missing. Only demos 1 and 2 (speculative decoding, and the two starts that must fail) have results.
 
 ## Setup
 
@@ -47,6 +49,12 @@ Both runs left the server healthy (`healthy afterwards: True` in the runner log)
 - One session, no repetitions; 16 to 32 requests per row. The copy task's prompts were eight different texts cycled, so the prefix cache answered most prompt tokens (98.7 % hit rate): the TTFT of those rows is flattered and is not the point of the comparison, which is decode speed.
 - The acceptance counters accumulate over all speculative runs of the session, copy and open questions together; they are not separate per workload.
 - n-gram drafting is the cheapest variant. Draft-model, EAGLE and Medusa variants have different costs and are not measured here.
+
+## Preparation notes (demos 4 and 5, not run)
+
+- **Mixture of experts (`moe_demo`, Qwen3-30B-A3B-FP8).** The validation pod's 50 GB container disk was too small for the 32.45 GB FP8 checkpoint plus the download and compile caches. Use the 100 GB container disk of `infra/provision.md`.
+- **No vLLM profile exists for the mixture-of-experts model.** `config/vllm-profiles/` has none. Write one (the steps are in [`docs/MODEL-SELECTION.md`](../../docs/MODEL-SELECTION.md), section 7), smoke-test it on the workshop GPU before the session and read the log: the open SM120 issues in `docs/RESEARCH.md` section 3.3 concern mixture-of-experts, MLA, NVFP4 or forced FlashInfer paths.
+- **The engine comparison changes two things at once.** The GGUF file for llama.cpp and Ollama (`Qwen3-8B-Q8_0.gguf`) is 8-bit, while the vLLM baseline serves BF16. Engine and precision differ together, so say so next to any number and do not credit the engine alone with a speed difference.
 
 ## Production consequence
 

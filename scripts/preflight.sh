@@ -47,14 +47,23 @@ else
   bad "python3 is not installed (3.11 or newer)"
 fi
 
+# scripts/sizing.py --model reads config/models.yaml and needs PyYAML (the flags --params-b, --layers, ... work without it)
+if command -v python3 >/dev/null 2>&1; then
+  if python3 -c 'import yaml' 2>/dev/null; then
+    ok "PyYAML: available for scripts/sizing.py --model"
+  else
+    warning "PyYAML is not installed: scripts/sizing.py --model will not work. Install it with 'python3 -m pip install pyyaml', or pass --params-b, --layers, --kv-heads and --head-dim by hand."
+  fi
+fi
+
 if command -v docker >/dev/null 2>&1; then
   if docker info >/dev/null 2>&1; then
     ok "docker: $(docker --version 2>&1 | head -1), daemon reachable"
   else
-    warning "docker is installed but the daemon is not running. Start Docker Desktop before Day 3."
+    warning "docker is installed but the daemon is not running. Start Docker Desktop before the containerization module."
   fi
 else
-  bad "docker is not installed (needed for the Day 3 container exercise)"
+  bad "docker is not installed (needed for the containerization module)"
 fi
 
 echo

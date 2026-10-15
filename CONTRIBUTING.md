@@ -6,12 +6,12 @@ This repository is a workshop product, not only a collection of files. Changes a
 
 ## Ground rules
 
-1. **Measure, then teach.** Slides and tasks describe behaviour that was observed on real hardware. Do not write explanations around expected results. If an experiment contradicts the explanation, investigate first.
+1. **Measure, then teach.** Slides and tasks describe behavior that was observed on real hardware. Do not write explanations around expected results. If an experiment contradicts the explanation, investigate first.
 2. **Never fabricate numbers.** Every number on a slide comes from a file under `benchmark/results/`, or the component is marked `source="illustrative"` and renders an **ILLUSTRATIVE EXAMPLE** badge. `pnpm check` enforces this.
 3. **Primary sources first.** vLLM, Hugging Face and NVIDIA documentation, model cards, original papers and official EU texts. Add every source to `docs/REFERENCES.md`.
-4. **Do not copy copyrighted material.** The book *Inference Engineering* is a reference. Explain concepts in your own words, draw your own diagrams, cite by chapter.
+4. **Do not copy copyrighted material.** The book *Inference Engineering* is a reference. Explain concepts in your own words, draw your own diagrams, cite by section.
 5. **English only,** except the workshop title *KI ohne Cloud*.
-6. **No dates or event details in teaching content.** Use relative times ("Day 2, block 3"). The agenda lives in `config/workshop.yaml`.
+6. **No dates, days or clock times in teaching content.** Refer to other parts of the workshop by module name ("the sizing module", "the benchmarking lab"), never by day, time or duration. The module path lives in `config/workshop.yaml`.
 7. **No secrets.** Keys, tokens and credentials never enter the repository. Use `.env` (gitignored) and keep `.env.example` as placeholders only.
 
 ## Setup
@@ -31,9 +31,9 @@ uv sync --extra dev     # Python tooling for benchmark/ and apps/
 | `pnpm build` | Build the static deck into `slides/dist/` |
 | `pnpm export` | Export the deck to PDF, one slide at a time so that the layer rail is right (needs `pnpm --filter slides exec playwright-chromium install chromium` once, or `--executable-path` of an installed Chrome) |
 | `node scripts/check-slides-layout.mjs` | Render the BUILT deck in a browser and fail on content outside the slide area (`--shots DIR` writes a PNG per slide) |
-| `node scripts/gen-agenda.mjs` | Rewrite the agenda tables of `README.md` and `FACILITATOR.md` from `config/workshop.yaml` (`pnpm check` fails when they are stale) |
+| `node scripts/gen-agenda.mjs` | Rewrite the module tables of `README.md`, `FACILITATOR.md` and `docs/CURRICULUM.md` from `config/workshop.yaml` (`pnpm check` fails when they are stale) |
 | `python3 scripts/build_workshop_states.py` | Regenerate the lab states from `benchmark/results/reference/` (CI fails when they are stale) |
-| `pnpm check` | Repo consistency checks (tasks, timeboxes, notes, metric sources, results provenance) |
+| `pnpm check` | Repo consistency checks (module path, tasks, notes, metric sources, results provenance, schedule words) |
 | `pnpm check:release` | Same, but path drift becomes an error and all required files must exist (what CI runs) |
 | `pnpm lint` | markdownlint, shellcheck, ruff |
 | `pnpm test` | pytest (benchmark harness against a fake streaming server, repo hygiene) |
@@ -43,13 +43,13 @@ uv sync --extra dev     # Python tooling for benchmark/ and apps/
 
 [`slides/README.md`](slides/README.md) is the contract: layouts, components, the rules for numbers and speaker notes, how to draw a diagram, and the checks to run before handing a section in. Several people can work at once: each builds a private preview (`slides/preview-<name>.md`, `slidev build ... --out dist-<name>`), both gitignored.
 
-## Changing the agenda
+## Changing the module path
 
-Edit `config/workshop.yaml` first. `pnpm check` verifies that the daily teaching time fits, that blocks do not overlap and that every task timebox in `tasks/*.md`, `tasks/README.md` and the lab slides agrees with it.
+Edit `config/workshop.yaml` first: it holds one ordered list of modules and no days, times or durations. `pnpm check` verifies that module ids are unique, that every module has a slide section whose divider agrees with it, that every lab names a task file and that every learning outcome is covered by at least one module.
 
 ## Adding or changing a model
 
-Edit `config/models.yaml`. Pin the Hugging Face commit SHA (`revision`), record the licence and the commercial-use implications, and re-run the baseline experiment that depends on the model. Update `docs/MODEL-SELECTION.md` if the selection reasoning changes.
+Edit `config/models.yaml`. Pin the Hugging Face commit SHA (`revision`), record the license and the commercial-use implications, and re-run the baseline experiment that depends on the model. Update `docs/MODEL-SELECTION.md` if the selection reasoning changes.
 
 ## Adding a benchmark result
 

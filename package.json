@@ -4,7 +4,7 @@
   "private": true,
   "description": "KI ohne Cloud — Running and Operating Open Models on Your Own Infrastructure. A three-day hands-on inference engineering workshop.",
   "author": "Paweł Sawicki",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "UNLICENSED",
   "type": "module",
   "packageManager": "pnpm@10.32.1",
   "engines": {

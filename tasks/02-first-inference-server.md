@@ -6,11 +6,11 @@ Follow one request through the whole chain `REQUEST → MODEL → GPU → TOKENS
 
 ## Context
 
-Your group's machine already runs a vLLM server with the baseline model. It is shared by your group on purpose: you will meet queueing and contention first-hand in Task 03. Today you only observe and measure, and you do not restart anything.
+Your group's machine already runs a vLLM server with the baseline model. It is shared by your group on purpose: you will meet queueing and contention first-hand in Task 03. In this task you only observe and measure, and you do not restart anything.
 
-## Timebox
+## Scope
 
-35 minutes.
+Done means you have followed one request through the chain, filled the *Hardware* section of your report and checked the KV-cache arithmetic against the server's own number. Out of scope: changing the server, comparing profiles and systematic benchmarks (the benchmarking lab does that).
 
 ## Starting Point
 
@@ -69,14 +69,21 @@ You are logged in to your group's GPU machine (`ssh -p <port> <your-user>@<host>
 
 ## Expected Result
 
-- You can read from `wsctl info` that the baseline model's weights use about 15 GiB and the KV cache about 58 GiB (a few percent different after a restart), holding about 420,000 tokens.
+- `wsctl info` shows the weights memory and the KV cache memory with its capacity in tokens: the KV cache is several times larger than the weights, and it holds many requests' worth of context.
 - Time to first token grows with prompt length; tokens per second per request hardly changes with prompt length but is lower with a very long context; temperature does not change speed.
-- GPU utilization shows 100 % during generation, even for a single request.
-- The very first request after a server start can be slower (282 ms to first token in the dry run, against about 70 ms for the requests after it): kernels and caches warm up on first use. Do not take it as the baseline.
+- GPU utilization shows about 100 % during generation, even for a single request: busy is not the same as efficient.
+- The very first request after a server start can be slower than the ones after it, because kernels and caches warm up on first use. Do not take it as the baseline.
 
 ## Validation
 
-- Your KV cache estimate from `sizing.py` for the server's *available KV memory* is within 2 % of the token count in the log. If you get 40 %, you forgot that the cache stores keys **and** values, or used the wrong head count.
+Compare with the reference (the baseline profile on the workshop GPU, `benchmark/results/reference/startup/`):
+
+- `wsctl info` reports weights of about 15 GiB and a KV cache of about 58 GiB (a few percent different after a restart), which holds about 420,000 tokens.
+- The first request after a start took 282 ms to the first token in the dry run, against about 70 ms for the requests after it.
+
+Then check your own work:
+
+- Your KV cache estimate from `sizing.py` for the server's *available KV memory* is within 2 % of the token count in the log. If you are off by 2x, you forgot that the cache stores keys **and** values; if you are off by 4x, you used the 32 query heads instead of the 8 KV heads.
 - Your report names the engine version, the GPU, the weights memory, the KV capacity and the highest tokens per second you saw.
 
 ## If You Get Stuck
@@ -84,7 +91,7 @@ You are logged in to your group's GPU machine (`ssh -p <port> <your-user>@<host>
 | Symptom | Fix |
 | --- | --- |
 | `401` from the API | Log in again: the key is set at login. |
-| No answer for a long time | `sudo wsctl status`. A start takes under a minute for a profile the server has run before, up to about two and a half minutes the first time. Do not start another server. |
+| No answer for a long time | `sudo wsctl status`. A restart with warm caches takes about 40 seconds, the first start of a profile up to about two and a half minutes. Do not start another server. |
 | `nvidia-smi` shows more memory in use than the model needs | Correct: vLLM reserves its budget at startup. The KV cache fills only as requests arrive. |
 | You broke something | `./scripts/reset.sh lab-02` |
 

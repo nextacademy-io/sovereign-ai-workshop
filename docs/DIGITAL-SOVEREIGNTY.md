@@ -4,9 +4,9 @@ Digital sovereignty as an architecture property: five dimensions you can inspect
 
 > **This is not legal advice.** It collects engineering inputs from EU texts and guidance so that a team can ask better questions. It has not been reviewed by counsel. Where a question is legal, it says so and stops.
 
-Facts come from [`RESEARCH.md`](RESEARCH.md), cited by section number (for example "RESEARCH 12.6"), and were verified on 2026-10-14. Laws, guidance, licences and prices change: re-check before every run. Security controls are in [`SECURITY.md`](SECURITY.md).
+Facts come from [`RESEARCH.md`](RESEARCH.md), cited by section number (for example "RESEARCH 12.6"), and were verified on 2026-10-14. Laws, guidance, licenses and prices change: re-check before every run. Security controls are in [`SECURITY.md`](SECURITY.md).
 
-How statements are labelled:
+How statements are labeled:
 
 - **Fact**: stated by a cited source.
 - **Measured**: observed while building the workshop pods.
@@ -19,7 +19,7 @@ How statements are labelled:
 | 1 | The model: five dimensions, one property |
 | 2 | The five dimensions in practice |
 | 3 | Frameworks mapped onto the model |
-| 4 | Open weights, open source and licence drift |
+| 4 | Open weights, open source and license drift |
 | 5 | What the slogans leave open |
 | 6 | Case study: the workshop's own setup |
 | 7 | Scoring worksheet |
@@ -40,14 +40,14 @@ Three rules keep this useful:
 
 - **It is an architecture property, not a position.** A sovereign system can be slow, expensive and badly patched. A fast, cheap, secure system can depend on one vendor. Neither is wrong. You decide on purpose, with the dependencies named.
 - **It is per workload.** Synthetic data on a rented GPU and patient records need different answers on the same architecture.
-- **Zero dependency is not the target.** The Commission's own lessons-learnt text calls its top level, SEAL-4 ("no critical non-EU dependencies"), "not today relevant" given the dependence on chip and hardware supply chains (RESEARCH 12.11). The target is dependencies that are known, bounded and tested.
+- **Zero dependency is not the target.** The Commission's own lessons-learned text calls its top level, SEAL-4 ("no critical non-EU dependencies"), "not today relevant" given the dependence on chip and hardware supply chains (RESEARCH 12.11). The target is dependencies that are known, bounded and tested.
 
 More control costs work. The table shows where.
 
 | Dimension | What you gain | What it costs you | Example from this workshop |
 | --- | --- | --- | --- |
 | Data | Say who reads prompts, logs and embeddings, and for how long | You own retention, deletion, access control and the impact assessment | Request logging is off by default; every log you turn on is yours to justify (SECURITY.md, section 3.8) |
-| Model | Pinned, auditable weights under a licence you read | You own evaluation, selection and licence drift | Licences changed within one family in 2026 (section 4.3) |
+| Model | Pinned, auditable weights under a license you read | You own evaluation, selection and license drift | Licenses changed within one family in 2026 (section 4.3) |
 | Infrastructure | A named operator, region and jurisdiction | Capacity risk and price | The workshop GPU showed "Low" availability in every listed EU data center; capacity had to be confirmed before the event (RESEARCH 7.7) |
 | Operations | Patch autonomy and visibility | You track advisories and run the on-call | 104 vLLM advisories were published, 27 in 2025 and 77 in 2026 (RESEARCH 13.3) |
 | Portability | A credible exit | A second environment, tests and lowest-common-denominator features | Section 8 |
@@ -57,7 +57,7 @@ More control costs work. The table shows where.
 | Dimension | The question | Evidence you can collect | Typical dependency |
 | --- | --- | --- | --- |
 | **DATA CONTROL** | Who can read prompts, responses, logs and embeddings? Where are they stored? Who holds the keys? How long do they stay? | A data-flow map (SECURITY.md, section 4); the canary test; a retention policy; key custody | The provider's access to memory and disks; sub-processors; log platforms; telemetry endpoints |
-| **MODEL CONTROL** | Which weights run? Can you reproduce and audit them? What does the licence allow? Can the publisher change it under you? | The pinned commit SHA; the licence file at that SHA; safetensors only; a copy in your own storage | The publisher's licence terms; the hub that hosts the files; opaque training data |
+| **MODEL CONTROL** | Which weights run? Can you reproduce and audit them? What does the license allow? Can the publisher change it under you? | The pinned commit SHA; the license file at that SHA; safetensors only; a copy in your own storage | The publisher's license terms; the hub that hosts the files; opaque training data |
 | **INFRASTRUCTURE CONTROL** | Who owns and operates the hardware, host, network and data center? Under which law? In which region? | Contracting entity, governing law, sub-processor list, data-center id and tags, accelerator supply | The operator's home jurisdiction; the accelerator supply chain |
 | **OPERATIONAL CONTROL** | Who patches, monitors, logs, rotates keys and responds to incidents? Can you without the vendor's staff? | Advisory check dates; monitoring; runbooks (SECURITY.md, section 8); audit logs | Provider patching of host and driver; vendor support; managed services |
 | **PORTABILITY** | Can you move the workload? At what effort? Have you tried? | A tested exit drill with time and cost | Proprietary APIs and SDKs; model-specific features; data formats; hardware |
@@ -90,8 +90,8 @@ This mapping is editorial (RESEARCH 12.11): it is not a claim made by any framew
 | Model dimension | Closest CSF objectives | What the framework looks at (selected criteria) | Other frameworks |
 | --- | --- | --- | --- |
 | DATA CONTROL | SOV-3, SOV-2 | "Only the customer, not the provider, has effective control over cryptographic access to their data"; "auditability of AI model usage"; confinement of storage and processing to European jurisdictions "with no fallback to third countries"; exposure to non-EU laws with cross-border reach, such as the US CLOUD Act | Gaia-X label level 2 offers an EEA-only processing option; level 3 requires processing exclusively in the EEA |
-| MODEL CONTROL | SOV-3, SOV-6 | AI models and pipelines "developed, trained, hosted, and governed under EU control"; open licences with "rights to audit, modify, and redistribute" | The AI Act's duties for general-purpose model providers (Art. 53) are a separate legal axis (section 9) |
-| INFRASTRUCTURE CONTROL | SOV-5, SOV-1, SOV-8 | Origin of hardware, firmware and software packaging and updates; strategic dependence; power efficiency and emissions disclosure | Gaia-X level 3 also requires headquarters and main establishments in the EEA. BSI C3A allows localisation requirements: data-centre location and origin of operating staff |
+| MODEL CONTROL | SOV-3, SOV-6 | AI models and pipelines "developed, trained, hosted, and governed under EU control"; open licenses with "rights to audit, modify, and redistribute" | The AI Act's duties for general-purpose model providers (Art. 53) are a separate legal axis (section 9) |
+| INFRASTRUCTURE CONTROL | SOV-5, SOV-1, SOV-8 | Origin of hardware, firmware and software packaging and updates; strategic dependence; power efficiency and emissions disclosure | Gaia-X level 3 also requires headquarters and main establishments in the EEA. BSI C3A allows localisation requirements: data-center location and origin of operating staff |
 | OPERATIONAL CONTROL | SOV-4, SOV-7 | Customer or EU authority can oversee logs, alerts and monitoring; "maintenance Autonomy" | C3A assumes the provider already meets BSI C5 |
 | PORTABILITY | SOV-4, SOV-6 | "Ease of migrating workloads ... without vendor lock-in"; non-proprietary APIs | Gaia-X lists portability and interoperability among its goals |
 | Not in the five-part model | SOV-1 Strategic (15 %), SOV-8 Environmental (5 %) | | Add them to your own worksheet or exclude them explicitly |
@@ -105,7 +105,7 @@ This mapping is editorial (RESEARCH 12.11): it is not a claim made by any framew
 | EUCS | **Not verified.** ENISA lists EUCS among "Schemes under development"; the only EUCS document found is a draft candidate scheme dated 22 December 2020. No adoption was found, and the Commission's June 2026 explainer does not mention it. Treat it as unadopted until you read otherwise |
 | Gaia-X | Compliance Document summary of 9 July 2025: Standard Compliance plus label levels 1 to 3. Level 1 is declaration-based; level 2 adds third-party verified cybersecurity criteria and an EEA-only option; level 3 requires EEA-only processing and EEA headquarters. Built on standards such as ISO/IEC 27001 and BSI C5. Not verified: whether a newer document than the 2025 releases exists |
 
-## 4. Open weights, open source and licence drift
+## 4. Open weights, open source and license drift
 
 ### 4.1 Open weights versus open source
 
@@ -117,13 +117,13 @@ Fact (RESEARCH 11.1): the Open Source Initiative's Open Source AI Definition 1.0
 | Code | The complete source code used to train and run the system: data processing, training, validation, tokenizers, inference code, architecture |
 | Parameters | Weights or other configuration settings, under OSI-approved terms |
 
-OSI's FAQ lists models that passed its validation (Pythia, OLMo, Amber, CrystalCoder, T5) and models analysed that did not (Llama 2, Grok, Phi-2, Mixtral). These are "not certifications of any kind".
+OSI's FAQ lists models that passed its validation (Pythia, OLMo, Amber, CrystalCoder, T5) and models analyzed that did not (Llama 2, Grok, Phi-2, Mixtral). These are "not certifications of any kind".
 
-**Inference (RESEARCH 11.1):** "open weights" means the parameters are published, often under a permissive or custom licence, without the full data information and training code. By the definition's wording the Qwen, Gemma, Mistral, DeepSeek, gpt-oss and Llama checkpoints are at best open weights, even under Apache-2.0 or MIT (not audited per model: Not verified per model). Several licences also impose scale or field-of-use conditions, which is the opposite of "use for any purpose".
+**Inference (RESEARCH 11.1):** "open weights" means the parameters are published, often under a permissive or custom license, without the full data information and training code. By the definition's wording the Qwen, Gemma, Mistral, DeepSeek, gpt-oss and Llama checkpoints are at best open weights, even under Apache-2.0 or MIT (not audited per model: Not verified per model). Several licenses also impose scale or field-of-use conditions, which is the opposite of "use for any purpose".
 
 Course rule: say **open-weight** for every model in this repository, and **open source** only where the definition's elements are met.
 
-What this means for MODEL CONTROL: you control the artefact and not its origin. You can run, inspect, quantise and fine-tune the weights. You cannot retrain them from scratch or audit the training data. Say so in the worksheet.
+What this means for MODEL CONTROL: you control the artifact and not its origin. You can run, inspect, quantize and fine-tune the weights. You cannot retrain them from scratch or audit the training data. Say so in the worksheet.
 
 ### 4.2 The AI Act open-source exemption for general-purpose AI models
 
@@ -131,43 +131,43 @@ Fact (RESEARCH 11.2, 12.4): Art. 53(2) exempts providers of qualifying open-sour
 
 | Condition | Source | Effect on the models in this repository |
 | --- | --- | --- |
-| Licence is free and open-source: it allows access, use, modification and distribution; no limit triggered by user scale | Art. 53(2); Commission guidelines | The pinned models are all Apache-2.0 (`config/models.yaml`), so the licence test does not block them |
+| License is free and open-source: it allows access, use, modification and distribution; no limit triggered by user scale | Art. 53(2); Commission guidelines | The pinned models are all Apache-2.0 (`config/models.yaml`), so the license test does not block them |
 | Parameters, architecture information and usage information are public | Art. 53(2) | Not assessed per model |
 | Not monetised: no price, paid support tied to the model, paid hosting-only access, or personal data as a condition of access | Recital 103; guidelines | Not assessed per model. Making components available through open repositories is not in itself monetisation |
 | Not a model with systemic risk (presumed above 10^25 FLOPs of training compute) | Art. 51(2), Art. 53(2) | Not verified for the very large models: training compute is not disclosed in the cards read |
 
-What the exemption covers: the technical documentation (Art. 53(1)(a)), the information for downstream providers (Art. 53(1)(b)) and the authorised-representative duty (Art. 54). What it never covers: the copyright policy (Art. 53(1)(c)) and the public training-content summary (Art. 53(1)(d)). It does not apply to models with systemic risk.
+What the exemption covers: the technical documentation (Art. 53(1)(a)), the information for downstream providers (Art. 53(1)(b)) and the authorized-representative duty (Art. 54). What it never covers: the copyright policy (Art. 53(1)(c)) and the public training-content summary (Art. 53(1)(d)). It does not apply to models with systemic risk.
 
 Two related but separate points:
 
-- Art. 2(12): the Regulation does not apply to AI systems released under free and open-source licences, unless they are placed on the market as high-risk systems or fall under Art. 5 or Art. 50. This is separate from the model exemption.
-- Derived (RESEARCH 11.2): licences with thresholds of the kind the guidelines name, such as the Llama 4 limit of 700 million monthly active users, the Kimi limits, the Qwen3.8 licences, the Mistral Modified MIT (monthly revenue of US$20 million) and GLM-5.3, would not pass the licence test for their providers. Apache-2.0 and MIT releases pass that test but still need the other three conditions.
+- Art. 2(12): the Regulation does not apply to AI systems released under free and open-source licenses, unless they are placed on the market as high-risk systems or fall under Art. 5 or Art. 50. This is separate from the model exemption.
+- Derived (RESEARCH 11.2): licenses with thresholds of the kind the guidelines name, such as the Llama 4 limit of 700 million monthly active users, the Kimi limits, the Qwen3.8 licenses, the Mistral Modified MIT (monthly revenue of US$20 million) and GLM-5.3, would not pass the license test for their providers. Apache-2.0 and MIT releases pass that test but still need the other three conditions.
 
 The Commission guidelines are non-binding. They exist in two copies with different headers (C(2025) 5045 final of 18 July 2025 and C(2025) 7719 final of 19 November 2025), and the paragraph numbers differ. Which copy is current is Not verified. Cite sections of RESEARCH, not paragraph numbers, until you have read the copy you rely on.
 
-### 4.3 Licence drift
+### 4.3 License drift
 
-Fact (RESEARCH 11.4): the licence is per repository and per version, not per family or publisher. Within one family adjacent models can differ.
+Fact (RESEARCH 11.4): the license is per repository and per version, not per family or publisher. Within one family adjacent models can differ.
 
 | Family | Earlier | Now |
 | --- | --- | --- |
 | Qwen | Qwen3, 3.5, 3.6 and 3.8-27B: Apache-2.0 | Qwen3.8-2.4T-A95B under the "Qwen3.8-Max License"; Qwen3.8-Flash-Next under the "Qwen Community License 1.0" (both from August 2026) |
 | Mistral | Most models Apache-2.0 | Medium 3.5 and Devstral 2: Modified MIT with a US$20 million monthly revenue ceiling that applies to the licensee's company or employer |
-| Moonshot | Kimi K2.x: Modified MIT | Kimi K3: a stricter licence with a Model-as-a-Service agreement clause and a display rule |
-| Zhipu | GLM-5.2, 5.1, 4.7-Flash: MIT | GLM-5.3: custom licence with a security-review clause; GLM-5.3-Flash stays MIT |
-| Google Gemma | Older Gemma repositories keep the `gemma` licence tag | Gemma 4: Apache-2.0 |
+| Moonshot | Kimi K2.x: Modified MIT | Kimi K3: a stricter license with a Model-as-a-Service agreement clause and a display rule |
+| Zhipu | GLM-5.2, 5.1, 4.7-Flash: MIT | GLM-5.3: custom license with a security-review clause; GLM-5.3-Flash stays MIT |
+| Google Gemma | Older Gemma repositories keep the `gemma` license tag | Gemma 4: Apache-2.0 |
 | DeepSeek | V3: DeepSeek License Agreement with use-based restrictions | V3-0324, R1 and V4: MIT |
 
 Practice (RESEARCH 11.5), one row per model, filled on the day you pin:
 
 1. Resolve the full 40-character SHA and write the date.
-2. Compare three places: the licence tag on the Hub, the `LICENSE` file at that SHA, and any separate policy file (an acceptable-use policy or a usage policy). They can disagree.
+2. Compare three places: the license tag on the Hub, the `LICENSE` file at that SHA, and any separate policy file (an acceptable-use policy or a usage policy). They can disagree.
 3. Find every threshold and what it is measured on: users, monthly revenue, trailing-12-month service revenue, or the employer's revenue.
 4. Find naming and attribution duties, use restrictions, territorial limits and gating.
-5. Read third-party quantised or fine-tuned builds against their own licence field and the base model's terms.
+5. Read third-party quantized or fine-tuned builds against their own license field and the base model's terms.
 6. Write the commercial consequence in one sentence for your situation, and what you could not determine. Ask counsel for anything beyond internal evaluation.
 
-`config/models.yaml` holds the revision and the licence of each pinned model. `scripts/check-repo.mjs` rejects a revision that is not a full SHA.
+`config/models.yaml` holds the revision and the license of each pinned model. `scripts/check-repo.mjs` rejects a revision that is not a full SHA.
 
 ## 5. What the slogans leave open
 
@@ -178,16 +178,16 @@ Each row is a sentence you will hear. The first column is what it gets right. Th
 | "We run an open model on a non-EU hyperscaler." | MODEL CONTROL is real: weights are pinned, inspectable and not served by a model vendor. The model vendor is out of the prompt path | INFRASTRUCTURE and OPERATIONAL CONTROL belong to the operator. The operator's home law may reach data it controls. The CSF lists "exposure to non-EU laws with cross-border reach" as a criterion. The CLOUD Act text says a covered provider must disclose data in its "possession, custody, or control, regardless of whether" it is stored in or outside the United States. Whether it reaches your data is a legal question that the notes do not answer | Score all five dimensions. Ask who can read memory and disk, and under whose law |
 | "Ollama runs on my developer laptop." | DATA CONTROL on one machine is strong: nothing leaves it. Ollama is MIT-licensed and binds `127.0.0.1` by default (RESEARCH 3.13) | It is a local runner built for one user: `OLLAMA_NUM_PARALLEL` defaults to 1. Nobody patches, monitors, authenticates, audits or is on call. Hosts that were made reachable were found and used: 175,108 reachable Ollama hosts in 130 countries; 214 of 1,139 exposed instances (about 18.8 %) answered a benign unauthenticated prompt (RESEARCH 13.4) | Who operates it on day 200? Where is the second copy? Who is the on-call? Can ten colleagues use it? |
 | "The data center is in the EU." | Physical location is a useful fact | **EU region does not equal EU jurisdiction.** The contracting entity, the governing law, the sub-processors and the commitment on region placement decide the rest (section 6). A region is not a jurisdiction | Contracting entity, governing law, sub-processors, region commitment, certifications (RESEARCH 7.10) |
-| "The provider has a GDPR tag, ISO 27001 or SOC 2." | Independent security attestation is evidence of a management system | A "GDPR" tag in a catalogue is a provider label, not a legal guarantee. An absent tag means "not reported". C5:2026 does not contain sovereignty criteria | Read the contract, the DPA and the sub-processor list, not the badge |
+| "The provider has a GDPR tag, ISO 27001 or SOC 2." | Independent security attestation is evidence of a management system | A "GDPR" tag in a catalog is a provider label, not a legal guarantee. An absent tag means "not reported". C5:2026 does not contain sovereignty criteria | Read the contract, the DPA and the sub-processor list, not the badge |
 | "It is open source." | Open weights allow inspection and change | Open weights are not open source in the OSI sense (section 4.1) | Which of data information, code and parameters is public? |
 | "It is air-gapped." | Offline operation removes calls to the Hub | "Offline" is a property to test per version, not a flag to trust. Two upstream issues show friction. The offline switch does not disable vLLM usage statistics, and the reverse also holds (RESEARCH 13.11) | Cut the network and start the exact version |
-| "We pinned it." | A digest or SHA gives reproducibility | It gives no provenance: the notes found no signature or attestation for the official image. `--revision` does not cover every artefact (CVE-2026-47155) | Does the loaded file equal the pinned one? Run offline from staged files |
+| "We pinned it." | A digest or SHA gives reproducibility | It gives no provenance: the notes found no signature or attestation for the official image. `--revision` does not cover every artifact (CVE-2026-47155) | Does the loaded file equal the pinned one? Run offline from staged files |
 | "It is self-hosted, so there is no processor." | A model-API provider leaves the data path | Controller duties stay. A rented GPU pod still involves an infrastructure provider, so the processor-agreement and transfer questions move to that provider (RESEARCH 12.8) | Who is a processor for this data? |
 | "We want full independence." | A clear aim | Not achievable today for accelerators and chips. The Commission calls SEAL-4 "not today relevant" | List the dependencies you accept, with an exit path for each |
 
 ## 6. Case study: the workshop's own setup
 
-The workshop is the worked case: **an open model, a European region, a US provider.** The facts below are from RESEARCH 7.10 and the pod build. They were read on 2026-10-14; the live catalogue changes, so re-read it before a session.
+The workshop is the worked case: **an open model, a European region, a US provider.** The facts below are from RESEARCH 7.10 and the pod build. They were read on 2026-10-14; the live catalog changes, so re-read it before a session.
 
 ### 6.1 Facts about the provider
 
@@ -232,7 +232,7 @@ What the provider can technically see beyond what the DPA text says is not in th
 
 Each line is a design input, not a legal conclusion.
 
-1. **Processor agreement.** The GPU provider would act for you. Read the DPA against GDPR Art. 28: documented instructions, sub-processor authorisation, transfers (RESEARCH 12.8).
+1. **Processor agreement.** The GPU provider would act for you. Read the DPA against GDPR Art. 28: documented instructions, sub-processor authorization, transfers (RESEARCH 12.8).
 2. **Sub-processors.** AWS, GCP, Cloudflare, Datadog and Snowflake are US companies. Ask which of them can see content, and which see only metadata.
 3. **Transfers.** The DPA relies on SCCs. Schrems II requires "essentially equivalent" protection and an assessment of the third country's legal system. The EU-US Data Privacy Framework's adequacy decision stood at first instance (General Court, T-553/23, 3 September 2025). An appeal (C-703/25 P) is reported only by secondary sources: Not verified. Check the court register before saying the framework is settled.
 4. **Jurisdiction.** Section 5, row 1. Take legal advice.
@@ -253,7 +253,7 @@ Who controls each dimension for each component of this setup (Lab 5, outcome 20)
 | --- | --- | --- | --- | --- | --- |
 | GPU pod on Runpod Secure Cloud | Provider (storage and memory); content is synthetic | n/a | Provider | Shared: the provider runs host, driver and network; we run the container | Us: scripts rebuild it; image pinned by digest |
 | vLLM engine and profiles | Us | n/a | n/a | Us: pin, patch, configure | Us: OpenAI-compatible API, container image |
-| Model weights (pinned Apache-2.0) | n/a | Us: SHA, licence read, safetensors | n/a | Us | Us: files are portable; no mirror in our own storage yet |
+| Model weights (pinned Apache-2.0) | n/a | Us: SHA, license read, safetensors | n/a | Us | Us: files are portable; no mirror in our own storage yet |
 | Hugging Face Hub (download source) | Third party sees download metadata | Third party hosts the only upstream copy | Third party | Third party | Weak until mirrored |
 | Monitoring stack (Prometheus, Grafana) | Us: metrics only | n/a | Provider hosts it | Us | Us: open formats and dashboards as code |
 | The trainer's cloud account | Provider holds billing and account data | n/a | Provider | Us: keys, spend limits | Us: scripts hold no provider lock beyond the pod specification |
@@ -314,7 +314,7 @@ Portability is not "we use open source". It is a result you test.
 - [ ] **Observability in open formats.** Prometheus metrics and dashboards as code (`monitoring/grafana/build_dashboard.py`).
 - [ ] **Data you can export.** Logs, indexes and conversations in documented formats. Embeddings are tied to the embedding model: `Qwen/Qwen3-Embedding-0.6B` produces 1,024 dimensions, and a different model means re-embedding (Inference).
 - [ ] **Hardware assumptions written down.** An NVIDIA host with a driver of R580 or newer for the CUDA 13 image (checked by `infra/verify-machine.sh`). The upstream project publishes ROCm and XPU images as well (RESEARCH 13.10); they are different images and need their own test.
-- [ ] **Exit drill done, with numbers.** Rebuild the service on another host or provider from the repository and the pinned artefacts. Record time to ready and cost. Measured here on one provider: a pod rebuild after a restart took 5 min 41 s with the cache present; a download of the 16 GB primary model took 12.4 s at about 1.3 GB/s.
+- [ ] **Exit drill done, with numbers.** Rebuild the service on another host or provider from the repository and the pinned artifacts. Record time to ready and cost. Measured here on one provider: a pod rebuild after a restart took 5 min 41 s with the cache present; a download of the 16 GB primary model took 12.4 s at about 1.3 GB/s.
 - [ ] **Contract exit terms** (outside engineering): data return and deletion, notice periods, and the sub-processor change process.
 
 ## 9. The EU AI Act for engineers
@@ -372,16 +372,16 @@ Fact (RESEARCH 12.3). Art. 50 applies from 2 August 2026. Non-compliance is subj
 
 Guidance (Commission guidelines C(2026) 5054 final of 20 July 2026):
 
-- An in-house chatbot put into service for the organisation's own use and under its name or trademark makes the organisation a provider.
+- An in-house chatbot put into service for the organization's own use and under its name or trademark makes the organization a provider.
 - Open-source AI systems in scope still need to comply. Providers of open-source components that are not themselves an AI system are not subject to Art. 50.
 - Disclosure is not needed where it is obvious, "almost no doubt left". Examples: an internal assistant for properly trained AI-literate staff, and code-assistance chatbots for professional developers.
 - A Code of Practice on Transparency of AI-generated Content was published in final form on 10 June 2026 as a voluntary tool. It does not give a presumption of conformity (Omnibus recital 41).
 
-The workshop apps are teaching apps; the notes give no basis for designing a labelling feature into them. Teams that put a system into service should list Art. 50 as a design input.
+The workshop apps are teaching apps; the notes give no basis for designing a labeling feature into them. Teams that put a system into service should list Art. 50 as a design input.
 
 ### 9.5 GPAI obligations
 
-Fact (RESEARCH 12.4, 11.2). These are duties of the **upstream model provider**. They matter to you through the information you receive, the licence and any modification you make.
+Fact (RESEARCH 12.4, 11.2). These are duties of the **upstream model provider**. They matter to you through the information you receive, the license and any modification you make.
 
 | Obligation | Article | Open-source exemption (Art. 53(2))? |
 | --- | --- | --- |
@@ -389,7 +389,7 @@ Fact (RESEARCH 12.4, 11.2). These are duties of the **upstream model provider**.
 | Information for downstream providers (Annex XII) | 53(1)(b) | Exempt on the same conditions |
 | Policy to comply with Union copyright law | 53(1)(c) | Not exempt |
 | Public summary of training content, on the AI Office template | 53(1)(d) | Not exempt |
-| Authorised representative in the Union for third-country providers | 54 | Exempt unless the model has systemic risk |
+| Authorized representative in the Union for third-country providers | 54 | Exempt unless the model has systemic risk |
 | Systemic risk presumed above 10^25 FLOP of training compute; notify the Commission "without delay and in any event within two weeks" | 51(2), 52(1) | No exemption |
 | Systemic-risk extras: adversarial testing, risk assessment, serious-incident reporting, cybersecurity | 55(1) | No exemption |
 
@@ -445,8 +445,8 @@ Treat each row as a design input. Prompts, responses and logs that relate to an 
 | Security of processing | 32 | Encryption, pseudonymisation, confidentiality, integrity, availability, resilience, regular testing | SECURITY.md sections 2 and 3; `infra/verify-machine.sh` is a regular test |
 | Impact assessment | 35 | Ask the question when you use new technology on personal data at high risk, or on large-scale special categories | Lab 5: name the question in the design |
 | Transfers | 44 to 49 (Chapter V) | A US-hosted API sends prompts across the boundary. An EU-located pod does not, but who operates it remains a question. SCCs need a transfer assessment | Section 6.4 |
-| Accountability for model provenance | 5(2); EDPB Opinion 28/2024 | A model trained on personal data "cannot, in all cases, be considered anonymous". A deployer should show it checked that the model was not developed by unlawful processing. Keep the model card, licence and training-data statement for each model | `config/models.yaml` records the publisher, licence and SHA; it has no field for a per-model provenance or training-data note |
-| Logs and retention (guidance) | 5, 25 | The EDPB expert report (the author's views, not the EDPB's) lists unintended logging, unauthorised access to logs and lack of retention policy as risks. No official retention period for LLM logs exists in the notes | SECURITY.md, section 3.8 |
+| Accountability for model provenance | 5(2); EDPB Opinion 28/2024 | A model trained on personal data "cannot, in all cases, be considered anonymous". A deployer should show it checked that the model was not developed by unlawful processing. Keep the model card, license and training-data statement for each model | `config/models.yaml` records the publisher, license and SHA; it has no field for a per-model provenance or training-data note |
+| Logs and retention (guidance) | 5, 25 | The EDPB expert report (the author's views, not the EDPB's) lists unintended logging, unauthorized access to logs and lack of retention policy as risks. No official retention period for LLM logs exists in the notes | SECURITY.md, section 3.8 |
 | On-premise for sensitive data (guidance) | 32 | CNIL: for personal or sensitive data, on-premise deployment "generally seems more appropriate and secure". Recording history is a setting for the deployer to secure | Section 5 |
 | Fines | 83(4), 83(5) | Up to EUR 10 million or 2 % for Arts. 25 to 39; up to EUR 20 million or 4 % for Arts. 5, 6, 7, 9 and for transfers under Arts. 44 to 49 | n/a |
 
@@ -457,12 +457,12 @@ The AI Act keeps the GDPR in force (Art. 2(7), as replaced by the Omnibus) and l
 | Topic | RESEARCH section |
 | --- | --- |
 | The provider case study | [7.10](RESEARCH.md#710-jurisdiction-and-the-data-processing-agreement-a-sovereignty-case-study), [7.8](RESEARCH.md#78-eu-data-centers-and-compliance-tags), [7.2](RESEARCH.md#72-why-runpod) |
-| Open weights, open source, licences | [11.1](RESEARCH.md#111-open-weights-vs-open-source-osi-open-source-ai-definition-10), [11.2](RESEARCH.md#112-eu-ai-act-the-open-source-exemption-for-general-purpose-ai-models), [11.3](RESEARCH.md#113-licence-table-per-family), [11.4](RESEARCH.md#114-licences-changed-recently), [11.5](RESEARCH.md#115-practical-checklist-publisher--model--revision--license--commercial-implications--source) |
+| Open weights, open source, licenses | [11.1](RESEARCH.md#111-open-weights-vs-open-source-osi-open-source-ai-definition-10), [11.2](RESEARCH.md#112-eu-ai-act-the-open-source-exemption-for-general-purpose-ai-models), [11.3](RESEARCH.md#113-license-table-per-family), [11.4](RESEARCH.md#114-licenses-changed-recently), [11.5](RESEARCH.md#115-practical-checklist-publisher--model--revision--license--commercial-implications--source) |
 | Roles, Art. 50, GPAI, modifiers | [12.1](RESEARCH.md#121-ai-act-roles-provider-deployer-and-when-a-deployer-becomes-a-provider), [12.3](RESEARCH.md#123-art-50-transparency-who-is-obligated-and-from-when), [12.4](RESEARCH.md#124-gpai-obligations-open-source-exemption-systemic-risk-threshold), [12.5](RESEARCH.md#125-commission-guidelines-on-modifiers-and-fine-tuners) |
 | Timeline and the Omnibus | [12.6](RESEARCH.md#126-application-timeline-after-the-omnibus), [12.7](RESEARCH.md#127-the-ai-omnibus-amendment-regulation-eu-20261744) |
 | GDPR, EDPB, transfers | [12.8](RESEARCH.md#128-gdpr-articles-relevant-to-inference), [12.9](RESEARCH.md#129-edpb-opinion-282024), [12.10](RESEARCH.md#1210-transfers-schrems-ii-and-the-eu-us-data-privacy-framework) |
 | Sovereignty frameworks | [12.11](RESEARCH.md#1211-sovereignty-frameworks) |
 | What could not be verified | [12.12](RESEARCH.md#1212-not-verified-section-12) |
-| Engines and local runners | [3.13](RESEARCH.md#313-other-engines-positioning-and-licences), [13.4](RESEARCH.md#134-exposure-incidents-for-local-inference-servers-ollama-family) |
+| Engines and local runners | [3.13](RESEARCH.md#313-other-engines-positioning-and-licenses), [13.4](RESEARCH.md#134-exposure-incidents-for-local-inference-servers-ollama-family) |
 
 Sources behind these sections are listed once, in the EU and compliance and Infrastructure provider sections of [`REFERENCES.md`](REFERENCES.md).

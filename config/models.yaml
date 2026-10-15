@@ -16,7 +16,7 @@ models:
     repo: Qwen/Qwen3-8B
     revision: b968826d9c46dd6066d109eabc6255188de91218
     publisher: "Alibaba Cloud (Qwen team)"
-    role: "Primary model for Day 1-3 (dense, grouped-query attention, tool calling, thinking mode)"
+    role: "Primary model for the whole path (dense, grouped-query attention, tool calling, thinking mode)"
     license: Apache-2.0
     license_url: https://huggingface.co/Qwen/Qwen3-8B/blob/main/LICENSE
     commercial_use: "Permitted under Apache-2.0 (attribution and licence notice required; no patent retaliation clause beyond Apache terms)"

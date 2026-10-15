@@ -40,7 +40,7 @@ const lanes = [
     <!-- click 2: the application runs the tool -->
     <g v-click="2">
       <path d="M426 238 H994" class="dg-line" style="stroke: var(--ki-application)" marker-end="url(#ki-arrow-amber)" />
-      <text x="724" y="230" class="dg-text" style="font-size: 18px">validate, authorise, run</text>
+      <text x="724" y="230" class="dg-text" style="font-size: 18px">validate, authorize, run</text>
 
       <path d="M994 284 H426" class="dg-line" style="stroke: var(--ki-application)" marker-end="url(#ki-arrow-amber)" />
       <text x="724" y="276" class="dg-text" style="font-size: 18px">result, as text</text>

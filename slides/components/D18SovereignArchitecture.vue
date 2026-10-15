@@ -30,7 +30,7 @@ const rows: { name: string; sub: string; cells: Cell[] }[] = [
   {
     name: 'Model weights',
     sub: 'pinned, Apache-2.0',
-    cells: [NA, ['us', 'Us', 'SHA, licence read'], NA, ['us', 'Us', ''], ['us', 'Us', 'no own mirror yet']],
+    cells: [NA, ['us', 'Us', 'SHA, license read'], NA, ['us', 'Us', ''], ['us', 'Us', 'no own mirror yet']],
   },
   {
     name: 'Hugging Face Hub',

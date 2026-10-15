@@ -74,7 +74,7 @@ Up to eight users nothing changes. Beyond that **the aggregate throughput is pin
 - One run per level, no confidence intervals; tail percentiles at 48 requests are noisy (the p95 of 48 requests rests on about the three slowest). The harness comparison with `vllm bench serve` is in [`docs/METRICS.md`](../../docs/METRICS.md).
 - Every prompt began with the same 16-token block in this session (prefix-cache hit rate 1.3 %, see the baseline results). The effect on TTFT is at most about 1 %.
 - The mean context for the bandwidth model (1,290 tokens) is the input length plus half the output; real requests are at different positions at any step.
-- Closed-loop load: a new request starts only when one finishes, so the system never faces more concurrent requests than clients. Open-loop behaviour (arrival rate above capacity) is a different experiment (task 03, Further Exploration).
+- Closed-loop load: a new request starts only when one finishes, so the system never faces more concurrent requests than clients. Open-loop behavior (arrival rate above capacity) is a different experiment (task 03, Further Exploration).
 
 ## Production consequence
 

@@ -82,6 +82,9 @@ for (let n = from; n <= (to ?? from); n++) {
       const label = `${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? "." + el.className.split(" ")[0] : ""} "${(el.textContent || "").trim().slice(0, 40)}"`;
       if (r.bottom > bottomLimit || r.right > 1280 + 1 || r.left < -1 || r.top < -1) out.push({ kind: "outside", label, bottom: Math.round(r.bottom), right: Math.round(r.right) });
       else if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflowX !== "visible") out.push({ kind: "clipped", label });
+      // Content taller than its box while the box hides or scrolls the rest (a code block cut off at the bottom).
+      else if (el.clientHeight > 0 && el.scrollHeight > el.clientHeight + 3 && ["hidden", "clip", "auto", "scroll"].includes(getComputedStyle(el).overflowY))
+        out.push({ kind: "clipped vertically", label: `${label}  by ${el.scrollHeight - el.clientHeight}px` });
     }
     // A measured component that could not find its data says so in red (.err or .note.error): never ship that.
     for (const el of layout.querySelectorAll(".err, .note.error")) if (visible(el) && (el.textContent || "").trim()) out.push({ kind: "component error", label: (el.textContent || "").trim().slice(0, 80) });

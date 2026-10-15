@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A formula as coloured terms: WEIGHTS + KV CACHE + OVERHEAD = VRAM.
+// A formula as colored terms: WEIGHTS + KV CACHE + OVERHEAD = VRAM.
 //   <Formula :terms='[{ "t": "WEIGHTS" }, { "op": "+" }, { "t": "KV CACHE", "hot": true }, { "op": "=" }, { "t": "VRAM" }]' />
 defineProps<{ terms: { t?: string; op?: string; sub?: string; hot?: boolean }[] }>()
 </script>

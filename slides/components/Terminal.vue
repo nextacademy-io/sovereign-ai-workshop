@@ -21,6 +21,8 @@ defineProps<{ title?: string }>()
   overflow: hidden;
   background: var(--ki-bg-sunken);
   margin-bottom: 14px;
+  /* never shrink inside a flex column: an over-tall slide must overflow visibly (and fail the layout check), not cut code */
+  flex-shrink: 0;
 }
 .bar {
   display: flex;

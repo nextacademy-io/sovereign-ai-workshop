@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A labelled aside. Prefer the named wrappers (Prediction, Observation, Takeaway, Warning, Consequence).
+// A labeled aside. Prefer the named wrappers (Prediction, Observation, Takeaway, Warning, Consequence).
 defineProps<{ kind: 'prediction' | 'observation' | 'takeaway' | 'warning' | 'consequence' | 'trainer'; title?: string }>()
 const NAMES = {
   prediction: 'Prediction',

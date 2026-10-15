@@ -13,7 +13,7 @@ const XE = 1076 // last token
 const PITCH = 46
 const BOX = 38
 const tokens = Array.from({ length: 12 }, (_, i) => ({ n: i + 1, x: XF + i * PITCH }))
-const centre = (n: number) => XF + (n - 1) * PITCH + BOX / 2
+const center = (n: number) => XF + (n - 1) * PITCH + BOX / 2
 </script>
 
 <template>
@@ -53,8 +53,8 @@ const centre = (n: number) => XF + (n - 1) * PITCH + BOX / 2
 
     <!-- click 2: ITL -->
     <g v-click="2">
-      <path :d="`M${centre(4)} 268 V280 H${centre(5)} V268`" class="dg-line" style="stroke: var(--ki-runtime)" />
-      <text :x="centre(5) + 22" y="290" class="dg-text">ITL: gap between two consecutive text chunks</text>
+      <path :d="`M${center(4)} 268 V280 H${center(5)} V268`" class="dg-line" style="stroke: var(--ki-runtime)" />
+      <text :x="center(5) + 22" y="290" class="dg-text">ITL: gap between two consecutive text chunks</text>
     </g>
 
     <!-- click 3: TPOT -->

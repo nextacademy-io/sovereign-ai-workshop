@@ -55,7 +55,7 @@ The `nvidia-smi` utilization of 99 % with a single request is not a sign of a bu
 
 | Start | Seconds to ready | How it was measured |
 | --- | --- | --- |
-| First vLLM start in a freshly rebuilt container (no compile caches) | 176 | server log timestamps |
+| First vLLM start in a freshly rebuilt container (no compile caches) | 176 in the log; about 198 by `wsctl` (188 to 198 were seen) | server log timestamps; `wsctl` wall time |
 | Start with warm compile and kernel caches | 67.4 by `wsctl`, 55 in the log | `wsctl` wall time; log timestamps |
 | Restart of the same profile (`wsctl restart`) | 39.3 by `wsctl`, 29 in the log | as above |
 

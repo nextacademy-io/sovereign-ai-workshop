@@ -2,15 +2,17 @@
 
 ## Goal
 
-Choose, size and defend an open model for four realistic scenarios, using the smallest model that reliably does the job.
+Choose, size and defend an open model for realistic scenarios (four are on offer), using the smallest model that reliably does the job.
 
 ## Context
 
 Model choice decides memory, speed, cost and legal exposure. A leaderboard rank does not tell you whether a model fits your GPU, speaks German, calls tools reliably or may be used commercially. You work in your group and produce one document.
 
-## Timebox
+This lab follows the GPU, sizing, inference-mechanics and model-selection modules, so you already have the tools it needs: the KV-cache arithmetic for a given context and concurrency, the difference between prefill and decode, and TTFT as the number a user waits for. Use them here: every scenario gives you numbers to design for, so the arithmetic can check your choice.
 
-30 minutes.
+## Scope
+
+Done means that every scenario your group worked on has a complete block in `workshop-artifacts/model-selection.md` (model, precision, context length, trade-off) and that the license table covers every model you named. Each sub-group takes **one** scenario first and finishes it before taking another or swapping with a sub-group. Reduced scope is a legitimate outcome: two complete, defended blocks are better than four thin ones. Out of scope: running or benchmarking the candidate models; this lab decides with arithmetic, model cards and licenses.
 
 ## Starting Point
 
@@ -20,7 +22,7 @@ Model choice decides memory, speed, cost and legal exposure. A leaderboard rank 
 
 ## Instructions
 
-Scenarios (your group gets all four, split the time; start with the one your trainer names):
+Scenarios (split your group into sub-groups; each sub-group takes **one** scenario first, finishes it, and then takes another or swaps with another sub-group; your trainer may name the first scenario):
 
 | | Scenario | Numbers to design for |
 | --- | --- | --- |
@@ -32,7 +34,7 @@ Scenarios (your group gets all four, split the time; start with the one your tra
 For each scenario:
 
 1. Decide what quality is needed and how you would test it (one sentence is enough).
-2. Name a model, a precision, an inference engine and a context length. Check the licence in `config/models.yaml` or on the model card.
+2. Name a model, a precision, an inference engine and a context length. Check the license in `config/models.yaml` or on the model card.
 3. Check that it fits the GPU:
 
    ```bash
@@ -47,21 +49,21 @@ Fill in `workshop-artifacts/model-selection.md` as you go. Then copy your best s
 
 ## Expected Result
 
-`workshop-artifacts/model-selection.md` has all four blocks filled in, every block names a model, a precision, a context length and a trade-off, and the licence table lists every model you named with its commercial implications.
+`workshop-artifacts/model-selection.md` has a block for every scenario your group worked on. Every block names a model, a precision, a context length and a trade-off, and the license table lists every model you named with its commercial implications. Blocks for scenarios you did not reach stay empty, and you say so.
 
 ## Validation
 
 - For each choice you can show a `sizing.py` run that says it fits, or you can say precisely why it needs more than one GPU.
-- You can answer the trainer's question "which smaller model did you consider, and why did you reject it?" for every scenario.
-- No licence entry says only "open": each names the licence and one consequence.
+- You can answer the trainer's question "which smaller model did you consider, and why did you reject it?" for every scenario you worked on.
+- No license entry says only "open": each names the license and one consequence.
 
 ## If You Get Stuck
 
 - Unsure how to size? Run `python3 scripts/sizing.py --help` and start with weights, then add the KV cache for your context and concurrency.
-- Unsure about a licence? Read the `LICENSE` file of the model repository, not a blog post (licences differ between versions of the same family).
+- Unsure about a license? Read the `LICENSE` file of the model repository, not a blog post (licenses differ between versions of the same family).
 - No model fits scenario C or D? That is a finding: say what you would need (a bigger GPU, quantization, several GPUs) and what it would cost.
 
 ## Further Exploration
 
 - Repeat scenario A with FP8 weights and an FP8 KV cache and see how many more users fit.
-- Pick a model from a family that is not in `config/models.yaml` and check its licence for thresholds that would apply to your employer.
+- Pick a model from a family that is not in `config/models.yaml` and check its license for thresholds that would apply to your employer.

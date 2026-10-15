@@ -55,4 +55,4 @@ Read the hardware row with care. **GPU utilization is the share of time any kern
 
 ![The dashboard "KI ohne Cloud: inference" while a benchmark sweep (concurrency 4, 16, 32) runs on a workshop machine, seen through an SSH tunnel](dashboard-under-load.png)
 
-Taken during the validation dry run: running requests rise to 32, the time-to-first-token panel shows the queue building, GPU utilization reads 100 % in every burst, and the estimated MFU stays low while the estimated MBU rises in the bursts, the signature of a memory-bandwidth-bound decode. Use it as the reference for the Day 3 investigation exercise.
+Taken during the validation dry run: running requests rise to 32, the time-to-first-token panel shows the queue building, GPU utilization reads 100 % in every burst, and the estimated MFU stays low while the estimated MBU rises in the bursts, the signature of a memory-bandwidth-bound decode. Use it as the reference for the incident-investigation exercise of the observability module.

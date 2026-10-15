@@ -1,13 +1,11 @@
 <script setup lang="ts">
-// layout: lab — one of the six tasks. `task` and `timebox` must match tasks/<task>.md and config/workshop.yaml
-// (pnpm check verifies it).
+// layout: lab — one of the six tasks. `task` must name an existing tasks/<task>.md (pnpm check verifies it).
 //   heading: string
 //   task: e.g. 02-first-inference-server
-//   timebox: minutes
 //   artifact?: file participants fill, e.g. workshop-artifacts/inference-report.md
 import { useLayer } from '../composables/inherit'
 
-defineProps<{ heading?: string; task?: string; timebox?: number | string; artifact?: string }>()
+defineProps<{ heading?: string; task?: string; artifact?: string }>()
 const layer = useLayer()
 </script>
 
@@ -18,7 +16,6 @@ const layer = useLayer()
       <div class="head">
         <h1 v-if="heading">{{ heading }}</h1>
         <div class="badges">
-          <span class="ki-pill timebox">{{ timebox }} min</span>
           <span v-if="task" class="ki-pill ki-mono">tasks/{{ task }}.md</span>
         </div>
       </div>
@@ -45,11 +42,6 @@ const layer = useLayer()
   gap: 8px;
   padding-top: 6px;
   flex-shrink: 0;
-}
-.timebox {
-  color: var(--ki-fg);
-  border-color: var(--ki-layer);
-  background: var(--ki-layer-bg);
 }
 .body {
   display: flex;

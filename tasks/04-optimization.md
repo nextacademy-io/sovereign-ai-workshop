@@ -2,15 +2,15 @@
 
 ## Goal
 
-Test one optimization hypothesis on your group's server with a controlled experiment, and report honestly what improved, what got worse and what it costs.
+Test one optimization lever on your group's server with a controlled experiment, **predict a variation the lecture modules did not show**, and report honestly what improved, what got worse and what it costs.
 
 ## Context
 
-There is no universally fastest configuration; there is only one that fits a workload and its constraints. Each group gets one hypothesis, changes one variable, measures before and after, and explains the result. The trainer will ask for the trade-off, not for the speed-up.
+There is no universally fastest configuration; there is only one that fits a workload and its constraints. The lecture modules on batching, the KV cache and quantization already showed one measured result for each lever. This lab is not a repeat of them: each group takes the same lever one step further, writes its prediction down before anything runs, and then finds out whether the explanation from the lecture still holds. The trainer will ask for the trade-off, not for the speed-up.
 
-## Timebox
+## Scope
 
-40 minutes.
+Done means one lever is tested with a before and an after measurement on the same workload, **with a written prediction made before the run**, explained with the resource model, and written into the *Experiments* section of your report with its trade-off. Out of scope: combining several changes in one run, and changes beyond the profiles and `--set` values the launcher offers.
 
 ## Starting Point
 
@@ -19,37 +19,39 @@ There is no universally fastest configuration; there is only one that fits a wor
 
 ## Instructions
 
-Your hypothesis (the trainer assigns one per group):
+Your lever and your variation (the trainer assigns one lever per group):
 
-| Group | Hypothesis | Profile(s) | Workload | What to look at |
+| Group | Lever | What the lecture showed (reference exists) | Your variation (no reference exists) | What to look at |
 | --- | --- | --- | --- | --- |
-| A: quantization | FP8 weights make decode faster and free memory for more KV cache, at some cost in quality | `fp8`; optionally `kv-fp8` | `workshop-baseline` | ITL, aggregate tokens/s, weights memory, KV capacity, quality |
-| B: prefix caching | A long prompt prefix shared by many requests is prefilled only once | `baseline` vs `no-prefix-cache` | `shared-prefix` | TTFT, prefix-cache hit rate |
-| C: context length | Long prompts cost time to first token and KV memory; with a small KV budget they queue or get evicted | `baseline` vs `kv-constrained` | `--input-tokens 8192` | TTFT, waiting requests, preemptions, KV usage |
-| D: concurrency / batching | Capping the batch limits throughput and creates queueing | `baseline` vs `max-seqs-8` | `workshop-baseline` | aggregate tokens/s, waiting requests, TTFT p95 |
-| E (optional): tensor parallelism | Trainer demo only: it needs a two-GPU machine, and the reference run could not be made (`experiments/tensor-parallel/RESULTS.md`) | | | |
+| A: quantization | FP8 weights and FP8 KV cache | Weights and KV cache in FP8 at 1 and 16 clients on `workshop-baseline`; FP8 KV on a small pool at 4 and 8 clients | FP8 KV cache on the small pool at **16 clients**: `kv-constrained` against `kv-constrained-fp8kv`, `--input-tokens 8192 --output-tokens 128` | KV capacity, waiting requests, preemptions, TTFT, tokens/s |
+| B: prefix caching | Prefix cache on or off | A 2,000-token shared prefix of a 2,200-token prompt, 1 and 8 clients | A **shorter shared prefix**: `--workload shared-prefix --shared-prefix-tokens 500`, `baseline` against `no-prefix-cache` | TTFT, prefix-cache hit rate |
+| C: context length | KV pool size | 8,192-token prompts, 8 clients, three pools (full, 4 GiB, 4 GiB with FP8 KV) | A **middle pool**: `kv-constrained` with `--set kv-cache-memory-bytes=8G`, 8,192-token prompts, 4, 8 and 16 clients | TTFT, waiting requests, preemptions, KV usage |
+| D: concurrency / batching | Cap on the running batch | Cap of 8 against the default, 16 and 32 clients | **Other caps**: `baseline --set max-num-seqs=4` and `--set max-num-seqs=16`, 8, 16 and 32 clients | aggregate tokens/s, waiting requests, TTFT p95 |
+| E: tensor parallelism | An optional fifth lever, only if a two-GPU machine is available. No reference run exists (`experiments/tensor-parallel/RESULTS.md`) | | | |
 
-The trainer's reference results for each hypothesis are in `benchmark/results/reference/` (after `./scripts/reset.sh lab-04`) and explained in `experiments/quantization/RESULTS.md`, `experiments/prefix-cache/RESULTS.md`, `experiments/context-length/RESULTS.md` and `experiments/concurrency/RESULTS.md`. Read them **after** your own measurement, not before.
+Reference results exist for what the lecture showed, not for your variation. They are in `benchmark/results/reference/` (after `./scripts/reset.sh lab-04`) and explained in `experiments/quantization/RESULTS.md`, `experiments/prefix-cache/RESULTS.md`, `experiments/context-length/RESULTS.md` and `experiments/concurrency/RESULTS.md`. Your variation is a new data point: nobody has its answer yet, so read the references only **after** your own measurement.
 
-1. **Write the hypothesis** in your report: what do you expect to improve, what do you expect to get worse, and why (which resource is the bottleneck)?
-2. **Baseline.** Use your Task 03 numbers at the concurrency you will compare (for example 8 and 16). For group B and C run the baseline with *their* workload first; the numbers of Task 03 are for another workload.
-3. **Change one variable.**
+1. **Restate the lecture result** for your lever in two sentences of your own: what improved, what got worse, which resource was the bottleneck.
+2. **Predict your variation, in writing, before anything runs.** For every metric in the last column: a number or a direction (up, down, flat), and the reason in terms of the resource model. Hand the prediction in to the trainer.
+3. **Baseline for your workload.** Use your Task 03 numbers where the workload is the same. Groups A, B and C run the baseline side with *their* workload first; the numbers of Task 03 are for another workload.
+4. **Change one variable.**
 
    ```bash
-   ./scripts/start-vllm.sh <profile>            # for example: fp8
+   ./scripts/start-vllm.sh <profile> [--set key=value]    # for example: kv-constrained-fp8kv
    sudo wsctl info | python3 -m json.tool | head -30
    ```
 
    Read the new startup numbers: weights memory, KV cache tokens, time to ready.
-4. **Measure** with the same harness and the same workload:
+5. **Measure** with the same harness and the same workload:
 
    ```bash
-   ./scripts/benchmark.sh --concurrency 1,8,16 --label <profile>            # groups A, D
-   ./scripts/benchmark.sh --workload shared-prefix --concurrency 1,8 --label <profile>   # group B
-   ./scripts/benchmark.sh --input-tokens 8192 --output-tokens 128 --concurrency 1,4,8 --label <profile>   # group C
+   ./scripts/benchmark.sh --input-tokens 8192 --output-tokens 128 --concurrency 16 --label <profile>             # group A
+   ./scripts/benchmark.sh --workload shared-prefix --shared-prefix-tokens 500 --concurrency 1,8 --label <profile>   # group B
+   ./scripts/benchmark.sh --input-tokens 8192 --output-tokens 128 --concurrency 4,8,16 --label <profile>          # group C
+   ./scripts/benchmark.sh --concurrency 8,16,32 --label <profile>                                                 # group D
    ```
 
-5. **Check quality** if your change can affect it (group A):
+6. **Check quality** if your change can affect it (group A, when you also changed the weights):
 
    ```bash
    python3 experiments/quality_probe.py run --label <profile> --items 120 --out /tmp/quality-<profile>.json
@@ -57,17 +59,18 @@ The trainer's reference results for each hypothesis are in `benchmark/results/re
    ```
 
    Run it first on the baseline profile if you have not. The probe is a spot check: with 120 items a difference of a few points is noise.
-6. **Explain** the result with the resource model: which resource was the bottleneck, and what did the change do to it?
-7. **Fill the template** from `workshop-artifacts/inference-report.md` (*Experiments*): before, after, metric improved, metric degraded, quality impact, memory impact, operational impact, recommendation.
-8. **Prepare a five-minute report** for the other groups. Lead with the trade-off.
+7. **Compare prediction and result.** Where were you wrong, and which part of your resource model does that correct? Only now read the lecture's reference results and put them next to yours.
+8. **Fill the template** from `workshop-artifacts/inference-report.md` (*Experiments*): prediction, before, after, metric improved, metric degraded, quality impact, memory impact, operational impact, recommendation.
+9. **Prepare a short report** for the other groups. Lead with the trade-off and with what your prediction got wrong.
 
 ## Expected Result
 
-A completed experiment block with numbers from your own result files, an explanation in terms of memory bandwidth, compute, KV cache or queueing, and a recommendation that names a condition under which you would **not** use the change. At least one metric got worse or became more expensive to operate: if you found none, look again.
+A completed experiment block with your written prediction, numbers from your own result files, an explanation in terms of memory bandwidth, compute, KV cache or queueing, and a recommendation that names a condition under which you would **not** use the change. At least one metric got worse or became more expensive to operate: if you found none, look again. A wrong prediction is a good result if the report says which assumption failed.
 
 ## Validation
 
 - The result files of both configurations are in `benchmark/results/mine/` and carry their server arguments, so the difference between them is visible in the data.
+- Your prediction was written down before the run and is in the report next to the result.
 - Your *before* and *after* numbers use the same workload and the same concurrency.
 - Your report states the **operational** cost of the change (a restart, a different checkpoint, a quality check, a new failure mode).
 - You can say what you would measure next.
@@ -78,8 +81,9 @@ A completed experiment block with numbers from your own result files, an explana
 | --- | --- |
 | The new profile does not start | The server rolls back to the previous profile and prints why. Read the last log lines: `sudo wsctl logs 60`. That is also a result: record it. |
 | After-numbers look too good | Check the hit rate warning (prefix cache) and that you compared the same workload and concurrency. |
-| You are out of time for the second profile | `./scripts/reset.sh lab-04` copies measured reference results for all four hypotheses; use them for the missing side and say so. |
-| You want your own variant | `./scripts/start-vllm.sh baseline --set max-num-seqs=16`. Allowed keys: `sudo wsctl profiles`. |
+| You cannot finish the second profile | `./scripts/reset.sh lab-04` copies measured reference results for what the lecture showed (not for your variation); use them for the missing side where they match your workload, and say so. |
+| A variation does not start | An over-small pool or a context longer than the pool fails at start-up and the server rolls back (`sudo wsctl logs 60`). Record why: that is a result. |
+| You want another variant | `./scripts/start-vllm.sh baseline --set max-num-seqs=16`. Allowed keys: `sudo wsctl profiles`. |
 
 ## Further Exploration
 

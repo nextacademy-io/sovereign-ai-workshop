@@ -20,7 +20,7 @@ How to create the Runpod pods for a workshop, bring them to workshop-ready state
 
 One pod hosts one shared vLLM server for its group. The workshop GPU is the **NVIDIA RTX PRO 6000 Blackwell Server Edition (96 GB)**; every measured number in the slides comes from it, so use the same GPU.
 
-Per-hour cost is `pods × price`. At the price read on 2026-10-14 (Secure Cloud, $2.49 per GPU-hour) four pods cost about $10 per hour; a three-day workshop with 8 hours a day is about $240 plus preparation. **Read the live price**, do not trust this number.
+Per-hour cost is `pods × price`. At the price read on 2026-10-14 (Secure Cloud, $2.49 per GPU-hour) four pods cost about $10 per hour ($9.96); multiply by the hours the pods exist (see [`docs/GPU-POOL.md`](../docs/GPU-POOL.md), section 4, for the plans). **Read the live price**, do not trust this number.
 
 ## 2. Check stock and price (read before you create)
 
@@ -79,7 +79,7 @@ ssh -p <port> -L 8000:127.0.0.1:8000 -L 3000:127.0.0.1:3000 <user>@<ip>
 
 ## 7. If a pod restarts or is recreated
 
-A restart wipes the container disk; the persistent volume keeps only the model download cache. Run `deploy-to-pod.sh` again with the new host and port: models come from the cache (a minute or two instead of the download), accounts come from `participants.yaml`. Participants' own work in `~/ki-ohne-cloud` is lost, which is why `infra/cleanup.sh --collect` is part of every end of day. SSH host keys are regenerated (not persisted, because the volume does not enforce permissions), so participants see a new host key after a rebuild.
+A restart wipes the container disk; the persistent volume keeps only the model download cache. Run `deploy-to-pod.sh` again with the new host and port: models come from the cache (a minute or two instead of the download), accounts come from `participants.yaml`. Participants' own work in `~/ki-ohne-cloud` is lost, which is why `infra/cleanup.sh --collect` is part of every cleanup after a session. SSH host keys are regenerated (not persisted, because the volume does not enforce permissions), so participants see a new host key after a rebuild.
 
 ## 8. Tear down
 

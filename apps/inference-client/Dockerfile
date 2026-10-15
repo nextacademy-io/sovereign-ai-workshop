@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# CPU-only client image for the Day 3 containerization exercise (runs on participants' laptops).
+# CPU-only client image for the containerization exercise (runs on participants' laptops).
 #
 #   docker build -f apps/inference-client/Dockerfile -t ki-ohne-cloud/client:local .
 #   ssh -L 8000:127.0.0.1:8000 <your-user>@<gpu-host> -p <port>        # in another terminal

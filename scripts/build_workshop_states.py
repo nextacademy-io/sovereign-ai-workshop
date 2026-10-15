@@ -70,7 +70,7 @@ def section_selected_model() -> str:
 | | |
 | --- | --- |
 | Model and revision | `Qwen/Qwen3-8B` at `b968826d9c46dd6066d109eabc6255188de91218` (the workshop's primary model; replace with your own choice for your scenario) |
-| Precision | BF16 (FP8 is the Day 2 experiment) |
+| Precision | BF16 (FP8 is the quantization experiment) |
 | Licence (and what it means for commercial use) | Apache-2.0: commercial use permitted; keep the licence and attribution notices |
 | Why it is the smallest model that does the task | Reference answer for the workshop workload only: a dense 8B model with tool calling and structured output that fits one GPU with room for a large KV cache. For your scenario, argue it from your own eval. |
 | Rejected alternatives | `Qwen/Qwen3-1.7B` (smaller, would need an eval on your items); `Qwen/Qwen3-30B-A3B-FP8` (mixture of experts: all 30.5 B weights must be resident) |
@@ -131,6 +131,7 @@ def section_experiments() -> str:
     qb, qf = run("quantization", "baseline-c016"), run("quantization", "fp8-c016")
     qb1, qf1 = run("quantization", "baseline-c001"), run("quantization", "fp8-c001")
     start = load("quantization/startup.json")
+    first_start = load("baseline/kv-formula-check.json")["reported_tokens"]
     qual = load("quantization/quality-comparison.json")["fp8"]
     # B: prefix caching
     pb = run("prefix-cache", "baseline-shared-c008")
@@ -140,30 +141,36 @@ def section_experiments() -> str:
     cc = run("context-length", "kv-constrained-c008-in08192")
     # D: batching
     db, dc = run("concurrency", "baseline-c016"), run("concurrency", "max-seqs-8-c016")
-    return f"""_Lab 4. One hypothesis, one changed variable, measured before and after. Reference results for all four hypotheses (`benchmark/results/reference/`):_
+    return f"""_Lab 4. One lever, one changed variable, a prediction written before the run, measured before and after. Reference results for all four hypotheses (`benchmark/results/reference/`):_
 
 **A. Quantization** (`quantization/`: `baseline-c*` against `fp8-c*`)
 
 ```text
 Hypothesis: FP8 weights make decode faster and free memory for more KV cache, at some cost in quality
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile fp8 (published FP8 checkpoint of the same model)
 Before: concurrency 1: ITL p50 {n(qb1["itl_ms"]["p50"], 1)} ms, {n(qb1["output_tps_per_request"]["p50"], 1)} tokens/s per request; concurrency 16: {n(qb["aggregate_tps"])} tokens/s, TTFT p50 {n(qb["ttft_ms"]["p50"])} ms
 After:  concurrency 1: ITL p50 {n(qf1["itl_ms"]["p50"], 1)} ms, {n(qf1["output_tps_per_request"]["p50"], 1)} tokens/s per request; concurrency 16: {n(qf["aggregate_tps"])} tokens/s, TTFT p50 {n(qf["ttft_ms"]["p50"])} ms
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: decode speed, throughput, time to first token
-Metric degraded: the first start of a new checkpoint is slow (about 2.5 minutes in the reference session, {n(start["fp8"]["startup_seconds"])} s once its compile caches exist, against {n(start["baseline"]["startup_seconds"])} s for baseline)
+Metric degraded: the first start of a new checkpoint is slow (138 to 143 s on its first start, {n(start["fp8"]["startup_seconds"])} s once its compile caches exist, against {n(start["baseline"]["startup_seconds"])} s for baseline)
 Quality impact: {n(qual["other"]["accuracy"] * 100, 1)} % against {n(qual["reference"]["accuracy"] * 100, 1)} % on {qual["items"]} spot-check items (difference {n(qual["accuracy_difference_points"], 1)} points, within the noise of this probe); {n(qual["greedy_completions_identical"] * 100)} % of greedy completions are identical to BF16
 Memory impact: weights {n(start["baseline"]["startup"]["model_memory_gib"], 2)} to {n(start["fp8"]["startup"]["model_memory_gib"], 2)} GiB; KV capacity {n(start["baseline"]["startup"]["kv_cache_tokens"])} to {n(start["fp8"]["startup"]["kv_cache_tokens"])} tokens
 Operational impact: a second checkpoint to pin and store; a quality check before every model update
 Recommendation: use FP8 for latency and cost when your own quality check passes; do not use it where outputs must stay identical to BF16
 ```
 
+The baseline KV capacity here ({n(start["baseline"]["startup"]["kv_cache_tokens"])} tokens) differs from the Hardware section ({n(first_start)} tokens): two sessions started the baseline separately, so the two numbers come from different starts.
+
 **B. Prefix caching** (`prefix-cache/`: `baseline-shared-c008` against `no-prefix-cache-shared-c008`)
 
 ```text
 Hypothesis: a long prompt prefix shared by many requests is prefilled only once
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile no-prefix-cache (prefix caching off)
 Before (cache on):  TTFT p50 {n(pb["ttft_ms"]["p50"])} ms, aggregate {n(pb["aggregate_tps"])} tokens/s, prefix hit rate {hit_rate(pb)} %
 After (cache off):  TTFT p50 {n(pn["ttft_ms"]["p50"])} ms, aggregate {n(pn["aggregate_tps"])} tokens/s, prefix hit rate {hit_rate(pn)} %
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: time to first token with the cache on
 Metric degraded: nothing at the server; the cache uses KV memory that could hold other requests
 Quality impact: none (same model, same outputs)
@@ -176,9 +183,11 @@ Recommendation: leave it on; design prompts so the shared part comes first
 
 ```text
 Hypothesis: with a small KV budget, long prompts queue
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile kv-constrained (4 GiB KV pool, 16,384-token context limit)
 Before: concurrency 8, 8,192-token prompts: TTFT p50 {n(cb["ttft_ms"]["p50"])} ms, aggregate {n(cb["aggregate_tps"])} tokens/s, {n(cb["server"]["gauges"]["num_requests_running"]["max"])} requests running, KV usage up to {n(cb["server"]["gauges"]["kv_cache_usage_perc"]["max"] * 100)} %
 After:  TTFT p50 {n(cc["ttft_ms"]["p50"])} ms, aggregate {n(cc["aggregate_tps"])} tokens/s, {n(cc["server"]["gauges"]["num_requests_running"]["max"])} requests running, {n(cc["server"]["gauges"]["num_requests_waiting"]["max"])} waiting, KV usage up to {n(cc["server"]["gauges"]["kv_cache_usage_perc"]["max"] * 100)} %
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: GPU memory in use (about 30 GiB instead of about 85 GiB)
 Metric degraded: time to first token and throughput: requests wait for KV space
 Quality impact: none
@@ -191,9 +200,11 @@ Recommendation: size the KV pool for the concurrency you promise, or cap the con
 
 ```text
 Hypothesis: capping the batch limits throughput and creates queueing
+Prediction (written before the run): not applicable: reference run
 Change (one variable): profile max-seqs-8 (--max-num-seqs 8)
 Before: concurrency 16: aggregate {n(db["aggregate_tps"])} tokens/s, TTFT p50 {n(db["ttft_ms"]["p50"])} ms, {n(db["output_tps_per_request"]["p50"], 1)} tokens/s per request
 After:  aggregate {n(dc["aggregate_tps"])} tokens/s, TTFT p50 {n(dc["ttft_ms"]["p50"])} ms, {n(dc["output_tps_per_request"]["p50"], 1)} tokens/s per request, {n(dc["server"]["gauges"]["num_requests_waiting"]["max"])} waiting
+Prediction versus result (what was wrong): not applicable: reference run
 Metric improved: nothing measured here (a cap protects a shared server from overload)
 Metric degraded: throughput and time to first token; the speed of each running request is unchanged
 Quality impact: none

@@ -3,7 +3,8 @@
 // Sizes: per-SM figures for the GB202 die and the 96 GB of VRAM come from docs/RESEARCH.md 6.3 and 6.5 (datasheet and whitepaper).
 // NVIDIA publishes no bandwidth for registers, L1 or L2, so none is drawn. Row widths are a schematic, not to scale.
 // Click 1: the weights (16.38 GB) only fit in global memory.
-// Click 2: every decode step reads all of them from there, and the arithmetic of that read.
+// Click 2: every decode step reads all of them from there; the time of that read is bytes ÷ bandwidth (no model-specific result is shown: the module that
+// teaches the decode step asks the participants to predict it).
 import DiagramFrame from './DiagramFrame.vue'
 
 const levels = [
@@ -41,8 +42,8 @@ const levels = [
       <text x="812" y="54" class="dg-title">One decode step</text>
       <text x="812" y="86" class="dg-text">reads every weight once</text>
       <text x="812" y="118" class="dg-text">from global memory:</text>
-      <text x="812" y="162" class="dg-mono">16.38 GB ÷ 1,597 GB/s</text>
-      <text x="812" y="196" class="dg-mono">= 10.3 ms</text>
+      <text x="812" y="162" class="dg-mono">time ≥ bytes read</text>
+      <text x="812" y="196" class="dg-mono">       ÷ 1,597 GB/s</text>
       <text x="812" y="236" class="dg-text-muted">L2 holds 128 MB: about 1/128 of</text>
       <text x="812" y="258" class="dg-text-muted">the weights. No cache can hold them.</text>
     </g>

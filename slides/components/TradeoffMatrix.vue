@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Qualitative effect of one change on the seven dimensions every optimisation trades.
+// Qualitative effect of one change on the seven dimensions every optimization trades.
 // It states DIRECTION, not size: measured sizes belong in ResultTable / MetricCard.
 //   <TradeoffMatrix :rows='[{ "name": "FP8 weights", "effects": { "memory": "up", "latency": "up", "quality": "risk" } }]' />
 // effect values: up (improves) | down (worsens) | flat | risk (depends / must be checked) | (absent = not affected)

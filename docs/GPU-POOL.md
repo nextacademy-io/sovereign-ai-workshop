@@ -1,6 +1,6 @@
 # GPU pool: what was measured, what it costs, what can go wrong
 
-The facts about the machines the workshop runs on, as measured while building it. Where a number comes from a file, the file is named; where it comes from a live read of the provider's catalogue it says so, and a live read goes stale: read it again before you provision. How to create the pods: [`infra/provision.md`](../infra/provision.md). How they are secured: [`SECURITY.md`](SECURITY.md).
+The facts about the machines the workshop runs on, as measured while building it. Where a number comes from a file, the file is named; where it comes from a live read of the provider's catalog it says so, and a live read goes stale: read it again before you provision. How to create the pods: [`infra/provision.md`](../infra/provision.md). How they are secured: [`SECURITY.md`](SECURITY.md).
 
 ## 1. The pool the workshop needs
 
@@ -23,9 +23,9 @@ Both validation pods were created in EUR-IS-2 on different hosts (host drivers 5
 | Start of the validation, one GPU | *Low* on CUDA 13.0 and 13.2 |
 | Start of the validation, two GPUs | *Low*, CUDA 13.2 hosts only, $4.98 per hour |
 | Creating a pod at the start | succeeded within seconds, twice |
-| Late the same day, two GPUs | `create-pod` was refused ("There are no longer any instances available with the requested specifications"); a capacity read showed *Out* on both CUDA versions |
+| Later in the validation session, two GPUs | `create-pod` was refused ("There are no longer any instances available with the requested specifications"); a capacity read showed *Out* on both CUDA versions |
 
-Consequences. Stock is the largest operational risk of the workshop (see `FACILITATOR.md`, risk register): four pods at once is a larger ask than one, and a pod that is stopped can come back without its GPU. Provision the evening before, not the morning of, keep every pod running until the end, keep a spare in a second data center, and have a plan for sharing a pod between two groups (the labs tolerate five people per server). The two-GPU tensor-parallel experiment could not be run for exactly this reason: [`experiments/tensor-parallel/RESULTS.md`](../experiments/tensor-parallel/RESULTS.md).
+Consequences. Stock is the largest operational risk of the workshop (see `FACILITATOR.md`, risk register): four pods at once is a larger ask than one, and a pod that is stopped can come back without its GPU. Provision well before the first session rather than just before it, keep every pod running until the last session ends, keep a spare in a second data center, and have a plan for sharing a pod between two groups (the labs tolerate five people per server). The two-GPU tensor-parallel experiment could not be run for exactly this reason: [`experiments/tensor-parallel/RESULTS.md`](../experiments/tensor-parallel/RESULTS.md).
 
 ## 3. Timings
 
@@ -38,11 +38,12 @@ Measured on live pods. Source files: `benchmark/results/reference/startup/*.json
 | `infra/deploy-to-pod.sh` on a fresh pod, whole run | 5 min 29 s |
 | ...of which model download (four models, 29 GB) | 42 s; a single 16 GB model took 12.4 s on the other host (about 1.3 GB/s) |
 | ...of which monitoring (Prometheus, Grafana, GPU exporter) | 17 s |
-| ...of which first vLLM start, cold, plus the embedding server | 198 s (176 s in the server's own log) plus 53 s |
+| ...of which first vLLM start, cold, plus the embedding server | 176 s to ready in the server's own log (198 s as `wsctl start` measured the wall time; 188 to 198 s were seen), plus 53 s |
 | `infra/deploy-to-pod.sh` rerun on a populated pod (idempotent) | 1 min 36 s (the server restarts) |
 | Rebuild of a pod after a restart (container disk wiped, `/workspace` kept) | 5 min 41 s |
-| vLLM start, warm caches / restart of the same profile | 55 to 67 s / 29 to 41 s |
-| First start of the FP8 checkpoint | 138 to 143 s |
+| vLLM start with warm caches | 55 s to ready in the engine log, 67.4 s by `wsctl` |
+| Restart of the same profile | 29 s in the log, 39.3 s by `wsctl` |
+| First start of the FP8 checkpoint | 138 to 143 s (143 s in the reference session, 138 s on the dry-run machine) |
 | `./scripts/reset.sh lab-NN` | under 1 s; `--server` adds a restart of the model (43 s) |
 | `infra/reset-machine.sh user <name>` / `servers` | 1.2 s / 96 s |
 | Revoking a participant | 1 s; the key is removed, sessions are killed, the next login is refused |
@@ -51,36 +52,36 @@ Measured on live pods. Source files: `benchmark/results/reference/startup/*.json
 
 ## 4. What the validation cost
 
-Prices at $2.49 per GPU-hour, per-second billing. The total is what `list-billing` reported for the day after both pods were deleted; the split between the pods is the runtime of each times the price.
+Prices at $2.49 per GPU-hour, per-second billing. The total is what `list-billing` reported for the validation day after both pods were deleted; the split between the pods is the runtime of each times the price.
 
 | Pod | Created | Deleted | Used for | Cost |
 | --- | --- | --- | --- | --- |
 | First pod, one GPU | first session | after the last experiment | infrastructure validation, all experiments (including four reruns that fixed profile and harness defects) | about $8.4, of which about $1.9 was an idle tail |
-| Second pod, one GPU, a different host | during the experiments | after the dry run | build from scratch, tasks 02 to 04 and the Day 3 demos as a participant, resets, revocation, cleanup | about $3.9 |
+| Second pod, one GPU, a different host | during the experiments | after the dry run | build from scratch, tasks 02 to 04 and the trainer demos as a participant, resets, revocation, cleanup | about $3.9 |
 | Two-GPU pod | never created (no stock) | | | $0 |
-| Total | | | | $12.43 for the day as read from `list-billing` ($12.29 GPU time, $0.14 disk), of the $20 budget; $0.06 of it was on the account before the work |
+| Total | | | | $12.43 for the validation day as read from `list-billing` ($12.29 GPU time, $0.14 disk), of the $20 budget; $0.06 of it was on the account before the work |
 
-Lessons about spending, learnt the expensive way:
+Lessons about spending, learned the expensive way:
 
-- **A pod that is not running a scripted step is wasted money.** The first pod sat idle for about 45 minutes while results were being analysed. Delete the pod when the last experiment has finished and its results are copied; recreate it (a few minutes) if analysis needs more.
+- **A pod that is not running a scripted step is wasted money.** The first pod sat idle for about 45 minutes while results were being analyzed. Delete the pod when the last experiment has finished and its results are copied; recreate it (a few minutes) if analysis needs more.
 - **Create a second pod before deleting the first** when stock is *Low*: the overlap costs a few minutes of a second GPU and saves the risk of not getting one.
 - **Reruns cost little and found defects that no review would have**: a profile that could not start, a flag that did nothing, a control that was not a control. Every profile and every experiment should be run once on the workshop GPU before it is taught (`docs/TROUBLESHOOTING.md` section 2.1, incidents 17 to 22).
 
 ### Estimate for the workshop itself (arithmetic)
 
-Four pods, $2.49 per pod-hour:
+Four pods at $2.49 per pod-hour cost 4 × $2.49 = $9.96 per hour together. The bill is that figure times the hours the pods exist, so the pacing you choose sets the total: every 10 hours with all four pods running cost $99.60.
 
-| Plan | Hours per pod | Cost |
-| --- | --- | --- |
-| Running from two hours before Day 1 to one hour after Day 3, overnight included | 59 | about $588 |
-| Running only during teaching hours (stopped overnight, rebuilt every morning) | 33 | about $329 |
+| Plan | Cost |
+| --- | --- |
+| Keep every pod running from the first setup until the last session ends | $9.96 per hour for the whole span, breaks included |
+| Stop the pods during a long break and rebuild each one before the next session | $9.96 per hour only while the pods run, plus one rebuild per pod after every stop |
 
-Stopping overnight saves about $260 but each stop wipes the container disk and may return the pod without a GPU; the rebuild is five to six minutes per pod. For a fixed schedule the first plan is the safe default. A network volume (priced per GB-month, billed while idle) would keep the models between rebuilds; the path was not validated here.
+A stopped pod saves $9.96 per hour for the four of them, but each stop wipes the container disk and may return the pod without a GPU (section 2). A rebuild takes five to six minutes per pod, about $0.24 of GPU time (341 s ÷ 3,600 × $2.49). Keeping the pods running is the safe default; stop them only for a long break, and only when stock is not *Low*. A network volume (priced per GB-month, billed while idle) would keep the models between rebuilds; the path was not validated here.
 
 ## 5. Not validated here
 
 - The REST API and `runpodctl` provisioning scripts (the validation used the MCP server only).
 - Four pods created and managed in parallel (two were).
 - A network volume instead of the persistent volume.
-- Two-GPU pods (no stock), the llama.cpp or Ollama comparison and the mixture-of-experts demo (the 31 GB checkpoint needs the 100 GB container disk of `infra/provision.md`).
-- That billing stops after `delete-pod` for a four-pod, three-day workshop: verify with `list-pods` and `list-billing` after the real one (see the shutdown checklist in `FACILITATOR.md`).
+- Two-GPU pods (no stock), the llama.cpp or Ollama comparison and the mixture-of-experts demo (the 32.45 GB checkpoint needs the 100 GB container disk of `infra/provision.md`).
+- That billing stops after `delete-pod` for a four-pod workshop: verify with `list-pods` and `list-billing` after the real one (see the shutdown checklist in `FACILITATOR.md`).

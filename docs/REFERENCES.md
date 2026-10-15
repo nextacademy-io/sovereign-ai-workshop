@@ -9,7 +9,7 @@ How the list is used:
 - **What "verified" means.** A research pass opened the URL on 2026-10-14. It does not mean every claim in the notes was re-checked against that page. An entry marked "(unverified)" was not opened, could not be read, or is flagged as unconfirmed in the research notes.
 - **Versions drift.** vLLM facts are pinned to the `v0.31.0` tag. Pages on `latest` or `main` can be ahead of the release or change later, and model repositories change, so models are pinned by commit SHA in the workshop configuration.
 - **Legal and regulatory entries are sources for engineers, not legal advice.**
-- **The book is cited by chapter only.** *Inference Engineering* appears once, in its own group, with bibliographic data and a chapter-to-topic table. It is never quoted, and no figure is copied from it.
+- **The book is cited by section only.** *Inference Engineering* appears once, in its own group, with bibliographic data, a chapter-to-topic table and a list of sections the workshop does not cover. It is never quoted, and no figure is copied from it.
 
 Each entry reads: title and link, then publisher, authors, venue or year where known, then what the workshop uses it for. Within a group, entries are ordered by importance for the workshop, not alphabetically.
 
@@ -24,6 +24,7 @@ Each entry reads: title and link, then publisher, authors, venue or year where k
 - [vLLM v0.30.0 release notes](https://github.com/vllm-project/vllm/releases/tag/v0.30.0) — vLLM project, 2026-09-22 — SM120 and SM121 items (B12X attention backend, NVFP4 preference).
 - [vLLM v0.10.1 release notes](https://github.com/vllm-project/vllm/releases/tag/v0.10.1) — vLLM project, 2025-08-18 — `--task` replaced by `--runner` and `--convert`, which some model cards still print.
 - [vLLM v0.9.0 release notes](https://github.com/vllm-project/vllm/releases/tag/v0.9.0) — vLLM project, 2025-05-15 — deprecation of `--enable-reasoning`, which some model cards still print.
+- [vLLM README at v0.31.0](https://github.com/vllm-project/vllm/blob/v0.31.0/README.md) — vLLM project — how the project describes itself; used to position vLLM on the engine slide in `08-first-vllm`.
 - [vLLM documentation sources at v0.31.0](https://github.com/vllm-project/vllm/tree/v0.31.0/docs) — vLLM project — the pinned docs tree that docs.vllm.ai builds from; use it for release-accurate statements.
 
 ### Serving flags, defaults and configuration
@@ -100,6 +101,7 @@ Each entry reads: title and link, then publisher, authors, venue or year where k
 ### Speculative decoding
 
 - [Speculative decoding overview at v0.31.0](https://github.com/vllm-project/vllm/blob/v0.31.0/docs/features/speculative_decoding/README.md) — vLLM project — methods, `--speculative-config` keys, qualitative gain table by load.
+- [Speculative decoding method pages at v0.31.0](https://github.com/vllm-project/vllm/tree/v0.31.0/docs/features/speculative_decoding) — vLLM project — one page per method (EAGLE, MTP, draft model, n-gram and others), linked from the overview; the overview does not mention Medusa. Used for the support column of the speculative-decoding slide in `18-demos`.
 - [Dynamic speculative decoding at v0.31.0](https://github.com/vllm-project/vllm/blob/v0.31.0/docs/features/speculative_decoding/dynamic_speculative_decoding.md) — vLLM project — why speculation hurts at high batch sizes and the per-batch-size K setting.
 
 ### Structured outputs, tool calling, reasoning and embeddings
@@ -138,7 +140,7 @@ Each entry reads: title and link, then publisher, authors, venue or year where k
 - [vLLM issue 32826](https://github.com/vllm-project/vllm/issues/32826) — vLLM project, closed not planned — MiniMax NVFP4 with expert parallel on RTX PRO 6000.
 - [FlashInfer issue 2577](https://github.com/flashinfer-ai/flashinfer/issues/2577) — FlashInfer project, closed as completed on 2026-07-23 — NVFP4 `mm_fp4` GEMM was broken on SM120.
 
-### Other inference engines (for the engine-comparison block)
+### Other inference engines (for the engine-comparison demo)
 
 - [SGLang repository](https://github.com/sgl-project/sglang) — LMSYS, Apache-2.0, v0.5.21 on 2026-10-02 — the main alternative engine; its README names PRO 6000 among supported NVIDIA GPUs.
 - [TensorRT-LLM repository](https://github.com/NVIDIA/TensorRT-LLM) — NVIDIA — NVIDIA-only engine; latest stable v1.2.1 (2026-04-20), active line is a v1.3.0 release candidate.
@@ -439,6 +441,8 @@ Papers are listed once, at their canonical page (arXiv, USENIX or a DOI record).
 - [Fast Inference from Transformers via Speculative Decoding](https://arxiv.org/abs/2211.17192) — Leviathan, Kalman, Matias; ICML 2023 (oral) — why verifying k tokens is almost free in memory-bound decode; acceptance-rate economics.
 - [Accelerating Large Language Model Decoding with Speculative Sampling](https://arxiv.org/abs/2302.01318) — Chen et al., DeepMind; arXiv preprint, 2023 — the concurrent derivation of the same idea.
 - [Medusa: Simple LLM Inference Acceleration Framework with Multiple Decoding Heads](https://arxiv.org/abs/2401.10774) — Cai et al.; ICML 2024 — draft-model-free speculation; reported speedups vary by arXiv version.
+- [Better & Faster Large Language Models via Multi-token Prediction](https://arxiv.org/abs/2404.19737) — Gloeckle, Youbi Idrissi, Rozière, Lopez-Paz, Synnaeve; arXiv preprint, 2024-04-30 — models trained to predict several tokens ahead; the basis of multi-token-prediction drafting.
+- [prompt-lookup-decoding](https://github.com/apoorvumang/prompt-lookup-decoding) — apoorvumang; GitHub repository — drafting by matching the prompt with plain string search instead of a draft model; the idea behind n-gram speculation.
 - [EAGLE: Speculative Sampling Requires Rethinking Feature Uncertainty](https://arxiv.org/abs/2401.15077) — Li, Wei, Zhang, Zhang; ICML 2024 — feature-level drafting; one of the methods in vLLM's `--speculative-config`.
 - [EAGLE-2: Faster Inference of Language Models with Dynamic Draft Trees](https://arxiv.org/abs/2406.16858) — Li et al.; arXiv preprint, 2024 (conference venue unconfirmed) — dynamic draft trees, the bridge to EAGLE-3 (optional).
 - [EAGLE-3: Scaling up Inference Acceleration of Large Language Models via Training-Time Test](https://arxiv.org/abs/2503.01840) — Li et al.; NeurIPS 2025 — whether speculation still helps at high batch size; current EAGLE-3 draft models.
@@ -599,7 +603,7 @@ Availability (denial of service), representative:
 - [OWASP LLM06:2025 Excessive Agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/) — OWASP — authorise in downstream systems, not in the model.
 - [Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection](https://arxiv.org/abs/2302.12173) — Greshake et al.; AISec 2023 (DOI 10.1145/3605764.3623985) — the primary paper for indirect injection; retrieved content and tool output are untrusted input.
 - [NIST AI 100-2 E2025](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-2e2025.pdf) — NIST, March 2025 — the citable definitions of direct (NISTAML.018) and indirect (NISTAML.015) prompt injection.
-- [OWASP Top 10 for Agentic Applications for 2026](https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/) — OWASP GenAI Security Project, 2025-12-09 — ASI01 to ASI10 for the agent block.
+- [OWASP Top 10 for Agentic Applications for 2026](https://genai.owasp.org/2025/12/09/owasp-top-10-for-agentic-applications-the-benchmark-for-agentic-security-in-the-age-of-autonomous-ai/) — OWASP GenAI Security Project, 2025-12-09 — ASI01 to ASI10 for the agents module.
 - [Agentic AI: Threats and Mitigations](https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/) — OWASP Agentic Security Initiative, v1.0, 2025-02-17 — threat model for agents.
 - [OWASP MCP Top 10](https://owasp.org/projects/mcp-top-10) — OWASP, beta release and pilot testing — MCP01 to MCP10, including audit and telemetry gaps.
 - [OWASP: MCP Tool Poisoning](https://community.owasp.org/attacks/MCP_Tool_Poisoning) — OWASP community — tool poisoning as indirect prompt injection and its mitigations.
@@ -714,7 +718,7 @@ Unofficial or third-party copies. Use them to find the right article, then cite 
 
 ## Inference Engineering
 
-The book is a technical reference for vocabulary and the optimisation menu, not a source of text, figures or numbers. It is cited by chapter and section only, with printed page numbers. Concepts are re-explained in original words with original diagrams and with measurements from the workshop's own runs. The book has no URL in the research notes, so this group is a bibliographic record and a table instead of a link list.
+The book is a technical reference for vocabulary and the optimisation menu, not a source of text, figures or numbers. It is cited by section only (for example "Inference Engineering, 5.2"), with printed page numbers. Concepts are re-explained in original words with original diagrams and with measurements from the workshop's own runs. The book has no URL in the research notes, so this group is a bibliographic record and a table instead of a link list.
 
 Bibliographic data:
 
@@ -731,25 +735,35 @@ Chapter-to-topic table:
 | Chapter (printed page) | Sections used (printed page) | Workshop topic it anchors |
 |---|---|---|
 | 0 Inference (p. 15) | none recorded | Overview chapter; no section-level anchor in the research notes |
-| 1 Prerequisites (p. 23) | 1.3 Model Selection (p. 31); 1.4 Measuring Latency & Throughput (p. 35) | Model-selection block; TTFT, tokens per second, percentiles, end-to-end versus inference-only latency |
+| 1 Prerequisites (p. 23) | 1.3 Model Selection (p. 31); 1.4 Measuring Latency and Throughput (p. 35) | Model-selection module; TTFT, tokens per second, percentiles, end-to-end versus inference-only latency |
 | 2 Models (p. 39) | 2.2 LLM Inference Mechanics (p. 46); 2.4 Calculating Inference Bottlenecks (p. 61); 2.5 Optimizing Attention (p. 67) | Prefill versus decode and their different bottlenecks; ops:byte ratio and arithmetic intensity; attention optimisation |
-| 3 Hardware (p. 71) | 3.1 GPU Architecture (p. 74); 3.2 Generations (p. 77); 3.3 Instances (p. 83); 3.5 Local Inference (p. 89) | Hardware and architecture block: GPU choice, generations, instance types, local inference |
-| 4 Software (p. 93) | 4.1 CUDA (p. 96); 4.3 Inference Engines (p. 105); 4.5 Benchmarking & Load Testing (p. 112) | Inference-server block and the benchmarking lab; engine table is vendor-biased |
+| 3 Hardware (p. 71) | 3.1 GPU Architecture (p. 74); 3.2 GPU Architecture Generations (p. 77); 3.3 Instances (p. 83); 3.5 Local Inference (p. 89) | Hardware and architecture modules: GPU choice, generations, instance types, local inference |
+| 4 Software (p. 93) | 4.1 CUDA (p. 96); 4.3 Inference Engines (p. 105); 4.5 Performance Benchmarking and Load Testing (p. 112) | Inference-server module and the benchmarking lab; engine table is vendor-biased |
 | 5 Techniques (p. 117) | 5.1 Quantization (p. 120); 5.2 Speculative Decoding (p. 129); 5.3 Caching (p. 136); 5.4 Model Parallelism (p. 142); 5.5 Disaggregation (p. 148) | Optimisation menu: which tensors tolerate lower precision; speculative decoding variants; prefix caching and cache-aware routing; tensor, expert and pipeline parallelism; when prefill/decode disaggregation pays |
 | 6 Modalities (p. 153) | none recorded | No workshop anchor in the research notes |
-| 7 Production (p. 177) | 7.1 Containerization (p. 179); 7.2 Autoscaling (p. 183); 7.4 Testing & Deployment (p. 199) | Containers; static, dynamic and continuous batching; autoscaling and cold starts; canary deployment; observability |
-| Appendix A Glossary (p. 209) | whole appendix | Vocabulary cross-check; its MIG slice counts differ from Chapter 3 |
-| Appendix B Recommended Reading (p. 231) | none recorded | Further reading, not used as an anchor |
+| 7 Production (p. 177) | 7.1 Containerization (p. 179); 7.2 Autoscaling (p. 183), with 7.2.1 Concurrency and Batch Sizing (pp. 186 to 187), 7.2.2 Cold Starts (p. 188) and 7.2.5 Independent Component Scaling (p. 192); 7.4 Testing and Deployment (p. 199), with 7.4.1 Zero-Downtime Deployment (p. 200) and 7.4.3 Observability (p. 203) | Containers; static, dynamic and continuous batching (7.2.1); autoscaling and cold starts (7.2.2); canary and blue-green deployment (7.4.1) and shadow traffic testing (7.4, p. 199); independent scaling of components (7.2.5); observability (7.4.3) |
+| Appendix A Glossary (p. 209) | whole appendix | Vocabulary cross-check; its MIG entry (p. 222) agrees with the Fig. 3.5 caption on p. 86 |
+| Appendix B Recommended Reading (p. 231) | the citation of the PagedAttention paper (p. 252) | Further reading; the main text names PagedAttention without attribution and Appendix B cites Kwon et al., SOSP 2023 |
 
 Where the book does not help, so this repository brings its own primary sources and measurements (checked by reading the whole text):
 
 - no per-token KV-cache formula and no effect of GQA, MQA or MLA on KV size
 - no `vllm bench`, GuideLLM or metric names, and no Prometheus metric names
 - no discussion of open-loop versus closed-loop load or coordinated omission
-- only a two-sentence PagedAttention definition without attribution, and a passing mention of llama.cpp and Ollama
-- no data parallelism for LLMs, and no dollars per GPU-hour or worked cost-per-million-tokens example
+- PagedAttention gets a four-sentence paragraph (p. 68) and short definitions (pp. 141, 224), with no attribution in the main text and a citation of Kwon et al., SOSP 2023, in Appendix B (p. 252); llama.cpp and Ollama get a passing mention
+- no data parallelism for LLMs, and no dollars per GPU-hour or worked cost-per-million-tokens example (7.4.2 Cost Estimation, pp. 201 to 202, lists the cost factors and gives two equations as figures)
 
-Internal inconsistencies not to repeat: B200 memory appears as 180 GB in one place and 192 GB in another; MIG slice counts differ between the chapter and the glossary; one hardware line names a Grace GPU where the Grace CPU is meant.
+Inconsistencies not to repeat: B200 memory appears as 180 GB (p. 139) and as 192 GB (pp. 81, 212); "Grace GPUs" appears where Grace CPUs are meant (pp. 82, 228). The MIG counts are consistent once memory and compute slices are told apart: the chapter text says a GPU splits into as many as seven pieces (p. 86), while the Fig. 3.5 caption on the same page and the glossary (p. 222) list eight memory slices and seven compute slices.
+
+Sections of the book that are relevant to inference but whose content the workshop does not teach (or touches only briefly), for readers who want to go further. Some of them are in the table above because they supply vocabulary:
+
+- 2.5 Optimizing Attention (p. 67): attention kernels and variants that reduce its cost; the workshop explains the KV cache and PagedAttention but does not go into attention kernels and variants
+- 4.1 CUDA (p. 96) and 4.5.3 Profiling Performance (p. 114): kernels, kernel fusion and profiling; the workshop measures from outside the engine
+- 5.3.2 Where to Store the KV Cache (p. 139): KV storage tiers beyond GPU memory
+- 5.4.3 Multi-Node Inference (p. 146): models that need more than one node
+- 5.5 Disaggregation (p. 148): separate prefill and decode pools; the workshop mentions it only briefly
+- Chapter 6 Modalities (p. 153): vision, speech, image and video models; the workshop uses one embedding model for RAG and no other modality
+- 7.3 Multi-Cloud Capacity Management (p. 193), including 7.3.3 Building for Reliability (p. 196): procurement, geo-aware routing and reliability across providers
 
 ## Infrastructure provider (Runpod)
 
@@ -766,7 +780,7 @@ Runpod is the workshop's GPU provider, driven through its MCP server. Prices, av
 - [Manage Pods](https://docs.runpod.io/pods/manage-pods) — Runpod docs — stopped Pods keep billing for storage and can return with zero GPUs.
 - [Create a custom template](https://docs.runpod.io/pods/templates/create-custom-template) — Runpod docs — installing `sshd` in the upstream vLLM image at start.
 - [Runpod container start script](https://raw.githubusercontent.com/runpod/containers/main/container-template/start.sh) — Runpod, main branch — how the public key from the environment reaches the Pod.
-- [Build Docker images on Runpod with Bazel](https://docs.runpod.io/tutorials/pods/build-docker-images) — Runpod docs — building images inside a Pod without a Docker daemon; the earlier Docker-in-Docker tutorial (CPU Pods only) is no longer served, and a measured attempt on a GPU Pod confirmed that Docker does not work there, so the containerization block runs on laptops.
+- [Build Docker images on Runpod with Bazel](https://docs.runpod.io/tutorials/pods/build-docker-images) — Runpod docs — building images inside a Pod without a Docker daemon; the earlier Docker-in-Docker tutorial (CPU Pods only) is no longer served, and a measured attempt on a GPU Pod confirmed that Docker does not work there, so the containerization exercise runs on laptops.
 - [Instant Clusters](https://docs.runpod.io/instant-clusters) — Runpod docs — 2 to 8 self-serve nodes, still containers.
 - [Serverless vLLM overview](https://docs.runpod.io/serverless/vllm/overview) — Runpod docs — the only vLLM path in Runpod's own docs; no official Pod template.
 - [Deploy vLLM on Runpod with Docker](https://www.runpod.io/articles/guides/deploy-vllm-runpod-docker) — Runpod guide — runs the upstream `vllm/vllm-openai` image with a custom start command and port 8000.

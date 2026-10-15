@@ -6,7 +6,7 @@ import { isLayer } from './stack'
 
 /**
  * The nearest value of a frontmatter key on this slide or an earlier one.
- * Section dividers declare `layer` and `day` once; the slides after them inherit it.
+ * Section dividers declare `layer` and `module` once; the slides after them inherit it.
  */
 export function useInherited<T = unknown>(key: string, accept: (v: unknown) => v is T): ComputedRef<T | undefined> {
   const { slides, currentPage } = useNav()
@@ -24,8 +24,8 @@ export function useLayer(): ComputedRef<LayerKey> {
   return computed(() => inherited.value ?? 'all')
 }
 
-export function useDay(): ComputedRef<number | undefined> {
-  return useInherited<number>('day', (v): v is number => typeof v === 'number')
+export function useModule(): ComputedRef<number | undefined> {
+  return useInherited<number>('module', (v): v is number => typeof v === 'number')
 }
 
 /** Stage keys a slide singles out (frontmatter `stage: gpu` or `stage: [gpu, engine]`). */

@@ -17,19 +17,19 @@ Raw files: [`benchmark/results/reference/quantization/`](../../benchmark/results
 | fp8 | 16 | 360 | 554 | 9.3 | 97.0 | 1,322.8 | 390.0 |
 | kv-fp8 | 16 | 534 | 830 | 12.3 | 72.3 | 963.3 | 430.1 |
 
-| Profile | Weights in memory | KV pool | KV capacity | Maximum concurrency at 32,768 tokens | Start (restart, warm) |
+| Profile | Weights in memory | KV pool | KV capacity | Maximum concurrency at 32,768 tokens | Restart, warm (`wsctl` wall time) |
 | --- | --- | --- | --- | --- | --- |
 | baseline | 15.27 GiB | 58.64 GiB | 426,992 tokens | 13.03× | 39.3 s |
 | fp8 | 8.85 GiB | 65.00 GiB | 473,312 tokens | 14.44× | 41.3 s |
 | kv-fp8 | 15.27 GiB | 58.26 GiB | 848,400 tokens | 25.89× | 37.3 s |
 
-The first start of the `fp8` profile, with a new checkpoint to load and compile, took 143 s (138 s in an independent dry run on another machine).
+The first start of the `fp8` profile, with a new checkpoint to load and compile, took 138 to 143 s: 143 s in the reference session and 138 s on the dry-run machine. For comparison, the cold start of the `baseline` profile takes 176 s to ready in the engine log (about 198 s by `wsctl`; 188 to 198 s were seen), a warm start 55 s in the log (67.4 s by `wsctl`) and a restart 29 s (39.3 s by `wsctl`).
 
 ### What the data says
 
 **FP8 weights make the decode step 37 % shorter and the system 48 % faster at concurrency 16.** ITL at concurrency 1 falls from 11.6 to 7.3 ms (86 to 138 tokens/s per request, ×1.60); at concurrency 16 aggregate throughput rises from 897 to 1,323 tokens/s (×1.48) and the time to first token p50 from 616 to 360 ms. Power drops as well (363 to 318 W at one request): energy per generated token falls from 4.3 J to 2.4 J at concurrency 1.
 
-**The bytes explain it, but not all of it.** One decode step reads the weights once: 16.38 GB for BF16 (bound 10.3 ms, measured 11.6, ratio 1.13) and 9.44 GB for the FP8 checkpoint (bound 5.9 ms, measured 7.3, ratio 1.23). Halving the weight bytes does not halve the step because the embeddings and the output head stay in BF16, and because some fixed costs (scheduling, kernel launches, de-quantisation) do not shrink. The GPU is still memory-bound at concurrency 1, which is what makes weight quantization pay off.
+**The bytes explain it, but not all of it.** One decode step reads the weights once: 16.38 GB for BF16 (bound 10.3 ms, measured 11.6, ratio 1.13) and 9.44 GB for the FP8 checkpoint (bound 5.9 ms, measured 7.3, ratio 1.23). Halving the weight bytes does not halve the step because the embeddings and the output head stay in BF16, and because some fixed costs (scheduling, kernel launches, de-quantization) do not shrink. The GPU is still memory-bound at concurrency 1, which is what makes weight quantization pay off.
 
 **FP8 weights free memory but not much capacity on this card.** They release 6.4 GiB, which the KV pool takes (58.6 to 65.0 GiB); capacity rises by 11 % (426,992 to 473,312 tokens). On a card where the weights fill most of the memory the same saving would matter far more. On a 96 GB card FP8 weights buy decode speed, not capacity.
 

@@ -60,6 +60,6 @@ const decode = { math: 0.03, mem: 10.3 }
     </g>
 
     <text x="0" y="414" class="dg-text-muted">Lower bounds from datasheet peaks (BF16 dense, derived), drawn to one scale. They are not measurements.</text>
-    <text x="0" y="438" class="dg-text-muted">The KV cache read and the attention math are left out; they matter at long context (Day 2).</text>
+    <text x="0" y="438" class="dg-text-muted">The KV cache read and the attention math are left out; they matter at long context.</text>
   </DiagramFrame>
 </template>

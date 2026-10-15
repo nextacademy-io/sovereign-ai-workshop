@@ -28,12 +28,12 @@ Sources are primary where possible: vLLM source and docs at the `v0.31.0` tag, H
 | 10 | Benchmark tooling | 10 |
 | 11 | Model licences | 11 |
 | 12 | EU regulatory information | 12 |
-| 13 | Security of self-hosted inference | (security and sovereignty block) |
+| 13 | Security of self-hosted inference | (security and sovereignty module) |
 | 14 | Decision log | |
 
 ## 1. Heise workshop promises
 
-Verified 2026-10-14. The public workshop page is the contract with participants. Every advertised topic is kept; `docs/CURRICULUM.md` maps each to a block, a task, a trainer demo or an optional extension.
+Verified 2026-10-14. The public workshop page is the contract with participants. Every advertised topic is kept; `docs/CURRICULUM.md` maps each to a module, a task, a trainer demo or an optional extension.
 
 **Source facts**
 
@@ -60,11 +60,11 @@ Verified 2026-10-14. The public workshop page is the contract with participants.
 | 11 | Integration | REST APIs, web apps, chatbots, automation and workflows; integrating a local model into an application; building a near-production proof of concept |
 | 12 | Best practices | typical errors and pitfalls, recommendations for production use |
 
-**Interpretation.** The public page is broad: twelve blocks, six exercises, RAG, agents and frameworks. The workshop spec for this repository asks for the same breadth with an inference-engineering centre of gravity, a ceiling of six substantial tasks, and RAG/tools/agents positioned as application layers. Three items need care because they would otherwise dominate the schedule: "build your own RAG system", "build a simple agent" and "LangChain/LangGraph". The page also names Zoom as the remote tool and says laptops need Docker, which shapes where the containerization block can run (see section 7).
+**Interpretation.** The public page is broad: twelve blocks, six exercises, RAG, agents and frameworks. The workshop spec for this repository asks for the same breadth with an inference-engineering centre of gravity, a ceiling of six substantial tasks, and RAG/tools/agents positioned as application layers. Three items need care because they would otherwise dominate the material: "build your own RAG system", "build a simple agent" and "LangChain/LangGraph". The page also names Zoom as the remote tool and says laptops need Docker, which shapes where the containerization exercise can run (see section 7).
 
 **Workshop decision.**
 
-- All twelve blocks stay. RAG, tool calling/MCP and agents become guided runs of `apps/rag-demo` and `apps/tool-calling-demo` inside Day 3 blocks (`config/workshop.yaml`, blocks `d3-06-rag`, `d3-07-tools-agents`); frameworks get a positioning slide after the framework-free implementation is understood; "compare deployment approaches" is covered by the vLLM-vs-Ollama/llama.cpp concurrency demo and the replica-vs-tensor-parallel experiment.
+- All twelve blocks stay. RAG, tool calling/MCP and agents become guided runs of `apps/rag-demo` and `apps/tool-calling-demo` inside the modules `24-rag` and `25-tools-agents` (`config/workshop.yaml`); frameworks get a positioning slide after the framework-free implementation is understood; "compare deployment approaches" is covered by the vLLM-vs-Ollama/llama.cpp concurrency demo and the replica-vs-tensor-parallel experiment.
 - The mapping from each advertised sub-item to a block, task, demo or extension lives in `docs/CURRICULUM.md`.
 - Content never records event dates, because the page currently lists none (`pnpm check` rejects calendar dates in teaching content).
 
@@ -77,17 +77,17 @@ Verified 2026-10-14 against the local PDF text. The book is a reference, not a s
 **Source facts**
 
 - *Inference Engineering*, Philip Kiely (Baseten Books, 2026), ISBN 979-8-9943597-2-3; copyright © 2026 Baseten Labs, Inc.; no edition number stated; the author works for Baseten.
-- Structure by printed page: Ch. 0 Inference (p. 15); Ch. 1 Prerequisites (p. 23: 1.3 Model Selection p. 31, 1.4 Measuring Latency & Throughput p. 35); Ch. 2 Models (p. 39: 2.2 LLM Inference Mechanics p. 46, 2.4 Calculating Inference Bottlenecks p. 61, 2.5 Optimizing Attention p. 67); Ch. 3 Hardware (p. 71: 3.1 GPU Architecture p. 74, 3.2 Generations p. 77, 3.3 Instances p. 83, 3.5 Local Inference p. 89); Ch. 4 Software (p. 93: 4.1 CUDA p. 96, 4.3 Inference Engines p. 105, 4.5 Benchmarking & Load Testing p. 112); Ch. 5 Techniques (p. 117: 5.1 Quantization p. 120, 5.2 Speculative Decoding p. 129, 5.3 Caching p. 136, 5.4 Model Parallelism p. 142, 5.5 Disaggregation p. 148); Ch. 6 Modalities (p. 153); Ch. 7 Production (p. 177: 7.1 Containerization p. 179, 7.2 Autoscaling p. 183, 7.4 Testing & Deployment p. 199 incl. observability); Appendix A Glossary (p. 209); Appendix B Recommended Reading (p. 231).
-- Topics the book covers that the workshop uses as conceptual anchors: prefill vs decode and their different bottlenecks (Ch. 2.2, 2.4); TTFT / TPS / percentiles and the end-to-end vs inference-only distinction (Ch. 1.4); ops:byte ratio and arithmetic intensity (Ch. 2.4); static, dynamic and continuous batching (Ch. 7.2); quantization formats and which tensors tolerate lower precision (Ch. 5.1); speculative decoding variants (Ch. 5.2); prefix caching and cache-aware routing (Ch. 5.3); tensor, expert and pipeline parallelism (Ch. 5.4); prefill/decode disaggregation and when it pays (Ch. 5.5); containers, autoscaling, cold starts, canary deployment, observability (Ch. 7).
-- Gaps in the book, relevant to the workshop (checked by reading the whole text): no per-token KV-cache formula; no GQA/MQA/MLA effect on KV size; no `vllm bench`, GuideLLM or metric names; no discussion of open-loop vs closed-loop load or coordinated omission; only a two-sentence PagedAttention definition without attribution; one passing mention of llama.cpp and Ollama; no data parallelism for LLMs; no $/GPU-hour figures or worked cost-per-million-tokens example; no Prometheus metric names.
-- Internal inconsistencies to avoid repeating: B200 memory is given as 180 GB in one place and 192 GB in another; MIG slice counts differ between the chapter and the glossary; one hardware line says "Grace GPUs" where Grace CPUs are meant.
+- Structure by printed page: Ch. 0 Inference (p. 15); Ch. 1 Prerequisites (p. 23: 1.3 Model Selection p. 31, 1.4 Measuring Latency and Throughput p. 35); Ch. 2 Models (p. 39: 2.2 LLM Inference Mechanics p. 46, 2.4 Calculating Inference Bottlenecks p. 61, 2.5 Optimizing Attention p. 67); Ch. 3 Hardware (p. 71: 3.1 GPU Architecture p. 74, 3.2 GPU Architecture Generations p. 77, 3.3 Instances p. 83, 3.5 Local Inference p. 89); Ch. 4 Software (p. 93: 4.1 CUDA p. 96, 4.3 Inference Engines p. 105, 4.5 Performance Benchmarking and Load Testing p. 112); Ch. 5 Techniques (p. 117: 5.1 Quantization p. 120, 5.2 Speculative Decoding p. 129, 5.3 Caching p. 136, 5.4 Model Parallelism p. 142, 5.5 Disaggregation p. 148); Ch. 6 Modalities (p. 153); Ch. 7 Production (p. 177: 7.1 Containerization p. 179, 7.2 Autoscaling p. 183 with 7.2.1 Concurrency and Batch Sizing p. 186 and 7.2.2 Cold Starts p. 188, 7.4 Testing and Deployment p. 199 with 7.4.1 Zero-Downtime Deployment p. 200 and 7.4.3 Observability p. 203); Appendix A Glossary (p. 209); Appendix B Recommended Reading (p. 231).
+- Topics the book covers that the workshop uses as conceptual anchors: prefill vs decode and their different bottlenecks (2.2, 2.4); TTFT / TPS / percentiles and the end-to-end vs inference-only distinction (1.4); ops:byte ratio and arithmetic intensity (2.4); static, dynamic and continuous batching (7.2.1 Concurrency and Batch Sizing, pp. 186 to 187); quantization formats and which tensors tolerate lower precision (5.1); speculative decoding variants (5.2); prefix caching and cache-aware routing (5.3); tensor, expert and pipeline parallelism (5.4); prefill/decode disaggregation and when it pays (5.5); containers (7.1), autoscaling (7.2), cold starts (7.2.2, p. 188), canary and blue-green deployment (7.4.1, p. 200), observability (7.4.3, p. 203).
+- Gaps in the book, relevant to the workshop (checked by reading the whole text): no per-token KV-cache formula; no GQA/MQA/MLA effect on KV size; no `vllm bench`, GuideLLM or metric names; no discussion of open-loop vs closed-loop load or coordinated omission; PagedAttention gets a four-sentence paragraph (p. 68) and short definitions (pp. 141, 224), with no attribution in the main text and a citation of Kwon et al., SOSP 2023, in Appendix B (p. 252); one passing mention of llama.cpp and Ollama; no data parallelism for LLMs; no $/GPU-hour figures or worked cost-per-million-tokens example (7.4.2 Cost Estimation, pp. 201 to 202, lists the cost factors and gives two equations as figures); no Prometheus metric names.
+- Inconsistencies to avoid repeating: B200 memory is given as 180 GB (p. 139) and as 192 GB (pp. 81, 212); "Grace GPUs" appears where Grace CPUs are meant (pp. 82, 228). The MIG counts are consistent once memory and compute slices are told apart: the chapter text says the GPU splits into as many as seven pieces (p. 86), while the Fig. 3.5 caption on the same page and the glossary (p. 222) list eight memory slices and seven compute slices.
 - Bias: the book is written by a vendor employee and favours TensorRT-LLM (the vendor uses it most); the engine comparison table should be read with that in mind.
 
 **Interpretation.** The book gives the workshop its systems vocabulary and its optimisation menu, but not the numbers or tooling. Every gap above is a place where this repository must bring its own primary sources and its own measurements, which matches the workshop's measure-then-teach principle.
 
 **Workshop decision.**
 
-- Cite the book by chapter and section only, never by quotation; diagrams are original (`slides/components/`); the formulas the book omits come from vLLM source and docs (sections 3 and 9) and from the original papers (`docs/REFERENCES.md`).
+- Cite the book by section only (for example "Inference Engineering, 5.2"), never by quotation; diagrams are original (`slides/components/`); the formulas the book omits come from vLLM source and docs (sections 3 and 9) and from the original papers (`docs/REFERENCES.md`).
 - The KV-cache formula is taught and checked against the vLLM startup log (`scripts/sizing.py`, `infra/pod/server-info.py`).
 
 **Not verified.** Equations and code in the book are images in the extracted text; anything quoted from them must be checked in the PDF first.
@@ -540,7 +540,7 @@ Verified 2026-10-14. Package versions on PyPI that day: `huggingface_hub` 2.2.0,
 - Raw files of gated repos return HTTP 401 without an authorised token (observed for `config.json` and `README.md` of Llama 3.1 8B, Llama 4 and Apertus). Download needs a user access token (`HF_TOKEN` or `hf auth login`, stored at `$HF_HOME/token`) from an account that was granted access ([HF raw config, Llama-3.1-8B](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/raw/main/config.json), [HF env var docs](https://raw.githubusercontent.com/huggingface/huggingface_hub/main/docs/source/en/package_reference/environment_variables.md)).
 - `HF_TOKEN` overwrites the stored token. A logged-in client sends the token on every request by default (implicit token); `HF_HUB_DISABLE_IMPLICIT_TOKEN=1` limits it to write calls. vLLM has an `hf_token` option ([HF env var docs](https://raw.githubusercontent.com/huggingface/huggingface_hub/main/docs/source/en/package_reference/environment_variables.md), [vLLM config/model.py](https://raw.githubusercontent.com/vllm-project/vllm/main/vllm/config/model.py)).
 
-**Interpretation** (my inference). Gating is access control, not a licence. A gated Apache-2.0 repo exists. Manual approval adds lead time that a fixed three-day schedule cannot absorb. Accepting a licence on the Hub does not by itself settle redistribution duties (see 11.3 for Llama). Not legal advice.
+**Interpretation** (my inference). Gating is access control, not a licence. A gated Apache-2.0 repo exists. Manual approval adds lead time that a fixed delivery date cannot absorb. Accepting a licence on the Hub does not by itself settle redistribution duties (see 11.3 for Llama). Not legal advice.
 
 **Workshop decision.** All pinned models are ungated, so participants need no HF account. Gated models (Llama class) are demo-only: the instructor downloads once with a token to a shared volume and distributes the local path.
 
@@ -1271,7 +1271,7 @@ Verified 2026-10-14. Facts marked MCP-LIVE come from live reads of the Runpod MC
 
 **Interpretation** (my inference)
 
-- Reasons that follow from the facts: the exact GPU model is available by the hour, billing granularity matches a 3-day workshop, EU data centers are selectable, and every action can be scripted. Cost and sovereignty are not argued by the notes; the sovereignty case is in section 7.10.
+- Reasons that follow from the facts: the exact GPU model is available by the hour, per-second billing suits a workshop of any length, EU data centers are selectable, and every action can be scripted. Cost and sovereignty are not argued by the notes; the sovereignty case is in section 7.10.
 
 **Workshop decision**
 
@@ -1292,7 +1292,7 @@ Verified 2026-10-14. Facts marked MCP-LIVE come from live reads of the Runpod MC
 
 **Workshop decision**
 
-- The image is the deployment unit; the containerization block runs on participants' laptops, not on the pods. vLLM profiles are rendered and run on the pod by `infra/pod/render-profile.py` and `infra/pod/wsctl`. Monitoring on pods uses `monitoring/pod/grafana.ini`, `monitoring/prometheus/prometheus.pod.yml` and the NVML exporter as plain processes.
+- The image is the deployment unit; the containerization exercise runs on participants' laptops, not on the pods. vLLM profiles are rendered and run on the pod by `infra/pod/render-profile.py` and `infra/pod/wsctl`. Monitoring on pods uses `monitoring/pod/grafana.ini`, `monitoring/prometheus/prometheus.pod.yml` and the NVML exporter as plain processes.
 
 ### 7.4 SSH
 
@@ -1374,7 +1374,7 @@ Source: Runpod MCP `list-gpu-types`, product POD, Secure Cloud, 2026-10-14. USD 
 
 **Interpretation** (my inference)
 
-- The workshop GPU is cheaper per hour than an H100 ($2.49 vs $3.99) and has more VRAM (96 vs 80 GB) but about half the H100 SXM bandwidth (1597 vs 3350 GB/s, from Table A). At $2.49/hour, one pod for a 3-day, roughly 7 teaching hours per day workshop costs about 3 x 7 x 2.49 = $52.29 per pod before storage and idle time (DERIVED; the real bill depends on how long pods run).
+- The workshop GPU is cheaper per hour than an H100 ($2.49 vs $3.99) and has more VRAM (96 vs 80 GB) but about half the H100 SXM bandwidth (1597 vs 3350 GB/s, from Table A). At $2.49/hour, a pod costs $2.49 for every hour it runs: 10 hours cost 10 x 2.49 = $24.90 per pod before storage and idle time (DERIVED; the real bill depends on how long pods run, see `docs/GPU-POOL.md` section 4).
 - "Availability LOW" means the pool for this SKU is thin; a four-group workshop needs capacity confirmed before the event.
 
 **Workshop decision**
@@ -1452,7 +1452,7 @@ MCP-LIVE (`list-data-centers`, 2026-10-14). "Global networking" = supports Runpo
 1. Use only non-sensitive, synthetic or public data on the workshop pods.
 2. Prefer the data center whose tags match the claim you want to make, and record the tag set you saw.
 3. Do not describe a Runpod EU pod as "EU-sovereign" in slides.
-4. Treat the DPA, SCC module, sub-processor list and the "reasonable efforts" wording as the contract facts to discuss in the sovereignty block.
+4. Treat the DPA, SCC module, sub-processor list and the "reasonable efforts" wording as the contract facts to discuss in the sovereignty module.
 5. For stronger guarantees evaluate EU-headquartered providers (the surveyed Verda, Hetzner, Scaleway) against the same checklist: contracting entity, governing law, sub-processors, region commitment, certifications.
 6. Provider choice and engine choice are independent: the same vLLM image and profiles run on any NVIDIA host with a suitable driver (section 6.8).
 
@@ -1464,7 +1464,7 @@ MCP-LIVE (`list-data-centers`, 2026-10-14). "Global networking" = supports Runpo
 
 **Source facts**
 
-- No Docker or Compose inside Pods, so the containerization block runs on participants' laptops; on the pods the image itself is the deployment unit.
+- No Docker or Compose inside Pods, so the containerization exercise runs on participants' laptops; on the pods the image itself is the deployment unit.
 - Monitoring is pod-native (Prometheus, Grafana and an NVML exporter as plain processes); dcgm-exporter is used in the reference compose stack only.
 - Proxy URLs and exposed TCP ports are public: bind vLLM to 127.0.0.1, require `--api-key`, and reach it over SSH tunnels.
 - Port mapping changes on Pod restart (measured: 22290 to 22235), and the container disk is wiped: accounts and keys are recreated from `infra/participants.yaml` on the trainer's laptop by `infra/deploy-to-pod.sh`; participants get the new port and see a new host key. `/workspace` holds only the model download cache (no permission enforcement, 7.6).
@@ -1489,7 +1489,7 @@ MCP-LIVE (`list-data-centers`, 2026-10-14). "Global networking" = supports Runpo
 
 **Workshop decision**
 
-- The Day 3 security material (`docs/SECURITY.md`) uses this as an anecdote without quoting the page (the notes plan it that way). It supports the same rule as the tool-calling material in `apps/tool-calling-demo`: tool and web results are untrusted input.
+- The security material (`docs/SECURITY.md`) uses this as an anecdote without quoting the page (the notes plan it that way). It supports the same rule as the tool-calling material in `apps/tool-calling-demo`: tool and web results are untrusted input.
 
 ## 8. Quantization support
 
@@ -1730,7 +1730,7 @@ Histograms (each exposes `_bucket`, `_sum`, `_count`)
 
 ## 10. Benchmark tooling
 
-Verified 2026-10-14. vLLM facts come from the v0.31.0 source (`vllm/benchmarks/serve.py`, `vllm/benchmarks/datasets/datasets.py`); methodology facts come from the cited papers and tool documents. Book reference: "Inference Engineering" (Kiely, Baseten Books 2026), benchmarking chapter, cited by chapter only.
+Verified 2026-10-14. vLLM facts come from the v0.31.0 source (`vllm/benchmarks/serve.py`, `vllm/benchmarks/datasets/datasets.py`); methodology facts come from the cited papers and tool documents. Book reference: "Inference Engineering" (Kiely, Baseten Books 2026), section 4.5, cited by section only.
 
 ### 10.1 `vllm bench serve`: flags
 
@@ -2605,8 +2605,8 @@ The decisions this research led to, in one place. Each row names the section tha
 | D8 | Our own benchmark harness defines TTFT, ITL, TPOT and goodput explicitly and is cross-checked against `vllm bench serve`, because tools define the metrics differently | 10 | `benchmark/infbench/`, `docs/METRICS.md` |
 | D9 | Sweeps use different prompts at every level; prefix caching is on by default in vLLM V1 and would otherwise flatter later runs | 3.9 | `benchmark/infbench/cli.py` |
 | D10 | The Grafana dashboard uses vLLM v0.31.0 metric names and DCGM GPU names so it works with the pod exporter and with dcgm-exporter | 6.9, 9 | `monitoring/grafana/build_dashboard.py` |
-| D11 | Day 1-2 KV experiments use an explicit KV budget (`--kv-cache-memory-bytes`) to simulate a small GPU, because 96 GB hides memory pressure for an 8B model | 3.4, 5.2 | `config/vllm-profiles/kv-constrained.yaml` |
+| D11 | The KV experiments use an explicit KV budget (`--kv-cache-memory-bytes`) to simulate a small GPU, because 96 GB hides memory pressure for an 8B model | 3.4, 5.2 | `config/vllm-profiles/kv-constrained.yaml` |
 | D12 | Roofline numbers: 1597 GB/s bandwidth and about 504 TFLOPS dense BF16 (derived), always overridden by measurements | 6.1-6.4 | `monitoring/grafana/build_dashboard.py` |
 | D13 | Security and sovereignty are taught as engineering: data-flow mapping, supply-chain pinning, patched engine versions, and Runpod as a case study ("EU region is not EU jurisdiction") | 7.10, 12, 13 | `docs/SECURITY.md`, `docs/DIGITAL-SOVEREIGNTY.md` |
-| D14 | Fetched documentation is data, not instructions; one vendor docs page carried embedded instructions for AI agents and is used as an anecdote in the security block | 7.12, 13.7 | `docs/SECURITY.md` |
+| D14 | Fetched documentation is data, not instructions; one vendor docs page carried embedded instructions for AI agents and is used as an anecdote in the security module | 7.12, 13.7 | `docs/SECURITY.md` |
 | D15 | Teaching content carries no calendar dates; the Heise event is currently cancelled and undated | 1 | `scripts/check-repo.mjs` |

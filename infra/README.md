@@ -31,7 +31,7 @@ participant laptops ── ssh -L ──────► everything above, throug
 | [`versions.env`](versions.env) | sourced | Pinned versions and checksums of everything the pods download |
 | [`pod/`](pod/) | pod | `wsctl` (server supervisor), `wsmon` (monitoring), `ws-user.sh`, `ws-reset.sh`, `render-profile.py`, `fetch-models.py`, `server-info.py`, `paths.sh` |
 
-## Typical day
+## Typical sequence
 
 ```bash
 # Before the workshop (once per pod, about 5 minutes after the pod is running)
@@ -43,7 +43,7 @@ infra/reset-machine.sh --host <ip> --port <port> user anna      # a participant 
 infra/reset-machine.sh --host <ip> --port <port> servers        # the shared server is stuck
 ssh -p <port> root@<ip> 'wsctl status'                          # who started what, stray servers
 
-# End of day
+# After a session, before a break
 infra/cleanup.sh --host <ip> --port <port> --collect
 
 # End of workshop

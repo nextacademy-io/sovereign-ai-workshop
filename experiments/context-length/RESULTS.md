@@ -71,7 +71,7 @@ The small pool trades **time to first token and throughput for decode speed**: f
 
 ## What surprised
 
-- **The profile did not start at first.** With the default `--max-model-len 32768` a 4 GiB pool holds less than one maximum-length request, and vLLM refuses to start ("4.5 GiB KV cache is needed, which is larger than the available KV cache memory (4.0 GiB)... the estimated maximum model length is 29104"); the supervisor rolled back to the previous profile. The profile now lowers the context limit to 16,384. The refusal is the same arithmetic as in `d1-06-gpu-sizing`, enforced.
+- **The profile did not start at first.** With the default `--max-model-len 32768` a 4 GiB pool holds less than one maximum-length request, and vLLM refuses to start ("4.5 GiB KV cache is needed, which is larger than the available KV cache memory (4.0 GiB)... the estimated maximum model length is 29104"); the supervisor rolled back to the previous profile. The profile now lowers the context limit to 16,384. The refusal is the same arithmetic as in the sizing module (`04-gpu-sizing`), enforced.
 - The bottleneck on the full card is compute, so the "KV memory" lesson needs the constrained profile to appear at all.
 - The small pool is faster per request: a constraint that helps one metric at the expense of another.
 

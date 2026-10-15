@@ -2,15 +2,15 @@
 
 ## Goal
 
-Arrive on Day 1 with a laptop that can reach your group's GPU machine, so that no workshop time is spent on setup.
+Arrive at the first module with a laptop that can reach your group's GPU machine, so that no workshop time is spent on setup.
 
 ## Context
 
 You do not need a GPU or a cloud account. The trainer provides one GPU machine per group; you connect over SSH with your own key. This task checks your tools and your key, and, once you have received your access details, your login.
 
-## Timebox
+## Scope
 
-15 minutes.
+Done means the preflight ends with `0 failed` and your login test prints the GPU name. Out of scope: downloading models, starting servers or reading the course material in advance.
 
 ## Starting Point
 

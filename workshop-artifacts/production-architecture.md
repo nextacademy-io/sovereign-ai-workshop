@@ -1,8 +1,8 @@
 # Production architecture (Lab 5)
 
-> Design an inference platform for your scenario and be ready to defend it for five minutes. There is no single
-> correct answer: the quality of the reasoning is what counts. Use numbers (yours from Day 2, or
-> `benchmark/results/reference/`) wherever you can, and mark every estimate as an estimate.
+> Design an inference platform for your scenario and be ready to defend it in a short presentation. There is no
+> single correct answer: the quality of the reasoning is what counts. Use numbers (yours from the benchmarking and
+> optimization labs, or `benchmark/results/reference/`) wherever you can, and mark every estimate as an estimate.
 
 ## Scenario
 
@@ -80,8 +80,8 @@ Answer in one line each. Skip none; "do not know yet" is a valid answer if you s
 8. How much VRAM is required?
 9. What hardware bottleneck do we expect?
 10. What does the baseline benchmark show?
-11. Which optimisation addresses the measured bottleneck?
-12. Does the optimisation degrade quality?
+11. Which optimization addresses the measured bottleneck?
+12. Does the optimization degrade quality?
 13. What should we monitor?
 14. What security boundary is required?
 15. What does this cost per useful workload?

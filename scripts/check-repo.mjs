@@ -8,11 +8,11 @@
 //
 // What is checked (each check skips cleanly while its inputs do not exist yet):
 //   1. every YAML file parses; config/models.yaml pins full commit SHAs
-//   2. config/workshop.yaml: blocks do not overlap, daily teaching time fits ~7 h
-//   3. tasks/NN-*.md follow the task template; timeboxes agree with workshop.yaml and tasks/README.md
+//   2. config/workshop.yaml: one ordered module path (no days, times or durations), every outcome covered
+//   3. tasks/NN-*.md follow the task template and are listed in tasks/README.md
 //   4. benchmark/results/**/*.json carry full provenance (hardware, model revision, versions, config, date)
-//   5. slides: speaker notes, lab slides match their task, every metric component declares its source
-//   6. teaching content contains no calendar dates (content must stay reusable)
+//   5. slides: speaker notes, dividers match the module path, lab slides name their task, every metric component declares its source
+//   6. teaching content contains no calendar dates, no day numbers and no clock times (content must stay reusable)
 //   7. repo paths mentioned in inline code or links exist
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -23,11 +23,10 @@ import YAML from "yaml";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const RELEASE = process.argv.includes("--release");
 
-const TEACHING_MINUTES = { min: 380, max: 450 };
 const TASK_SECTIONS = [
   "Goal",
   "Context",
-  "Timebox",
+  "Scope",
   "Starting Point",
   "Instructions",
   "Expected Result",
@@ -43,7 +42,6 @@ const REQUIRED_AT_RELEASE = [
   "FACILITATOR.md",
   "CONTRIBUTING.md",
   "LICENSE",
-  "LICENSE-CODE",
   ".env.example",
   "config/models.yaml",
   "config/workshop.yaml",
@@ -155,81 +153,55 @@ if (models) {
   }
 }
 
-// ---------------------------------------------------------------- 2. agenda
+// ---------------------------------------------------------------- 2. module path
 const workshop = yamlDocs.get("config/workshop.yaml");
-const taskTimeboxFromAgenda = new Map(); // task id -> minutes
-if (workshop?.days) {
-  const toMin = (hhmm) => {
-    const [h, m] = String(hhmm).split(":").map(Number);
-    return h * 60 + m;
-  };
+const pathTasks = new Set(); // task ids named by the module path
+const SCHEDULE_FIELDS = ["day", "days", "start", "minutes", "timebox", "timebox_minutes"];
+if (workshop && (workshop.days || !workshop.modules)) err("config/workshop.yaml", "needs an ordered 'modules:' list (the workshop has no days)");
+if (workshop?.modules) {
   const coveredOutcomes = new Set();
   const seenIds = new Set();
   for (const p of workshop.prework ?? []) {
     (p.outcomes ?? []).forEach((o) => coveredOutcomes.add(o));
-    if (p.task) taskTimeboxFromAgenda.set(String(p.task), p.timebox_minutes);
+    if (p.task) pathTasks.add(String(p.task));
+    for (const k of SCHEDULE_FIELDS) if (k in p) err("config/workshop.yaml", `prework '${p.id}': '${k}' is a schedule field; the material has no times or durations`);
   }
-  for (const day of workshop.days) {
-    let teaching = 0;
-    let prevEnd = -1;
-    for (const b of day.blocks ?? []) {
-      const where = `day ${day.day} block '${b.id}'`;
-      if (seenIds.has(b.id)) err("config/workshop.yaml", `${where}: duplicate block id`);
-      seenIds.add(b.id);
-      (b.outcomes ?? []).forEach((o) => coveredOutcomes.add(o));
-      if (b.kind !== "break") {
-        if (!existsSync(abs("slides/sections", `${b.id}.md`))) guard("config/workshop.yaml", `${where}: no slides/sections/${b.id}.md`);
-        for (const e of b.experiments ?? [])
-          if (!existsSync(abs("experiments", e))) guard("config/workshop.yaml", `${where}: no experiments/${e}/`);
-      }
-      if (!/^\d{2}:\d{2}$/.test(String(b.start))) err("config/workshop.yaml", `${where}: bad start '${b.start}'`);
-      if (!(b.minutes > 0)) err("config/workshop.yaml", `${where}: minutes must be > 0`);
-      const start = toMin(b.start);
-      if (start < prevEnd) err("config/workshop.yaml", `${where}: overlaps the previous block`);
-      prevEnd = start + b.minutes;
-      if (b.kind !== "break") teaching += b.minutes;
-      if (b.task) {
-        if (!(b.timebox_minutes > 0)) err("config/workshop.yaml", `${where}: task needs timebox_minutes`);
-        if (b.timebox_minutes > b.minutes)
-          err("config/workshop.yaml", `${where}: timebox_minutes (${b.timebox_minutes}) exceeds block length (${b.minutes})`);
-        taskTimeboxFromAgenda.set(String(b.task), b.timebox_minutes);
-      }
-    }
-    if (teaching < TEACHING_MINUTES.min || teaching > TEACHING_MINUTES.max)
-      err("config/workshop.yaml", `day ${day.day}: ${teaching} teaching minutes, expected ${TEACHING_MINUTES.min}-${TEACHING_MINUTES.max}`);
-  }
+  workshop.modules.forEach((m, i) => {
+    const where = `module ${i + 1} '${m.id}'`;
+    if (seenIds.has(m.id)) err("config/workshop.yaml", `${where}: duplicate module id`);
+    seenIds.add(m.id);
+    if (!String(m.id).startsWith(`${String(i + 1).padStart(2, "0")}-`)) err("config/workshop.yaml", `${where}: the id must start with its position '${String(i + 1).padStart(2, "0")}-'`);
+    for (const k of SCHEDULE_FIELDS) if (k in m) err("config/workshop.yaml", `${where}: '${k}' is a schedule field; the material has no times or durations`);
+    (m.outcomes ?? []).forEach((o) => coveredOutcomes.add(o));
+    if (!existsSync(abs("slides/sections", `${m.id}.md`))) guard("config/workshop.yaml", `${where}: no slides/sections/${m.id}.md`);
+    for (const e of m.experiments ?? []) if (!existsSync(abs("experiments", e))) guard("config/workshop.yaml", `${where}: no experiments/${e}/`);
+    if (m.task) pathTasks.add(String(m.task));
+  });
   // The 23 learning outcomes of the workshop (docs/CURRICULUM.md) must each be taught somewhere.
   for (let o = 1; o <= 23; o++)
-    if (!coveredOutcomes.has(o)) err("config/workshop.yaml", `learning outcome ${o} is not covered by any block`);
+    if (!coveredOutcomes.has(o)) err("config/workshop.yaml", `learning outcome ${o} is not covered by any module`);
 }
 
-// docs/CURRICULUM.md must name every non-break block id, so the curriculum cannot drift from the agenda.
-if (workshop?.days && existsSync(abs("docs/CURRICULUM.md"))) {
+// docs/CURRICULUM.md must name every module id, so the curriculum cannot drift from the path.
+if (workshop?.modules && existsSync(abs("docs/CURRICULUM.md"))) {
   const curriculum = read(abs("docs/CURRICULUM.md"));
-  const ids = [
-    ...(workshop.prework ?? []).map((p) => p.id),
-    ...workshop.days.flatMap((d) => (d.blocks ?? []).filter((b) => b.kind !== "break").map((b) => b.id)),
-  ];
-  for (const id of ids) {
-    // Block ids are written in full (d1-03-model-selection) or as the short prefix (d1-03).
-    const short = id.match(/^(d\d-\d\d)/)?.[1] ?? id;
-    if (!curriculum.includes(id) && !curriculum.includes(`\`${short}\``)) guard("docs/CURRICULUM.md", `does not mention block '${id}'`);
-  }
+  for (const id of [...(workshop.prework ?? []).map((p) => p.id), ...workshop.modules.map((m) => m.id)])
+    if (!curriculum.includes(id)) guard("docs/CURRICULUM.md", `does not mention module '${id}'`);
 }
 
-// README.md and FACILITATOR.md carry agenda tables generated from workshop.yaml (scripts/gen-agenda.mjs).
-if (workshop?.days) {
+// README.md, FACILITATOR.md and docs/CURRICULUM.md carry module tables generated from workshop.yaml (scripts/gen-agenda.mjs).
+if (workshop?.modules) {
   const { applyRegions } = await import("./agenda-tables.mjs");
-  for (const file of ["README.md", "FACILITATOR.md"]) {
+  for (const file of ["README.md", "FACILITATOR.md", "docs/CURRICULUM.md"]) {
     if (!existsSync(abs(file))) continue;
     const { changed } = applyRegions(read(abs(file)), workshop);
-    if (changed) guard(file, "agenda tables differ from config/workshop.yaml: run `node scripts/gen-agenda.mjs`");
+    if (changed) guard(file, "module tables differ from config/workshop.yaml: run `node scripts/gen-agenda.mjs`");
   }
 }
 
 // ---------------------------------------------------------------- 3. tasks
 const taskFiles = walk(abs("tasks"), (p) => /\/\d\d-[a-z0-9-]+\.md$/.test(p.split("\\").join("/")));
-const taskIds = new Map(); // id -> timebox minutes read from the task file
+const taskIds = new Set();
 for (const f of taskFiles) {
   const name = rel(f);
   const id = name.replace(/^tasks\//, "").replace(/\.md$/, "");
@@ -242,29 +214,15 @@ for (const f of taskFiles) {
   });
   if (positions.every((p) => p >= 0) && positions.some((p, i) => i > 0 && p < positions[i - 1]))
     err(name, `sections must appear in this order: ${TASK_SECTIONS.join(" > ")}`);
-
-  const tb = text.match(/^## Timebox\s*\n+([\s\S]*?)(?=\n## )/m);
-  const minutes = tb ? Number(tb[1].match(/(\d+)\s*minutes?/i)?.[1]) : NaN;
-  if (!(minutes > 0)) err(name, "'## Timebox' must state a duration like '35 minutes'");
-  else taskIds.set(id, minutes);
-
-  if (taskTimeboxFromAgenda.has(id) && taskTimeboxFromAgenda.get(id) !== minutes)
-    err(name, `timebox ${minutes} min differs from config/workshop.yaml (${taskTimeboxFromAgenda.get(id)} min)`);
+  taskIds.add(id);
 }
-for (const id of taskTimeboxFromAgenda.keys())
+for (const id of pathTasks)
   if (!existsSync(abs("tasks", `${id}.md`))) guard("config/workshop.yaml", `task '${id}' has no tasks/${id}.md`);
 
 const tasksReadme = abs("tasks/README.md");
 if (existsSync(tasksReadme) && taskFiles.length) {
   const text = read(tasksReadme);
-  for (const [id, minutes] of taskIds) {
-    const row = text.split("\n").find((l) => l.includes(`${id}.md`));
-    if (!row) err("tasks/README.md", `no table row linking ${id}.md`);
-    else {
-      const m = Number(row.match(/(\d+)\s*min/i)?.[1]);
-      if (m !== minutes) err("tasks/README.md", `row for ${id} says ${m || "?"} min, task says ${minutes} min`);
-    }
-  }
+  for (const id of taskIds) if (!text.split("\n").some((l) => l.includes(`${id}.md`))) err("tasks/README.md", `no table row linking ${id}.md`);
 }
 
 // ---------------------------------------------------------------- 4. benchmark results
@@ -315,35 +273,35 @@ if (sectionFiles.length) {
     if (layout === "lab") {
       const id = fm.task;
       if (!id || !taskIds.has(String(id))) err(where, `lab slide references unknown task '${id}'`);
-      else if (Number(fm.timebox) !== taskIds.get(String(id)))
-        err(where, `lab slide timebox ${fm.timebox} differs from task '${id}' (${taskIds.get(String(id))} min)`);
+      if ("timebox" in fm) err(where, "lab slides carry no timebox: the material has no durations");
     }
   }
 }
 
-// slides.md is a pure manifest of the agenda: every block, in agenda order, and each section opens with a
-// divider that carries the block's layer, start time and length (the rail and the section layout read them).
-if (workshop?.days && existsSync(abs("slides/slides.md"))) {
+// slides.md is a pure manifest of the module path: every module, in path order, and each section opens with a
+// divider that carries the module's number, title, layer and objectives (the rail and the section layout read them).
+if (workshop?.modules && existsSync(abs("slides/slides.md"))) {
   const manifest = [...read(abs("slides/slides.md")).matchAll(/^src:\s*\.\/sections\/([\w-]+)\.md\s*$/gm)].map((m) => m[1]);
-  const blocks = workshop.days.flatMap((d) => (d.blocks ?? []).filter((b) => b.kind !== "break").map((b) => ({ ...b, day: d.day, first: d.blocks.find((x) => x.kind !== "break") === b })));
-  if (manifest.join() !== blocks.map((b) => b.id).join())
-    guard("slides/slides.md", `section manifest differs from the agenda in config/workshop.yaml (expected ${blocks.length} sections in agenda order, found ${manifest.length})`);
+  const modules = workshop.modules;
+  if (manifest.join() !== modules.map((m) => m.id).join())
+    guard("slides/slides.md", `section manifest differs from the module path in config/workshop.yaml (expected ${modules.length} sections in path order, found ${manifest.length})`);
   if (sectionFiles.length) {
     const { load } = await import("@slidev/parser/fs");
     const data = await load({ roots: [slidesDir], userRoot: slidesDir }, abs("slides/slides.md"));
-    for (const b of blocks) {
-      const file = abs("slides/sections", `${b.id}.md`);
+    modules.forEach((m, i) => {
+      const file = abs("slides/sections", `${m.id}.md`);
       const open = data.slides.filter((x) => x.source.filepath === file).sort((a, c) => a.source.index - c.source.index)[0];
-      if (!open) continue;
+      if (!open) return;
       const fm = open.frontmatter ?? {};
-      const where = `slides/sections/${b.id}.md slide 1`;
+      const where = `slides/sections/${m.id}.md slide 1`;
       if (fm.layout !== "section") guard(where, `must open with layout: section (found '${fm.layout}')`);
-      if (fm.layer !== b.layer) guard(where, `layer '${fm.layer}' differs from workshop.yaml ('${b.layer}')`);
-      if (String(fm.time) !== String(b.start)) guard(where, `time '${fm.time}' differs from workshop.yaml start '${b.start}'`);
-      if (Number(fm.minutes) !== b.minutes) guard(where, `minutes ${fm.minutes} differ from workshop.yaml (${b.minutes})`);
-      if (!fm.heading) guard(where, "needs a heading");
-      if (b.first && Number(fm.day) !== b.day) guard(where, `the first block of day ${b.day} must declare day: ${b.day}`);
-    }
+      if (fm.layer !== m.layer) guard(where, `layer '${fm.layer}' differs from workshop.yaml ('${m.layer}')`);
+      if (Number(fm.module) !== i + 1) guard(where, `module ${fm.module} differs from its position in workshop.yaml (${i + 1})`);
+      if (fm.heading !== m.title) guard(where, `heading '${fm.heading}' differs from the title in workshop.yaml ('${m.title}')`);
+      if (!Array.isArray(fm.can) || fm.can.length < 2 || fm.can.length > 3 || fm.can.some((c) => typeof c !== "string" || !c.trim()))
+        guard(where, "needs 'can:' with two or three short statements (what participants can do after the module)");
+      for (const k of ["day", "time", "minutes", "timebox"]) if (k in fm) guard(where, `'${k}' is a schedule field; the material has no days, times or durations`);
+    });
   }
 }
 
@@ -367,16 +325,27 @@ for (const f of slideSources) {
   }
 }
 
-// ---------------------------------------------------------------- 6. calendar dates in teaching content
+// ---------------------------------------------------------------- 6. calendar dates and schedule words in teaching content
 const dateRe = /\b20\d\d-[01]\d-[0-3]\d\b/;
+// The material is a module path without days or clock times: these words would tie it to a schedule again.
+const SCHEDULE_WORDS = [
+  [/\bDay [1-3]\b/, "a day number"],
+  [/\b(?:[01]\d|2[0-3]):[0-5]\d\b(?!:)/, "a clock time"],
+  [/\b(?:this morning|this afternoon|tomorrow|yesterday|tonight|the day before|end of day)\b/i, "a day-relative phrase"],
+];
 const contentFiles = [
   ...taskFiles,
   ...sectionFiles,
-  ...(existsSync(abs("FACILITATOR.md")) ? [abs("FACILITATOR.md")] : []),
+  ...["FACILITATOR.md", "README.md", "docs/CURRICULUM.md"].filter((f) => existsSync(abs(f))).map((f) => abs(f)),
 ];
 for (const f of contentFiles) {
-  const hit = read(f).match(dateRe);
+  const text = read(f).replace(/```[\s\S]*?```/g, ""); // fenced code shows log lines and commands
+  const hit = text.match(dateRe);
   if (hit) guard(rel(f), `contains a calendar date (${hit[0]}); teaching content must use relative times only`);
+  for (const [re2, what] of SCHEDULE_WORDS) {
+    const m = text.match(re2);
+    if (m) guard(rel(f), `contains ${what} ('${m[0]}'); the material has no days or times`);
+  }
 }
 
 // ---------------------------------------------------------------- 7. referenced repo paths

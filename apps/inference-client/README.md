@@ -12,7 +12,7 @@ Small clients for an OpenAI-compatible endpoint (the workshop's shared vLLM serv
 
 ## Container
 
-`Dockerfile` builds a CPU-only image of these clients for the Day 3 exercise (non-root user, base image pinned by digest, Python packages pinned in `requirements.txt`, about 72 MB). The commands are in its header; it runs on your laptop against the tunnel.
+`Dockerfile` builds a CPU-only image of these clients for the containerization exercise (non-root user, base image pinned by digest, Python packages pinned in `requirements.txt`, about 72 MB). The commands are in its header; it runs on your laptop against the tunnel.
 
 ```bash
 docker build -f apps/inference-client/Dockerfile -t ki-ohne-cloud/client:local .
