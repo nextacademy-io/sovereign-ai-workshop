@@ -21,7 +21,7 @@ A laptop with `git`, `ssh`, `docker`, `python3` (3.11 or newer) and `curl`, and 
 1. Clone the repository and run the preflight:
 
    ```bash
-   git clone <repository-url> ki-ohne-cloud
+   git clone https://github.com/nextacademy-io/sovereign-ai-workshop.git ki-ohne-cloud
    cd ki-ohne-cloud
    ./scripts/preflight.sh
    ```

@@ -1,5 +1,7 @@
 # KI ohne Cloud
 
+**Slides:** [sovereign-ai-workshop.vercel.app](https://sovereign-ai-workshop.vercel.app) · **Repository:** [nextacademy-io/sovereign-ai-workshop](https://github.com/nextacademy-io/sovereign-ai-workshop)
+
 **Running and Operating Open Models on Your Own Infrastructure.** A hands-on workshop on inference engineering, with vLLM as the primary engine.
 
 This repository is everything the workshop runs on: the slides with speaker notes, six hands-on tasks, benchmark tooling, reproducible experiments with their measured results, scripts to provision and operate the GPU machines, monitoring, troubleshooting and the research behind every claim.
@@ -90,7 +92,7 @@ docs/               RESEARCH, CURRICULUM, SETUP, GPU-POOL, TROUBLESHOOTING, MODE
 ## 6. Participant setup
 
 ```bash
-git clone <repository-url> ki-ohne-cloud && cd ki-ohne-cloud
+git clone https://github.com/nextacademy-io/sovereign-ai-workshop.git ki-ohne-cloud && cd ki-ohne-cloud
 ./scripts/preflight.sh
 ```
 
@@ -110,6 +112,8 @@ pnpm dev        # live preview of the deck
 pnpm build      # static build (slides/dist)
 pnpm export     # PDF
 ```
+
+The deck is deployed to [sovereign-ai-workshop.vercel.app](https://sovereign-ai-workshop.vercel.app) from `main`: Vercel builds `slides/` with the settings in [`vercel.json`](vercel.json) on every push, so the link always shows the current slides.
 
 Node 22.12 or newer (Node 24 is what CI uses; `.nvmrc`) and pnpm. Every slide has speaker notes, and numbers on slides come from `benchmark/results/` or are labeled as illustrative. Authoring rules: [`slides/README.md`](slides/README.md).
 

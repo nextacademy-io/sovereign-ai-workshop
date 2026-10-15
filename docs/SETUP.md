@@ -7,7 +7,7 @@ What to do before the workshop and how to connect to your group's machine. You d
 You need: `git`, `ssh`, `docker`, `python3` (3.11 or newer), `curl`, about 20 GB of free disk for Docker images, and an SSH key. PyYAML for Python (`python3 -m pip install pyyaml`) is optional: only `scripts/sizing.py --model` needs it, and the preflight warns when it is missing.
 
 ```bash
-git clone <repository-url> ki-ohne-cloud
+git clone https://github.com/nextacademy-io/sovereign-ai-workshop.git ki-ohne-cloud
 cd ki-ohne-cloud
 ./scripts/preflight.sh
 ```
